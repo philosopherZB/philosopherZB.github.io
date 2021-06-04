@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://philosopherZB.github.io</id>
+    <title>Philosopher</title>
+    <updated>2021-06-04T05:45:04.740Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://philosopherZB.github.io"/>
+    <link rel="self" href="https://philosopherZB.github.io/atom.xml"/>
+    <subtitle>智者，存于心，而非留于形</subtitle>
+    <logo>https://philosopherZB.github.io/images/avatar.png</logo>
+    <icon>https://philosopherZB.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2021, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[Typora]]></title>
+        <id>https://philosopherZB.github.io/post/typora/</id>
+        <link href="https://philosopherZB.github.io/post/typora/">
+        </link>
+        <updated>2021-06-04T05:41:02.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="welcome">Welcome</h2>
+<p>Thank you for choosing <strong>Typora</strong>. This document will help you to start Typora. Please note that Typora for Windows is still in beta phase, so this document may be updated in future version-ups.</p>
+<h2 id="live-preview">Live Preview</h2>
+<p><strong>Typora</strong> use the feature: <em>Live Preview</em>, meaning that you could see these inline styles after you finish typing, and see block styles when you type or after you press <code>Enter</code> key or focus to another paragraph. Just try to type some markdown in typora, and you would see how it works.</p>
+<p><strong>Note</strong>: Markdown tags for inline styles, such as <code>**</code> will be hidden or displayed smartly. Markdown tags for block level styles, such as <code>###</code> or <code>- [x]</code> will be hidden once the block is rendered.</p>
+<p>You could switch to source code mode temporary from menu bar, footer bar or short cut key (<code>ctrl+/</code>). But we only provide very basic support for source code mode and won't recommend users to do so.</p>
+<h2 id="markdown-for-typora">Markdown For Typora</h2>
+<p><strong>Typora</strong> is using <a href="https://help.github.com/articles/github-flavored-markdown/">GitHub Flavored Markdown</a> .</p>
+<p>To see full markdown Syntax references and extra usage, please check <code>Help</code>-&gt;<code>Markdown Reference</code> in menu bar or <code>About</code> panel.</p>
+<h2 id="shortcut-keys">Shortcut Keys</h2>
+<p>You could find shortcut keys in the right side of menu items from menu bar.For more shortcut key details and custom key bindings, you can refer <a href="http://support.typora.io/Shortcut-Keys/">here</a>.</p>
+<h2 id="copy">Copy</h2>
+<p>We create typora and want to make it your default markdown editor, thus copy and paste means copy from another app or paste to another app, instead of <em>copy/paste from/to another markdown editor</em>. Therefore, by default, <code>Copy</code> means <code>Copy As HTML</code> ( and <code>Paste</code> means <code>Paste from HTML</code>).</p>
+<p>However, after click &quot;<strong>Copy Markdown source by default</strong>&quot;, typora will copy selected text in HTML/markdown format (When pasting, rich editors will accept the HTML format, while plain text / code editor will accept the markdown source code format).</p>
+<p>To <strong>copy Markdown source code</strong> explicitly, please use shortcut key <code>shift+cmd+c</code> or <code>Copy as Markdown</code> from menu. To <strong>Copy as HTML Code</strong>, please select <code>Copy as HTML Code</code> from menu.</p>
+<h2 id="smart-paste">Smart Paste</h2>
+<p><strong>Typora</strong> is able to analyze styles of the text content in your clipboard when pasting. For example, after pasting a <code>&lt;h1&gt;HEADING&lt;/h1&gt;</code> from some website, typora will keep the 'first level heading’ format instead of paste ‘heading’ as plain text.</p>
+<p>To <strong>paste as markdown source</strong> or plain text, you should use <code>paste as plain text</code> or press the shortcut key: <code>shift+cmd+v</code>.</p>
+<h2 id="themes">Themes</h2>
+<p>Please refer to <code>Help</code> → <code>Custom Themes</code> from menu bar.</p>
+<h2 id="publish">Publish</h2>
+<p>Currently Typora only support to export as <strong>PDF</strong> or <strong>HTML</strong>. More data format support as import/export will be integrated in future.</p>
+<h2 id="auto-save-and-file-recovery">Auto Save and File Recovery</h2>
+<p>Typora support  auto save feature, user could enable it from preference panel.</p>
+<p>Typora does not provide professional version control and file backup feature, but typora would backup the last file content from time to time automatically, so even when typora crashes or users forget to save the file before close, it is possible to recovery most of the work by clicking <code>Recovery Unsaved Drafts</code> from preference folder, and copy out backed-up files. The File name in this folder is consists of last saved date, originally file name and last saved timestamp.</p>
+<h2 id="more-useful-tips-documents">More Useful Tips &amp; Documents</h2>
+<p><a href="https://support.typora.io/">https://support.typora.io/</a></p>
+<h2 id="and-more">And More ?</h2>
+<p>For more questions or feedbacks, please contact us by:</p>
+<ul>
+<li>Home Page: http://typora.io</li>
+<li>Email: <a href="mailto:hi@typora.io">hi@typora.io</a></li>
+<li>Twitter <a href="https://twitter.com/typora">@typora</a></li>
+</ul>
+<p>We opened a Github issue page in case you want to start a discussion or as an alternative way to report bugs/suggestions: https://github.com/typora/typora-issues/issues</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Hello Gridea]]></title>
+        <id>https://philosopherZB.github.io/post/hello-gridea/</id>
+        <link href="https://philosopherZB.github.io/post/hello-gridea/">
+        </link>
+        <updated>2018-12-11T16:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+<!-- more -->
+<p><a href="https://github.com/getgridea/gridea">Github</a><br>
+<a href="https://gridea.dev/">Gridea 主页</a><br>
+<a href="http://fehey.com/">示例网站</a></p>
+<h2 id="特性">特性👇</h2>
+<p>📝  你可以使用最酷的 <strong>Markdown</strong> 语法，进行快速创作</p>
+<p>🌉  你可以给文章配上精美的封面图和在文章任意位置插入图片</p>
+<p>🏷️  你可以对文章进行标签分组</p>
+<p>📋  你可以自定义菜单，甚至可以创建外部链接菜单</p>
+<p>💻  你可以在 <strong>Windows</strong>，<strong>MacOS</strong> 或 <strong>Linux</strong> 设备上使用此客户端</p>
+<p>🌎  你可以使用 <strong>𝖦𝗂𝗍𝗁𝗎𝖻 𝖯𝖺𝗀𝖾𝗌</strong> 或 <strong>Coding Pages</strong> 向世界展示，未来将支持更多平台</p>
+<p>💬  你可以进行简单的配置，接入 <a href="https://github.com/gitalk/gitalk">Gitalk</a> 或 <a href="https://github.com/SukkaW/DisqusJS">DisqusJS</a> 评论系统</p>
+<p>🇬🇧  你可以使用<strong>中文简体</strong>或<strong>英语</strong></p>
+<p>🌁  你可以任意使用应用内默认主题或任意第三方主题，强大的主题自定义能力</p>
+<p>🖥  你可以自定义源文件夹，利用 OneDrive、百度网盘、iCloud、Dropbox 等进行多设备同步</p>
+<p>🌱 当然 <strong>Gridea</strong> 还很年轻，有很多不足，但请相信，它会不停向前 🏃</p>
+<p>未来，它一定会成为你离不开的伙伴</p>
+<p>尽情发挥你的才华吧！</p>
+<p>😘 Enjoy~</p>
+]]></content>
+    </entry>
+</feed>
