@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherZB.github.io</id>
     <title>Philosopher</title>
-    <updated>2021-11-01T01:27:15.377Z</updated>
+    <updated>2021-11-02T08:56:06.691Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherZB.github.io"/>
     <link rel="self" href="https://philosopherZB.github.io/atom.xml"/>
@@ -15,7 +15,7 @@
         <id>https://philosopherZB.github.io/post/typora/</id>
         <link href="https://philosopherZB.github.io/post/typora/">
         </link>
-        <updated>2020-10-13T05:41:02.000Z</updated>
+        <updated>2019-09-03T05:41:02.000Z</updated>
         <content type="html"><![CDATA[<h2 id="welcome">Welcome</h2>
 <p>Thank you for choosing <strong>Typora</strong>. This document will help you to start Typora. Please note that Typora for Windows is still in beta phase, so this document may be updated in future version-ups.</p>
 <h2 id="live-preview">Live Preview</h2>
