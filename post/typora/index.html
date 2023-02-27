@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Typora | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677480488571">
+<link rel="shortcut icon" href="/favicon.ico?v=1677482920329">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -68,7 +68,7 @@
           
         </div>
         
-          <p class="subtitle">智者，存于心，而非留于形</p>
+          <p class="subtitle">WORLD AS CODE</p>
         
       </div>
       <nav class="site-nav" id="site_nav">
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">2</span>
+        <span class="site-item-stat-count">3</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">1</span>
+        <span class="site-item-stat-count">2</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">1</span>
+        <span class="site-item-stat-count">2</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1138,6 +1138,80 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/"" data-c="
+          &lt;h2 id=&#34;面向对象的三大特性&#34;&gt;面向对象的三大特性&lt;/h2&gt;
+&lt;h3 id=&#34;封装&#34;&gt;封装&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;将现实中的客观事物封装成抽象的类。&lt;/li&gt;
+&lt;li&gt;对一个类中的变量，方法进行访问符修饰，以达到有些变量，方法对外开放，有些变量，方法隐藏。&lt;/li&gt;
+&lt;li&gt;针对第2点对应的访问修饰符有(范围从大到小)：public &amp;gt; protected &amp;gt; default &amp;gt; private。&lt;/li&gt;
+&lt;li&gt;由于封装隐藏了具体实现，仅提供接口供外部调用，所以在一定程度上可以提高安全性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;继承&#34;&gt;继承&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;可以实现已存在的类的变量，方法（非private），并可以扩展单属于自我的变量及方法。&lt;/li&gt;
+&lt;li&gt;继承在Java中为单继承，即一个子类只能继承一个父类（可以实现多个接口）。&lt;/li&gt;
+&lt;li&gt;通过继承创建的类称为“子类”，“派生类”。&lt;/li&gt;
+&lt;li&gt;被继承的类称为“父类”，“基类”，“超类”。&lt;/li&gt;
+&lt;li&gt;继承的关系是is-a，比如说老师是人，狮子是动物等。&lt;/li&gt;
+&lt;li&gt;继承可以降低代码的重复性，方便后续对公共行为的维护，不过同时也增加了代码的耦合度。&lt;/li&gt;
+&lt;li&gt;子类不继承父类的构造器，而是显示或隐式的调用（如果父类中存在不带参构造器，则子类隐式调用该构造器；否则如果父类中仅存在带参构造器，则子类需要通过super来显示调用父类带参构造器）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;多态&#34;&gt;多态&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;对同一个行为体现出不同的表现形式，比如吃，可以吃饭，吃零食等。&lt;/li&gt;
+&lt;li&gt;在Java中体现为对方法的重写以及重载，即传入参数来决定做哪一种具体的动作（重载）不同类之间同一方法不同表现（重写）。&lt;/li&gt;
+&lt;li&gt;重写一般为父子类之间对方法的不同操作，重载一般为同一个类中对方法的不同操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;基本数据类型四个整数两个浮点一个字符一个布尔&#34;&gt;基本数据类型（四个整数，两个浮点，一个字符，一个布尔）&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;byte，占8位，1字节，默认值：0，包装类：java.lang.Byte&lt;/li&gt;
+&lt;li&gt;short，占16位，2字节，默认值：0，包装类：java.lang.Short&lt;/li&gt;
+&lt;li&gt;int，占32位，4字节，默认值：0，包装类：java.lang.Integer&lt;/li&gt;
+&lt;li&gt;long，占64位，8字节，默认值：0L，包装类：java.lang.Long&lt;/li&gt;
+&lt;li&gt;float，占32位，4字节，默认值：0.0f，包装类：java.lang.Float&lt;/li&gt;
+&lt;li&gt;double，占64位，8字节，默认值：0.fd，包装类：java.lang.Double&lt;/li&gt;
+&lt;li&gt;char，可以存储任何字符，包装类：java.lang.Character&lt;/li&gt;
+&lt;li&gt;boolean，默认值：false，包装类：java.lang.Boolean&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;面向对象的六大基本原册&#34;&gt;面向对象的六大基本原册&lt;/h2&gt;
+&lt;h3 id=&#34;单一职责原则single-responsibility-priciple&#34;&gt;单一职责原则（Single Responsibility Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;对于一个类而言，应该只有一个引起他变化的原因。&lt;/li&gt;
+&lt;li&gt;比如，不要将teacher,doctor都放在一个person类中，而是将其拆成teacher类，doctor类。&lt;/li&gt;
+&lt;li&gt;能够一定程度上降低耦合度。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;开闭原则open-close-priciple&#34;&gt;开闭原则（Open Close Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;对于扩展是开放的，对于修改是关闭的。&lt;/li&gt;
+&lt;li&gt;一般来说就是不要修改之前的代码，可以选择继承或者实现接口来扩展对应的功能。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;里式替换原则liskov-substitution-priciple&#34;&gt;里式替换原则（Liskov Substitution Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;所有引用父类的地方都可以透明的使用其子类对象。&lt;/li&gt;
+&lt;li&gt;即父类出现的地方，把父类换成子类不会出现异常或错误；反之，子类出现的地方，把子类换成父类可能会出现异常或错误。&lt;/li&gt;
+&lt;li&gt;比如,person类具有eat功能，那么将person.eat换成teacher.eat是没有问题的；而如果teacher类具有独特的teach功能，那么如果将teacher.teach换成person.teach就会出现错误。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;依赖倒置原则dependence-inversion-priciple&#34;&gt;依赖倒置原则（Dependence Inversion Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;高层模块不依赖低层模块，而是应该依赖其抽象&lt;/li&gt;
+&lt;li&gt;抽象不依赖于细节，细节依赖于抽象&lt;/li&gt;
+&lt;li&gt;比如teacher类中应该尽量做一些老师共有的抽象行为，比如教书，这样后面的语文老师，数学老师等可以继承该抽象老师类进行扩展。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;接口隔离原则interface-segregation-priciple&#34;&gt;接口隔离原则（Interface Segregation Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;客户端不应该依赖它不需要的接口;一个类对另一个类的依赖应该建立在最小的接口上&lt;/li&gt;
+&lt;li&gt;尽量一个接口只实现一个功能，如果接口功能太多可进行拆分。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;迪米特原则law-of-demeter-or-least-knowlegde-priciple&#34;&gt;迪米特原则（Law of Demeter or Least Knowlegde Priciple）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;一个对象应该对其他对象有最少的了解。&lt;/li&gt;
+&lt;li&gt;此原则与接口隔离原则可以结合使用，尽量保持一个方法一个具体行为，而不要涵盖多个行为。&lt;/li&gt;
+&lt;/ul&gt;
+">Java基础知识</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/hello-gridea/"" data-c="
