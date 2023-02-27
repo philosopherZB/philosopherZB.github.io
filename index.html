@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677482920329">
+<link rel="shortcut icon" href="/favicon.ico?v=1677486987854">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -196,7 +196,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">3</span>
+        <span class="site-item-stat-count">4</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -246,6 +246,93 @@
         <div class="section-box pisces">
           <section class="section bg-color posts-expand slide-down-in">
             
+  <article class="post-list-box  post box-shadow-wrapper">
+    <div class="article-wrapper bg-color">
+      <section class="post-header">
+  <h1 class="post-title">
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">
+      Java多线程基础
+    </a>
+  </h1>
+  <div class="post-meta">
+    
+    <span class="meta-item pc-show">
+      <i class="fa fa-calendar-o"></i>
+      <span class="language" data-lan="publish">发布于</span>
+      <span class="publish-time" data-t="2020-12-18 16:13:34">2020-12-18</span>
+      <span class="post-meta-divider pc-show">|</span>
+    </span>
+    
+    <span class="meta-item">
+      <i class="fa fa-folder-o"></i>
+      <span class="pc-show language" data-lan="category-in">分类于</span>
+      
+      
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
+      </a>
+      
+      
+    </span>
+    <span class="post-meta-divider">|</span>
+    
+    <span class="meta-item">
+      <i class="fa fa-clock-o"></i>
+      <span>8<span class="language" data-lan="minute">分钟</span></span>
+    </span>
+    <span class="meta-item">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-file-word-o"></i>
+      <span>1882<span class="pc-show language" data-lan="words">字数</span></span>
+    </span>
+    
+  </div>
+</section>
+      <div class="post-body">
+        
+        
+          
+            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
+            
+            
+              
+              
+              
+            
+              
+              
+              
+            
+              
+              
+              
+            
+            
+              <p><h2 id="多线程基础">多线程基础</h2>
+<h3 id="java多线程并发库">java多线程并发库</h3>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png" alt="img" loading="lazy"></figure>
+
+                
+              <p>
+            
+          
+        
+        
+        <div class="post-button text-center">
+          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/" rel="contents">
+            阅读全文 »
+          </a>
+        </div>
+        
+      </div>
+      
+        <footer class="post-footer">
+          <div class="post-eof"></div>
+        </footer>
+      
+    </div>
+  </article>
+
   <article class="post-list-box  post box-shadow-wrapper">
     <div class="article-wrapper bg-color">
       <section class="post-header">
@@ -725,6 +812,189 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/"" data-c="
+          &lt;h2 id=&#34;多线程基础&#34;&gt;多线程基础&lt;/h2&gt;
+&lt;h3 id=&#34;java多线程并发库&#34;&gt;java多线程并发库&lt;/h3&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;进程与线程&#34;&gt;进程与线程&lt;/h3&gt;
+&lt;p&gt;进程：是程序运行以及资源分配的基本单位，一个程序至少有一个进程。&lt;/p&gt;
+&lt;p&gt;线程：是CPU调度和分配的基本单位，一个进程至少有一个线程。同一个进程中的线程共享其资源（减少切换，可提高效率），且可以并发执行（并发：同一时间间隔可以做多件事；并行：同一时刻可以做多件事（多核））。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;线程的上文切换&#34;&gt;线程的上文切换&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;一个CPU核在任意时刻只能执行一个线程，如果有多个线程（超过CPU核数）存在，CPU将会采用时间片轮转的方式进行线程切换，即给每一个线程分配一个时间片，当一个线程的时间片用完的时候便会处于就绪状态，并让出CPU给其他线程使用，这就是一次上下文切换。&lt;/li&gt;
+&lt;li&gt;上下文切换时是通过运行时数据区中的程序计数器来存储各个线程的运行状态的，以便于下次运行线程时可以接着上次指令继续运行（比如线程A做了一次计算准备返回数据时，切换到了线程B，然后又切回线程A，是直接返回数据，而不是再去计算一遍）。&lt;/li&gt;
+&lt;li&gt;程序计数器指的是JVM中的一块内存区域，它可以看作是当前线程所执行字节码的行号指示器，通过它，Java可以知道每个线程执行到了哪一步指令（由此可以看出程序计数器是线程私有的）。&lt;/li&gt;
+&lt;li&gt;一般而言，上下文切换是比较耗费CPU时间的一种操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;线程的几种状态&#34;&gt;线程的几种状态&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;创建：指的是生成线程对象，此时并没有调用start方法。&lt;/li&gt;
+&lt;li&gt;就绪：调用线程的start方法后，线程便进入了就绪状态，此时等待系统调度。&lt;/li&gt;
+&lt;li&gt;运行：通过系统调度，开始运行线程中的run函数。&lt;/li&gt;
+&lt;li&gt;等待：调用了Object.wait()会进入等待队列。一般需要等待其他线程做出一些特定的通知或者中断。&lt;/li&gt;
+&lt;li&gt;超时等待：该状态与等待状态有一点区别就是它会自动返回，比如调用Threa.sleep(long)，在超时之后，会自动返回进入就绪状态。&lt;/li&gt;
+&lt;li&gt;阻塞：指的是去获取锁时(等待进入synchronized方法或块)，发现同步锁被占用了，这时线程会被放入锁池，等待获取锁。&lt;/li&gt;
+&lt;li&gt;死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;创建线程的几种方式&#34;&gt;创建线程的几种方式&lt;/h2&gt;
+&lt;h4 id=&#34;继承thread&#34;&gt;继承Thread&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadTest {
+    public static void main(String[] args){
+        new TestThread().start();
+    }
+}
+
+class TestThread extends Thread{
+    @Override
+    public void run(){
+        System.out.println(&amp;quot;Test Thread&amp;quot;);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;实现runnable&#34;&gt;实现Runnable&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadTest {
+    public static void main(String[] args){
+        new Thread(new TestRunnable()).start();
+    }
+}
+
+class TestRunnable implements Runnable{
+    @Override
+    public void run() {
+        System.out.println(&amp;quot;Test Runnable&amp;quot;);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;实现callable&#34;&gt;实现Callable&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadTest {
+    public static void main(String[] args){
+        FutureTask&amp;lt;Integer&amp;gt; task = new FutureTask(new TestCallable());
+        new Thread(task).start();
+        try {
+            System.out.println(task.get());//get方法会得到call执行完之后的值
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class TestCallable implements Callable&amp;lt;Integer&amp;gt; {
+    @Override
+    public Integer call() throws Exception {
+        int num = 0;
+        while(num &amp;lt; 5){
+            num++;
+        }
+        return num;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;线程安全性&#34;&gt;线程安全性&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;原子性：同一时刻只允许一个线程对数据进行操作（atomic开头的原子类,synchronized，Lock）。&lt;/li&gt;
+&lt;li&gt;可见性：一个线程对共享变量的修改，可以及时地被其他线程观察到，（synchronized,volatile，Lock）。&lt;/li&gt;
+&lt;li&gt;有序性：指的是可以观察到其他线程的指令执行顺序，由于指令重排，一般情况下是无序的（happens-before原则）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;线程死锁&#34;&gt;线程死锁&lt;/h3&gt;
+&lt;h4 id=&#34;死锁&#34;&gt;死锁&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;指的是多个线程在执行过程中，因争夺资源而陷入环路阻塞的一种现象。&lt;/li&gt;
+&lt;li&gt;示例代码如下（运行之后，两个线程陷入死锁中，如果没有外力中断，将会一直锁定）：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadTest {
+    //共享资源A
+    private static final Object A = new Object();
+    //共享资源B
+    private static final Object B = new Object();
+
+    public static void main(String[] args){
+        new Thread(() -&amp;gt; {
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---A&amp;quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：去获取资源---B&amp;quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---B&amp;quot;);
+                }
+            }
+        },&amp;quot;Thread-01&amp;quot;).start();
+
+        new Thread(() -&amp;gt; {
+            synchronized (B){
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---B&amp;quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：去获取资源---A&amp;quot;);
+                synchronized (A){
+                    System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---A&amp;quot;);
+                }
+            }
+        },&amp;quot;Thread-02&amp;quot;).start();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;死锁四个必要条件以及如何避免死锁&#34;&gt;死锁四个必要条件以及如何避免死锁&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;互斥条件：一个资源在任意时刻只能被一个线程占用，如果有其他线程请求该资源，需要等待原线程释放资源（此条件不能被破坏，因为锁本身就是为了互斥访问）。&lt;/li&gt;
+&lt;li&gt;请求和保持条件：一个线程已经获取了一部分资源，又去请求其他资源，如果其他资源正被占用，原线程陷入阻塞，且不会释放自己占用的资源（一次性申请所有资源；或者阻塞时，释放自己占用的资源）。&lt;/li&gt;
+&lt;li&gt;不可剥夺条件：一个线程已经获得的资源，在自己未使用完之前不能被其他线程剥夺，只能自己使用结束后释放（如果去获取正在被其他线程使用的资源而阻塞时，可以释放自己占用的资源）。&lt;/li&gt;
+&lt;li&gt;环路等待条件：多个进程之间形成一种头尾相接的循环等待资源关系（按一定的顺序来获取资源）。&lt;/li&gt;
+&lt;li&gt;针对上述例子而言，可以让现线程1先获取资源AB，执行完之后，再让线程2获取资源AB，改动如下（执行顺序为：线程1先获取资源A，接着释放CPU，线程2执行准备去获取资源A，发现资源A已被占用，此时线程2阻塞，然后一秒之后释放CPU，线程1接着执行，去获取资源B，正常获取，执行完毕，释放CPU；线程2开始获取资源A，由于线程1已经执行完毕释放了锁，所以线程2正常获取资源A，接着休眠一秒释放CPU，然后又去获取资源B，同样正常获取，执行完毕）：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadTest {
+    //共享资源A
+    private static final Object A = new Object();
+    //共享资源B
+    private static final Object B = new Object();
+
+    public static void main(String[] args){
+        new Thread(() -&amp;gt; {
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---A&amp;quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：去获取资源---B&amp;quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---B&amp;quot;);
+                }
+            }
+        },&amp;quot;Thread-01&amp;quot;).start();
+
+        new Thread(() -&amp;gt; {
+            //线程2去获取A时被阻塞
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---A&amp;quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &amp;quot;：去获取资源---B&amp;quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &amp;quot;：得到资源---B&amp;quot;);
+                }
+            }
+        },&amp;quot;Thread-02&amp;quot;).start();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+">Java多线程基础</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/"" data-c="

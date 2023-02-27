@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-02-27T07:29:16.183Z</updated>
+    <updated>2023-02-27T08:40:28.014Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,192 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[Java多线程基础]]></title>
+        <id>https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/</id>
+        <link href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">
+        </link>
+        <updated>2020-12-18T08:13:34.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="多线程基础">多线程基础</h2>
+<h3 id="java多线程并发库">java多线程并发库</h3>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png" alt="img" loading="lazy"></figure>
+<h3 id="进程与线程">进程与线程</h3>
+<p>进程：是程序运行以及资源分配的基本单位，一个程序至少有一个进程。</p>
+<p>线程：是CPU调度和分配的基本单位，一个进程至少有一个线程。同一个进程中的线程共享其资源（减少切换，可提高效率），且可以并发执行（并发：同一时间间隔可以做多件事；并行：同一时刻可以做多件事（多核））。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227002.png" alt="img" loading="lazy"></figure>
+<h3 id="线程的上文切换">线程的上文切换</h3>
+<ul>
+<li>一个CPU核在任意时刻只能执行一个线程，如果有多个线程（超过CPU核数）存在，CPU将会采用时间片轮转的方式进行线程切换，即给每一个线程分配一个时间片，当一个线程的时间片用完的时候便会处于就绪状态，并让出CPU给其他线程使用，这就是一次上下文切换。</li>
+<li>上下文切换时是通过运行时数据区中的程序计数器来存储各个线程的运行状态的，以便于下次运行线程时可以接着上次指令继续运行（比如线程A做了一次计算准备返回数据时，切换到了线程B，然后又切回线程A，是直接返回数据，而不是再去计算一遍）。</li>
+<li>程序计数器指的是JVM中的一块内存区域，它可以看作是当前线程所执行字节码的行号指示器，通过它，Java可以知道每个线程执行到了哪一步指令（由此可以看出程序计数器是线程私有的）。</li>
+<li>一般而言，上下文切换是比较耗费CPU时间的一种操作。</li>
+</ul>
+<h3 id="线程的几种状态">线程的几种状态</h3>
+<ul>
+<li>创建：指的是生成线程对象，此时并没有调用start方法。</li>
+<li>就绪：调用线程的start方法后，线程便进入了就绪状态，此时等待系统调度。</li>
+<li>运行：通过系统调度，开始运行线程中的run函数。</li>
+<li>等待：调用了Object.wait()会进入等待队列。一般需要等待其他线程做出一些特定的通知或者中断。</li>
+<li>超时等待：该状态与等待状态有一点区别就是它会自动返回，比如调用Threa.sleep(long)，在超时之后，会自动返回进入就绪状态。</li>
+<li>阻塞：指的是去获取锁时(等待进入synchronized方法或块)，发现同步锁被占用了，这时线程会被放入锁池，等待获取锁。</li>
+<li>死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。</li>
+</ul>
+<h2 id="创建线程的几种方式">创建线程的几种方式</h2>
+<h4 id="继承thread">继承Thread</h4>
+<pre><code>public class ThreadTest {
+    public static void main(String[] args){
+        new TestThread().start();
+    }
+}
+
+class TestThread extends Thread{
+    @Override
+    public void run(){
+        System.out.println(&quot;Test Thread&quot;);
+    }
+}
+</code></pre>
+<h4 id="实现runnable">实现Runnable</h4>
+<pre><code>public class ThreadTest {
+    public static void main(String[] args){
+        new Thread(new TestRunnable()).start();
+    }
+}
+
+class TestRunnable implements Runnable{
+    @Override
+    public void run() {
+        System.out.println(&quot;Test Runnable&quot;);
+    }
+}
+</code></pre>
+<h4 id="实现callable">实现Callable</h4>
+<pre><code>public class ThreadTest {
+    public static void main(String[] args){
+        FutureTask&lt;Integer&gt; task = new FutureTask(new TestCallable());
+        new Thread(task).start();
+        try {
+            System.out.println(task.get());//get方法会得到call执行完之后的值
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class TestCallable implements Callable&lt;Integer&gt; {
+    @Override
+    public Integer call() throws Exception {
+        int num = 0;
+        while(num &lt; 5){
+            num++;
+        }
+        return num;
+    }
+}
+</code></pre>
+<h2 id="线程安全性">线程安全性</h2>
+<ul>
+<li>原子性：同一时刻只允许一个线程对数据进行操作（atomic开头的原子类,synchronized，Lock）。</li>
+<li>可见性：一个线程对共享变量的修改，可以及时地被其他线程观察到，（synchronized,volatile，Lock）。</li>
+<li>有序性：指的是可以观察到其他线程的指令执行顺序，由于指令重排，一般情况下是无序的（happens-before原则）。</li>
+</ul>
+<h3 id="线程死锁">线程死锁</h3>
+<h4 id="死锁">死锁</h4>
+<ul>
+<li>指的是多个线程在执行过程中，因争夺资源而陷入环路阻塞的一种现象。</li>
+<li>示例代码如下（运行之后，两个线程陷入死锁中，如果没有外力中断，将会一直锁定）：</li>
+</ul>
+<pre><code>public class ThreadTest {
+    //共享资源A
+    private static final Object A = new Object();
+    //共享资源B
+    private static final Object B = new Object();
+
+    public static void main(String[] args){
+        new Thread(() -&gt; {
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
+                }
+            }
+        },&quot;Thread-01&quot;).start();
+
+        new Thread(() -&gt; {
+            synchronized (B){
+                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---A&quot;);
+                synchronized (A){
+                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
+                }
+            }
+        },&quot;Thread-02&quot;).start();
+    }
+}
+</code></pre>
+<h4 id="死锁四个必要条件以及如何避免死锁">死锁四个必要条件以及如何避免死锁</h4>
+<ul>
+<li>互斥条件：一个资源在任意时刻只能被一个线程占用，如果有其他线程请求该资源，需要等待原线程释放资源（此条件不能被破坏，因为锁本身就是为了互斥访问）。</li>
+<li>请求和保持条件：一个线程已经获取了一部分资源，又去请求其他资源，如果其他资源正被占用，原线程陷入阻塞，且不会释放自己占用的资源（一次性申请所有资源；或者阻塞时，释放自己占用的资源）。</li>
+<li>不可剥夺条件：一个线程已经获得的资源，在自己未使用完之前不能被其他线程剥夺，只能自己使用结束后释放（如果去获取正在被其他线程使用的资源而阻塞时，可以释放自己占用的资源）。</li>
+<li>环路等待条件：多个进程之间形成一种头尾相接的循环等待资源关系（按一定的顺序来获取资源）。</li>
+<li>针对上述例子而言，可以让现线程1先获取资源AB，执行完之后，再让线程2获取资源AB，改动如下（执行顺序为：线程1先获取资源A，接着释放CPU，线程2执行准备去获取资源A，发现资源A已被占用，此时线程2阻塞，然后一秒之后释放CPU，线程1接着执行，去获取资源B，正常获取，执行完毕，释放CPU；线程2开始获取资源A，由于线程1已经执行完毕释放了锁，所以线程2正常获取资源A，接着休眠一秒释放CPU，然后又去获取资源B，同样正常获取，执行完毕）：</li>
+</ul>
+<pre><code>public class ThreadTest {
+    //共享资源A
+    private static final Object A = new Object();
+    //共享资源B
+    private static final Object B = new Object();
+
+    public static void main(String[] args){
+        new Thread(() -&gt; {
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
+                }
+            }
+        },&quot;Thread-01&quot;).start();
+
+        new Thread(() -&gt; {
+            //线程2去获取A时被阻塞
+            synchronized (A){
+                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
+                try {
+                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
+                synchronized (B){
+                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
+                }
+            }
+        },&quot;Thread-02&quot;).start();
+    }
+}
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Java基础知识]]></title>
         <id>https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/</id>
