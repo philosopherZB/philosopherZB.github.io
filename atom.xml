@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-02-27T08:40:28.014Z</updated>
+    <updated>2023-02-27T08:47:54.512Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -41,7 +41,7 @@
 <li>死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。</li>
 </ul>
 <h2 id="创建线程的几种方式">创建线程的几种方式</h2>
-<h4 id="继承thread">继承Thread</h4>
+<h3 id="继承thread">继承Thread</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         new TestThread().start();
@@ -55,7 +55,7 @@ class TestThread extends Thread{
     }
 }
 </code></pre>
-<h4 id="实现runnable">实现Runnable</h4>
+<h3 id="实现runnable">实现Runnable</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         new Thread(new TestRunnable()).start();
@@ -69,7 +69,7 @@ class TestRunnable implements Runnable{
     }
 }
 </code></pre>
-<h4 id="实现callable">实现Callable</h4>
+<h3 id="实现callable">实现Callable</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         FutureTask&lt;Integer&gt; task = new FutureTask(new TestCallable());

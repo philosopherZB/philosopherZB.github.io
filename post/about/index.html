@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>关于 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677486987854">
+<link rel="shortcut icon" href="/favicon.ico?v=1677487629221">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -1104,7 +1104,7 @@ gridea doc: <a href="https://gridea.dev/gridea-start/">https://gridea.dev/gridea
 &lt;li&gt;死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;创建线程的几种方式&#34;&gt;创建线程的几种方式&lt;/h2&gt;
-&lt;h4 id=&#34;继承thread&#34;&gt;继承Thread&lt;/h4&gt;
+&lt;h3 id=&#34;继承thread&#34;&gt;继承Thread&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         new TestThread().start();
@@ -1118,7 +1118,7 @@ class TestThread extends Thread{
     }
 }
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h4 id=&#34;实现runnable&#34;&gt;实现Runnable&lt;/h4&gt;
+&lt;h3 id=&#34;实现runnable&#34;&gt;实现Runnable&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         new Thread(new TestRunnable()).start();
@@ -1132,7 +1132,7 @@ class TestRunnable implements Runnable{
     }
 }
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h4 id=&#34;实现callable&#34;&gt;实现Callable&lt;/h4&gt;
+&lt;h3 id=&#34;实现callable&#34;&gt;实现Callable&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         FutureTask&amp;lt;Integer&amp;gt; task = new FutureTask(new TestCallable());

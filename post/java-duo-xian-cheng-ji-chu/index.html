@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Java多线程基础 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677486987854">
+<link rel="shortcut icon" href="/favicon.ico?v=1677487629221">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -262,8 +262,7 @@
 <li><a href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E7%8A%B6%E6%80%81">线程的几种状态</a></li>
 </ul>
 </li>
-<li><a href="#%E5%88%9B%E5%BB%BA%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F">创建线程的几种方式</a><br>
-*
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F">创建线程的几种方式</a>
 <ul>
 <li><a href="#%E7%BB%A7%E6%89%BFthread">继承Thread</a></li>
 <li><a href="#%E5%AE%9E%E7%8E%B0runnable">实现Runnable</a></li>
@@ -619,7 +618,7 @@
 <li>死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。</li>
 </ul>
 <h2 id="创建线程的几种方式">创建线程的几种方式</h2>
-<h4 id="继承thread">继承Thread</h4>
+<h3 id="继承thread">继承Thread</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         new TestThread().start();
@@ -633,7 +632,7 @@ class TestThread extends Thread{
     }
 }
 </code></pre>
-<h4 id="实现runnable">实现Runnable</h4>
+<h3 id="实现runnable">实现Runnable</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         new Thread(new TestRunnable()).start();
@@ -647,7 +646,7 @@ class TestRunnable implements Runnable{
     }
 }
 </code></pre>
-<h4 id="实现callable">实现Callable</h4>
+<h3 id="实现callable">实现Callable</h3>
 <pre><code>public class ThreadTest {
     public static void main(String[] args){
         FutureTask&lt;Integer&gt; task = new FutureTask(new TestCallable());
@@ -1339,7 +1338,7 @@ class TestCallable implements Callable&lt;Integer&gt; {
 &lt;li&gt;死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;创建线程的几种方式&#34;&gt;创建线程的几种方式&lt;/h2&gt;
-&lt;h4 id=&#34;继承thread&#34;&gt;继承Thread&lt;/h4&gt;
+&lt;h3 id=&#34;继承thread&#34;&gt;继承Thread&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         new TestThread().start();
@@ -1353,7 +1352,7 @@ class TestThread extends Thread{
     }
 }
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h4 id=&#34;实现runnable&#34;&gt;实现Runnable&lt;/h4&gt;
+&lt;h3 id=&#34;实现runnable&#34;&gt;实现Runnable&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         new Thread(new TestRunnable()).start();
@@ -1367,7 +1366,7 @@ class TestRunnable implements Runnable{
     }
 }
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h4 id=&#34;实现callable&#34;&gt;实现Callable&lt;/h4&gt;
+&lt;h3 id=&#34;实现callable&#34;&gt;实现Callable&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;public class ThreadTest {
     public static void main(String[] args){
         FutureTask&amp;lt;Integer&amp;gt; task = new FutureTask(new TestCallable());
