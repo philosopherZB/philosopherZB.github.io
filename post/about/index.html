@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>关于 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677488422067">
+<link rel="shortcut icon" href="/favicon.ico?v=1677563409983">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">4</span>
+        <span class="site-item-stat-count">5</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -1076,6 +1076,110 @@ gridea doc: <a href="https://gridea.dev/gridea-start/">https://gridea.dev/gridea
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-xian-cheng-chi-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;线程池&#34;&gt;线程池&lt;/h2&gt;
+&lt;h3 id=&#34;线程池的优势&#34;&gt;线程池的优势&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;降低系统资源消耗：通过重用已存在的线程，降低线程创建和销毁所造成的资源消耗。&lt;/li&gt;
+&lt;li&gt;提供系统响应速度：当任务来临时，直接复用已存在的线程进行工作，而无需等待线程的创建。&lt;/li&gt;
+&lt;li&gt;方便线程数的管控：过多的线程创建，会导致性能的急剧下降（线程上下文切换十分耗费性能），甚至出现OOM。&lt;/li&gt;
+&lt;li&gt;提供更加强大的功能，如延时定时线程池。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;线程池的主要参数&#34;&gt;线程池的主要参数&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;public ThreadPoolExecutor(int corePoolSize,
+                          int maximumPoolSize,
+                          long keepAliveTime,
+                          TimeUnit unit,
+                          BlockingQueue&amp;lt;Runnable&amp;gt; workQueue,
+                          ThreadFactory threadFactory,
+                          RejectedExecutionHandler handler)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;corePoolSize：核心线程数，默认情况下，核心线程一直存活在线程池中，即使它们处于闲置状态（可通过allowCoreThreadTimeOut进行控制）。当向线程池提交一个任务时，若线程池已创建的线程数小于corePoolSize，即便此时存在空闲线程，也会创建一个新的线程来执行任务，直到创建的线程数大于或等于corePoolSize时才进行线程复用（可通过prestartCoreThread()或者prestartAllCoreThreads()来提前启动线程池中的基本线程）。&lt;/li&gt;
+&lt;li&gt;maximumPoolSize：最大线程数，当队列满了，且已创建线程数小于maximumPoolSize时，线程池会创建新的线程来执行任务。&lt;/li&gt;
+&lt;li&gt;keepAliveTime：线程闲置时长，超过此时长将会被销毁。默认只对非核心线程生效，只有当ThreadPoolExecutor中的allowCoreThreadTimeOut设置为true时，才会对核心线程生效。&lt;/li&gt;
+&lt;li&gt;unit：用于指定keepAliveTime参数的时间单位。&lt;/li&gt;
+&lt;li&gt;workQueue：工作队列，用于保存等待执行的任务的阻塞队列。通过线程池的execute方法提交的Runnable对象都会存储在该队列中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ol&gt;
+&lt;li&gt;ArrayBlockingQueue：基于数组实现的有界的阻塞队列,该队列按照FIFO（先进先出）原则对队列中的元素进行排序。&lt;/li&gt;
+&lt;li&gt;LinkedBlockingQueue：基于链表实现的阻塞队列，该队列按照FIFO（先进先出）原则对队列中的元素进行排序。&lt;/li&gt;
+&lt;li&gt;SynchronousQueue：内部没有任何容量的阻塞队列。在它内部没有任何的缓存空间。对于SynchronousQueue中的数据元素只有当我们试着取走的时候才可能存在。&lt;/li&gt;
+&lt;li&gt;PriorityBlockingQueue：具有优先级的无限阻塞队列。&lt;/li&gt;
+&lt;li&gt;通过实现BlockingQueue接口来自定义所需要的阻塞队列&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;threadFactory：线程工厂，用于创建新线程。&lt;/li&gt;
+&lt;li&gt;handler：拒绝策略，当线程池饱和时（任务队列以及活动线程数都已达到最大值），此时便会执行对应的拒绝策略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ol&gt;
+&lt;li&gt;CallerRunsPolicy：使用调用者所在线程来运行任务。&lt;/li&gt;
+&lt;li&gt;AbortPolicy：直接抛出RejectedExecutionException异常。&lt;/li&gt;
+&lt;li&gt;DiscardPolicy：丢弃掉该任务，不进行处理&lt;/li&gt;
+&lt;li&gt;DiscardOldestPolicy：丢弃队列里最近的一个任务，并执行当前任务。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;线程池流程图&#34;&gt;线程池流程图&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;如果在线程池中的线程数量没有达到核心线程数量，这时候就会启动一个核心线程来执行任务（等于核心线程数时，会复用线程池中已存在的线程）。&lt;/li&gt;
+&lt;li&gt;如果线程池中的线程数量已经超过核心线程数，这时候任务就会被插入到任务队列中排队等待执行。&lt;/li&gt;
+&lt;li&gt;由于任务队列已满，无法将任务插入到任务队列中。这个时候如果线程池中的线程数量没有达到线程池所设定的最大值（maximumPoolSize），那么这时候就会立即启动一个非核心线程来执行任务。&lt;/li&gt;
+&lt;li&gt;如果线程池中的数量达到了所规定的最大值（maximumPoolSize），那么就会拒绝执行此任务，这时候就会调用RejectedExecutionHandler中的rejectedExecution方法来通知调用者。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230228001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;四种线程池一般不推荐使用&#34;&gt;四种线程池（一般不推荐使用）&lt;/h3&gt;
+&lt;p&gt;1、newCachedThreadPool：用来创建一个可以无限扩大的线程池，适用于负载较轻的场景，执行短期异步任务。（可以使得任务快速得到执行，因为任务时间执行短，可以很快结束，也不会造成cpu过度切换），无界线程池，容易发生OOM。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static ExecutorService newCachedThreadPool() {
+    return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                  60L, TimeUnit.SECONDS,
+                                  new SynchronousQueue&amp;lt;Runnable&amp;gt;());
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;2、newFixedThreadPool：创建一个固定大小的线程池，因为采用无界的阻塞队列，所以实际线程数量永远不会变化，适用于负载较重的场景，对当前线程数量进行限制。（保证线程数可控，不会造成线程过多，导致系统负载更为严重）&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static ExecutorService newFixedThreadPool(int nThreads) {
+    return new ThreadPoolExecutor(nThreads, nThreads,
+                                  0L, TimeUnit.MILLISECONDS,
+                                  new LinkedBlockingQueue&amp;lt;Runnable&amp;gt;());
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;3、newSingleThreadExecutor：创建一个单线程的线程池，适用于需要保证顺序执行各个任务。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static ExecutorService newSingleThreadExecutor() {
+    return new FinalizableDelegatedExecutorService
+        (new ThreadPoolExecutor(1, 1,
+                                0L, TimeUnit.MILLISECONDS,
+                                new LinkedBlockingQueue&amp;lt;Runnable&amp;gt;()));
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;4、newScheduledThreadPool：适用于执行延时或者周期性任务.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) {
+    return new ScheduledThreadPoolExecutor(corePoolSize);
+}
+public ScheduledThreadPoolExecutor(int corePoolSize) {
+    super(corePoolSize, Integer.MAX_VALUE, 0, NANOSECONDS,
+          new DelayedWorkQueue());
+}
+//实例：
+ScheduledExecutorService service = Executors.newScheduledThreadPool(4);
+service.schedule(() -&amp;gt; System.out.println(Thread.currentThread().getName()+&amp;quot;延迟三秒执行&amp;quot;), 3, TimeUnit.SECONDS);
+service.scheduleAtFixedRate(() -&amp;gt; System.out.println(Thread.currentThread().getName()+&amp;quot;延迟三秒后每隔2秒执行&amp;quot;), 3, 2, TimeUnit.SECONDS);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;schedule(Runnable command, long delay, TimeUnit unit)：延迟一定时间后执行Runnable任务；&lt;/p&gt;
+&lt;p&gt;schedule(Callable callable, long delay, TimeUnit unit)：延迟一定时间后执行Callable任务；&lt;/p&gt;
+&lt;p&gt;scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit)：延迟一定时间后，以间隔period时间的频率周期性地执行任务(固定频率的含义就是可能设定的固定时间不足以完成线程任务，但是它不管，达到设定的延迟时间了就要执行下一次了)；&lt;/p&gt;
+&lt;p&gt;scheduleWithFixedDelay(Runnable command, long initialDelay, long delay,TimeUnit unit)：与scheduleAtFixedRate()方法很类似，但是不同的是scheduleWithFixedDelay()方法的周期时间间隔是以上一个任务执行结束到下一个任务开始执行的间隔，而scheduleAtFixedRate()方法的周期时间间隔是以上一个任务开始执行到下一个任务开始执行的间隔，也就是这一些任务系列的触发时间都是可预知的.&lt;/p&gt;
+&lt;h3 id=&#34;线程池中的线程数配置&#34;&gt;线程池中的线程数配置&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;CPU密集型任务：线程池中线程个数应尽量少，如配置N+1个线程的线程池；&lt;/li&gt;
+&lt;li&gt;IO密集型任务：由于IO操作速度远低于CPU速度，那么在运行这类任务时，CPU绝大多数 时间处于空闲状态，那么线程池可以配置尽量多些的线程，以提高CPU利用率，如2*N；&lt;/li&gt;
+&lt;li&gt;混合型任务：可以拆分为CPU密集型任务和IO密集型任务，当这两类任务执行时间相差无几时，通过拆分再执行的吞吐率高于串行执行的吞吐率，但若这两类任务执行时间有数据级的差距，那么没有拆分的意义。&lt;/li&gt;
+&lt;/ul&gt;
+">Java线程池详解</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/"" data-c="
