@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Java基础知识 | Philosopher</title>
+<title>java中引用&amp;IO&amp;类加载&amp;对象创建过程 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1677658324276">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,7 +41,7 @@
 
 
 
-  <meta name="description" content="Java基础知识" />
+  <meta name="description" content="java中引用&IO&类加载&对象创建过程" />
   <meta name="keywords" content="java" />
 </head>
 
@@ -254,22 +254,47 @@
     <ul class="markdownIt-TOC">
 <li>
 <ul>
-<li><a href="#%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%B8%89%E5%A4%A7%E7%89%B9%E6%80%A7">面向对象的三大特性</a>
+<li><a href="#%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8">四种引用</a>
 <ul>
-<li><a href="#%E5%B0%81%E8%A3%85">封装</a></li>
-<li><a href="#%E7%BB%A7%E6%89%BF">继承</a></li>
-<li><a href="#%E5%A4%9A%E6%80%81">多态</a></li>
+<li><a href="#%E5%BC%BA%E5%BC%95%E7%94%A8">强引用</a></li>
+<li><a href="#%E8%BD%AF%E5%BC%95%E7%94%A8">软引用</a></li>
+<li><a href="#%E5%BC%B1%E5%BC%95%E7%94%A8">弱引用</a></li>
+<li><a href="#%E8%99%9A%E5%BC%95%E7%94%A8">虚引用</a></li>
 </ul>
 </li>
-<li><a href="#%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E5%9B%9B%E4%B8%AA%E6%95%B4%E6%95%B0%E4%B8%A4%E4%B8%AA%E6%B5%AE%E7%82%B9%E4%B8%80%E4%B8%AA%E5%AD%97%E7%AC%A6%E4%B8%80%E4%B8%AA%E5%B8%83%E5%B0%94">基本数据类型（四个整数，两个浮点，一个字符，一个布尔）</a></li>
-<li><a href="#%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%AD%E5%A4%A7%E5%9F%BA%E6%9C%AC%E5%8E%9F%E5%86%8C">面向对象的六大基本原册</a>
+<li><a href="#java%E4%B8%AD%E7%9A%84io">Java中的I/O</a>
 <ul>
-<li><a href="#%E5%8D%95%E4%B8%80%E8%81%8C%E8%B4%A3%E5%8E%9F%E5%88%99single-responsibility-priciple">单一职责原则（Single Responsibility Priciple）</a></li>
-<li><a href="#%E5%BC%80%E9%97%AD%E5%8E%9F%E5%88%99open-close-priciple">开闭原则（Open Close Priciple）</a></li>
-<li><a href="#%E9%87%8C%E5%BC%8F%E6%9B%BF%E6%8D%A2%E5%8E%9F%E5%88%99liskov-substitution-priciple">里式替换原则（Liskov Substitution Priciple）</a></li>
-<li><a href="#%E4%BE%9D%E8%B5%96%E5%80%92%E7%BD%AE%E5%8E%9F%E5%88%99dependence-inversion-priciple">依赖倒置原则（Dependence Inversion Priciple）</a></li>
-<li><a href="#%E6%8E%A5%E5%8F%A3%E9%9A%94%E7%A6%BB%E5%8E%9F%E5%88%99interface-segregation-priciple">接口隔离原则（Interface Segregation Priciple）</a></li>
-<li><a href="#%E8%BF%AA%E7%B1%B3%E7%89%B9%E5%8E%9F%E5%88%99law-of-demeter-or-least-knowlegde-priciple">迪米特原则（Law of Demeter or Least Knowlegde Priciple）</a></li>
+<li><a href="#bioblock-io">BIO（Block IO）</a></li>
+<li><a href="#nionew-io">NIO（New IO）</a></li>
+<li><a href="#aioasynchronous-io">AIO（Asynchronous IO）</a></li>
+<li><a href="#io%E9%98%B6%E6%AE%B5">IO阶段</a></li>
+<li><a href="#%E5%90%8C%E6%AD%A5%E5%BC%82%E6%AD%A5">同步，异步</a></li>
+<li><a href="#%E9%98%BB%E5%A1%9E%E9%9D%9E%E9%98%BB%E5%A1%9E">阻塞，非阻塞</a></li>
+</ul>
+</li>
+<li><a href="#jvm%E7%B1%BB%E5%8A%A0%E8%BD%BD">JVM类加载</a>
+<ul>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6">类加载机制</a></li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8">类加载器</a></li>
+<li><a href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B">双亲委派模型</a></li>
+<li><a href="#%E4%BB%A5jdbc%E4%B8%BA%E4%BE%8B%E8%B0%88%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%E7%9A%84%E7%A0%B4%E5%9D%8F">以JDBC为例谈双亲委派模型的破坏</a>
+<ul>
+<li><a href="#%E4%B8%8D%E7%A0%B4%E5%9D%8F%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%E4%B8%8D%E4%BD%BF%E7%94%A8jdni">不破坏双亲委派模型（不使用JDNI）</a></li>
+<li><a href="#%E7%A0%B4%E5%9D%8F%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%E4%BD%BF%E7%94%A8jdni">破坏双亲委派模型（使用JDNI）</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#hotspot-jvm%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A9%B6">Hotspot JVM虚拟机对象探究</a>
+<ul>
+<li><a href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%88%9B%E5%BB%BA%E4%BB%A5%E6%99%AE%E9%80%9Ajava%E5%AF%B9%E8%B1%A1new%E6%8C%87%E4%BB%A4%E4%B8%BA%E4%BE%8B">对象的创建（以普通Java对象new指令为例）</a></li>
+<li><a href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80">对象的内存布局</a></li>
+<li><a href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E8%AE%BF%E9%97%AE%E5%AE%9A%E4%BD%8D">对象的访问定位</a>
+<ul>
+<li><a href="#%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE%E5%AE%9A%E4%BD%8D">句柄访问定位</a></li>
+<li><a href="#%E7%9B%B4%E6%8E%A5%E8%AE%BF%E9%97%AE%E5%AE%9A%E4%BD%8D">直接访问定位</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -539,8 +564,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/">
-      Java基础知识
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">
+      java中引用&amp;IO&amp;类加载&amp;对象创建过程
     </a>
   </h1>
   <div class="post-meta">
@@ -548,7 +573,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2020-10-14 15:12:00">2020-10-14</span>
+      <span class="publish-time" data-t="2021-03-06 16:10:21">2021-03-06</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -567,17 +592,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>5<span class="language" data-lan="minute">分钟</span></span>
+      <span>18<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>1129<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>4700<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/java-ji-chu-zhi-shi/" data-flag-title="Java基础知识" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/" data-flag-title="java中引用&amp;IO&amp;类加载&amp;对象创建过程" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -586,75 +611,281 @@
   </div>
 </section>
             <div class="post-body next-md-body" id="post_body">
-              <h2 id="面向对象的三大特性">面向对象的三大特性</h2>
-<h3 id="封装">封装</h3>
+              <h2 id="四种引用">四种引用</h2>
+<h3 id="强引用">强引用</h3>
+<p>把一个对象复制给一个引用变量，这个引用变量就是一个强引用。当一个对象被强引用变量引用时，它处于可达状态，这时，GC不会对其进行回收（造成OOM的主要原因之一）。</p>
+<pre><code>// 强引用
+String str = &quot;test&quot;;
+// 取消强引用
+str = null;
+
+</code></pre>
+<h3 id="软引用">软引用</h3>
+<p>软引用需要使用SoftReference类来实现，对于软引用对象来说，当系统内存足够时不会对其进行回收，反之则进行回收。通常应用在对内存敏感的程序中。</p>
+<pre><code>// 软引用
+SoftReference&lt;String&gt; softReference = new SoftReference&lt;&gt;(&quot;test&quot;);
+
+</code></pre>
+<h3 id="弱引用">弱引用</h3>
+<p>弱引用需要使用WeakReference类来实现，它比软引用生存周期更短，对于弱引用对象来说，只要垃圾回收机制一运行，不管JVM内存空间是否充足，都会对其进行回收。</p>
+<pre><code>// 弱引用
+WeakReference&lt;String&gt; weakReference = new WeakReference&lt;&gt;(&quot;test&quot;);
+
+</code></pre>
+<h3 id="虚引用">虚引用</h3>
+<p>虚引用需要使用PhantomReference类来实现，它不能单独使用，必须与引用队列联合使用。虚引用的主要作用是跟踪对象被垃圾回收的状态。</p>
+<pre><code>// 虚引用
+ReferenceQueue&lt;String&gt; queue = new ReferenceQueue&lt;&gt;();
+PhantomReference&lt;String&gt; pr = new PhantomReference&lt;&gt;(&quot;test&quot;, queue);
+
+</code></pre>
+<h2 id="java中的io">Java中的I/O</h2>
+<h3 id="bioblock-io">BIO（Block IO）</h3>
 <ul>
-<li>将现实中的客观事物封装成抽象的类。</li>
-<li>对一个类中的变量，方法进行访问符修饰，以达到有些变量，方法对外开放，有些变量，方法隐藏。</li>
-<li>针对第2点对应的访问修饰符有(范围从大到小)：public &gt; protected &gt; default &gt; private。</li>
-<li>由于封装隐藏了具体实现，仅提供接口供外部调用，所以在一定程度上可以提高安全性。</li>
+<li>同步阻塞式IO，一般指平常所用的IO类。</li>
+<li>一个请求对应一个响应，为了合理的利用资源，可以使用多线程（线程池）。</li>
+<li>此IO一般针对并发量较小的场景（&lt;1000）。</li>
+<li>BIO操作的对象是流（Stream）。</li>
+<li>比如：在ATM机上取钱，只能一个一个的取，前面有人的时候，需要等待；取钱的时候，需要本人进行相关取钱操作（取出之后拿到钱才走）。</li>
 </ul>
-<h3 id="继承">继承</h3>
+<h3 id="nionew-io">NIO（New IO）</h3>
 <ul>
-<li>可以实现已存在的类的变量，方法（非private），并可以扩展单属于自我的变量及方法。</li>
-<li>继承在Java中为单继承，即一个子类只能继承一个父类（可以实现多个接口）。</li>
-<li>通过继承创建的类称为“子类”，“派生类”。</li>
-<li>被继承的类称为“父类”，“基类”，“超类”。</li>
-<li>继承的关系是is-a，比如说老师是人，狮子是动物等。</li>
-<li>继承可以降低代码的重复性，方便后续对公共行为的维护，不过同时也增加了代码的耦合度。</li>
-<li>子类不继承父类的构造器，而是显示或隐式的调用（如果父类中存在不带参构造器，则子类隐式调用该构造器；否则如果父类中仅存在带参构造器，则子类需要通过super来显示调用父类带参构造器）。</li>
+<li>同步非阻塞式IO。</li>
+<li>利用Channel（通道）通讯，实现了多路复用。</li>
+<li>核心组件：Buffer（缓冲区），Channel（通道），Selector（选择器）</li>
+<li>NIO操作的对象是缓存区（Buffer）。</li>
+<li>基本运行流程：当Channel发生新连接、就绪读，就绪写的时候，首先会在Selector上注册相应的事件，生成一个与Channel绑定的selectKey；其次由一个线程轮询selectKey集合，利用操作系统底层的函数select() 或者 epoll（Linux 2.6之前是select、poll，2.6之后是epoll，Windows是iocp）去操作系统查询IO是否就绪，如果就绪则执行相应的事件处理器（通过selectKey找到Channel，然后利用与Channel绑定的buffer进行实际读写）。</li>
+<li>比如：在银行大厅取钱，对于前面是否有人等候，只需要隔一段时间去问一下大堂经理是否可以取钱就可以了，不需要一直去排队（这段时间可以做其他事）；取钱的时候，需要柜员进行相关操作，同时也需要保证你也在柜员面前（不能离开，不然柜员可能会找不到你，然后钱就没有实际拿到手里了）。</li>
 </ul>
-<h3 id="多态">多态</h3>
+<h3 id="aioasynchronous-io">AIO（Asynchronous IO）</h3>
 <ul>
-<li>对同一个行为体现出不同的表现形式，比如吃，可以吃饭，吃零食等。</li>
-<li>在Java中体现为对方法的重写以及重载，即传入参数来决定做哪一种具体的动作（重载）不同类之间同一方法不同表现（重写）。</li>
-<li>重写一般为父子类之间对方法的不同操作，重载一般为同一个类中对方法的不同操作。</li>
+<li>异步非阻塞式IO。</li>
+<li>其实现是基于事件以及回调机制。</li>
+<li>AIO与NIO有点相似，不过对于实际读写而言，AIO是交给操作系统底层自己去完成的，完成之后会返回一个IO完成的回调消息。</li>
+<li>比如：同样是去银行取钱，不过这次你是让朋友去帮忙取的，你朋友会帮你排队，然后取钱，接着把钱给你，并告诉你已经取好了。</li>
 </ul>
-<h2 id="基本数据类型四个整数两个浮点一个字符一个布尔">基本数据类型（四个整数，两个浮点，一个字符，一个布尔）</h2>
+<h3 id="io阶段">IO阶段</h3>
 <ul>
-<li>byte，占8位，1字节，默认值：0，包装类：java.lang.Byte</li>
-<li>short，占16位，2字节，默认值：0，包装类：java.lang.Short</li>
-<li>int，占32位，4字节，默认值：0，包装类：java.lang.Integer</li>
-<li>long，占64位，8字节，默认值：0L，包装类：java.lang.Long</li>
-<li>float，占32位，4字节，默认值：0.0f，包装类：java.lang.Float</li>
-<li>double，占64位，8字节，默认值：0.fd，包装类：java.lang.Double</li>
-<li>char，可以存储任何字符，包装类：java.lang.Character</li>
-<li>boolean，默认值：false，包装类：java.lang.Boolean</li>
+<li>IO中对于读写一般分为两个阶段：就绪读写（准备数据）以及实际读写（真正读写数据）。</li>
+<li>对应上面取钱例子而言，就绪读写指的是排队，实际读写指的是取钱操作。</li>
 </ul>
-<h2 id="面向对象的六大基本原册">面向对象的六大基本原册</h2>
-<h3 id="单一职责原则single-responsibility-priciple">单一职责原则（Single Responsibility Priciple）</h3>
+<h3 id="同步异步">同步，异步</h3>
 <ul>
-<li>对于一个类而言，应该只有一个引起他变化的原因。</li>
-<li>比如，不要将teacher,doctor都放在一个person类中，而是将其拆成teacher类，doctor类。</li>
-<li>能够一定程度上降低耦合度。</li>
+<li>同步指的是操作的时候，需要等待当前任务返回结果；异步则相反，它不需要等待当前任务返回，通常情况下是依赖于事件，回调机制来实现任务间的次序关系。</li>
+<li>同步，异步对于IO而言指的是实际读写阶段；对应取钱例子而言，就是真正取钱操作（同步，自己取钱；异步，朋友帮忙取钱）。</li>
 </ul>
-<h3 id="开闭原则open-close-priciple">开闭原则（Open Close Priciple）</h3>
+<h3 id="阻塞非阻塞">阻塞，非阻塞</h3>
 <ul>
-<li>对于扩展是开放的，对于修改是关闭的。</li>
-<li>一般来说就是不要修改之前的代码，可以选择继承或者实现接口来扩展对应的功能。</li>
+<li>阻塞指的是如果任务在执行，当前线程会阻塞，需要等待任务执行完，这期间该线程不能执行其他任务；非阻塞则是说在一个任务执行期间，线程不会阻塞，可以执行其他任务。</li>
+<li>阻塞，非阻塞对于IO而言指的是就绪读写阶段；对应取钱例子而言，就是排队等候（阻塞，排队没带手机，只能干等着；非阻塞，排队带了手机，可以一边玩手机一边排队）。</li>
 </ul>
-<h3 id="里式替换原则liskov-substitution-priciple">里式替换原则（Liskov Substitution Priciple）</h3>
+<h2 id="jvm类加载">JVM类加载</h2>
+<h3 id="类加载机制">类加载机制</h3>
+<p>JVM类加载机制分为五个部分：加载，验证，准备，解析，初始化。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301027.png" alt="img" loading="lazy"></figure>
+<p>1、加载：在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的入口（注意：不一定非得从Class文件中获取，也可以从ZIP（如jar，war）中读取，或者在运行时计算生成（动态代理），或者由其他文件转换而来（如JSP转换为Class））。</p>
+<p>2、验证：确保Class文件字节流中所包含的信息符合当前虚拟机的要求，并且不会危害虚拟机自身的安全。</p>
+<p>3、准备：正式为类变量分配内存并为其设置初始值，即在方法区中分配这些变量所使用的内存空间。需要注意这里所说的初始值概念，比如说一个类变量定义为：</p>
+<pre><code>public static int port = 8080;
+</code></pre>
+<p>那么此变量在准备阶段所谓的设置初始值，是设置其为0，而不是8080。将port赋值为8080的put static 指令是程序被编译后，存放于类构造器<code>&lt;Client&gt;</code>方法中的。</p>
+<p>但如果变量声明如下：</p>
+<pre><code>public static final int port = 8080;
+</code></pre>
+<p>那么在编译期间，会为port生成ConstantValue属性，在准备阶段虚拟机会根据ConstantValue属性将port赋值为8080.</p>
+<p>4、解析：此阶段指虚拟机将常量池中的符号引用替换为直接引用的过程。</p>
+<p>符号引用：与虚拟机实现的布局无关，引用的目标不一定要已经加载至内存中。各种虚拟机的内存布局可以不一致，但它们能接受的符号引用必须一致，因为符号引用的字面量形式明确的定义在java虚拟机规范的Class文件格式中。、</p>
+<p>直接引用：是可以直接指向目标的指针，相对偏移量或是一个能间接定位到目标的句柄，如果存在直接引用，那么引用的目标必定已经在内存中存在。</p>
+<p>5、初始化：此阶段开始真正执行类中定义的java程序代码，即开始开始执行类构造器<code>&lt;client&gt;</code>方法。</p>
+<p><code>&lt;client&gt;</code>方法是由编译器自动收集类中的类静态变量赋值以及静态语句块中的语句合并而成的。虚拟机会保证子<code>&lt;client&gt;</code>执行之前，父<code>&lt;client&gt;</code>已经执行完毕（如果一个类中既没有类静态变量赋值，也没有静态语句块，那虚拟机可以不为其生成<code>&lt;client&gt;</code>方法）。</p>
+<p>注意以下几种情形不会执行类初始化：</p>
 <ul>
-<li>所有引用父类的地方都可以透明的使用其子类对象。</li>
-<li>即父类出现的地方，把父类换成子类不会出现异常或错误；反之，子类出现的地方，把子类换成父类可能会出现异常或错误。</li>
-<li>比如,person类具有eat功能，那么将person.eat换成teacher.eat是没有问题的；而如果teacher类具有独特的teach功能，那么如果将teacher.teach换成person.teach就会出现错误。</li>
+<li>通过子类引用父类的静态字段，只会触发父类的初始化。</li>
+<li>定义对象数组，不会触发该类的初始化。</li>
+<li>常量在编译期间会存入调用类的常量池中，本质上并没有直接引用定义常量的类，不会触发定义常量所在类的初始化。</li>
+<li>通过类名获取Class对象，不会触发初始化。</li>
+<li>通过Class.forName加载指定类时，如果指定参数initialize为false（initialize是告诉虚拟机是否要对该类进行初始化），也不会触发类的初始化。</li>
+<li>通过ClassLoader默认的loadClass方法，不会触发类初始化。</li>
 </ul>
-<h3 id="依赖倒置原则dependence-inversion-priciple">依赖倒置原则（Dependence Inversion Priciple）</h3>
+<h3 id="类加载器">类加载器</h3>
+<p>类的加载并没有发生在JVM中，而是由应用程序来确定如何获取所需要的类。为此JVM提供了三种类加载器，如下：</p>
+<p>1、启动类加载器（Bootstrap ClassLoader）：负责加载JAVA_HOME\lib目录中的，或通过-Xbootclasspath参数指定路径中的，且被虚拟机认可的类（按文件名识别，如：rt.jar）。</p>
+<p>2、扩展类加载器（Extension ClassLoader）：负责加载JAVA_HOME\lib\ext目录中的，或通过java.ext.dirs系统变量指定路径中的类库。</p>
+<p>3、应用程序类加载器（Application ClassLoader）：负责加载用户路径（classpath）上的类库。</p>
+<h3 id="双亲委派模型">双亲委派模型</h3>
+<p>JVM通过双亲委派模型进行类的加载，当然，开发者也可以通过集成java.lang.ClassLoader实现自定义的类加载器。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301028.png" alt="" loading="lazy"></figure>
+<p>双亲委派过程：当一个类收到类加载请求时，它首先不会尝试自己去加载这个类，而是将这个请求委派给父类去完成，每一层次的类加载器都是如此操作，因此所有的类加载请求都应该会传送到启动类加载器中，只有当父加载器无法加载此类时（在它的加载路径下没有找到所需加载的Class），子加载器才会尝试自己去加载。</p>
+<p>双亲委派解决了java基础类统一加载的问题，但某些情况下父类加载器需要委托子类加载器去加载Class文件，例如SPI（Service Provider Interface）代码（spi是一种服务发现机制：即为某个接口寻找服务实现的机制。）。</p>
+<h3 id="以jdbc为例谈双亲委派模型的破坏">以JDBC为例谈双亲委派模型的破坏</h3>
+<p>Java本身有一套资源管理服务JNDI（Java Naming and Directory Interface，根据名称可以在其中查找对应的方法或者其他参数），其放置于rt.jar中，由启动类加载器进行加载。</p>
+<p>以数据库管理JDBC为例，java给数据库操作提供了一个Driver（java.sql.Driver）接口，并提供了一个DriverManager（java.sql.DriverManager）来管理Driver的具体实现。</p>
+<h4 id="不破坏双亲委派模型不使用jdni">不破坏双亲委派模型（不使用JDNI）</h4>
+<pre><code>// 加载数据库驱动
+Class.forName(&quot;com.mysql.jdbc.Driver&quot;);
+// 连接到数据库上去
+Connection connection = DriverManager.getConnection(&quot;jdbc:mysql://localhost:3306/db?useUnicode=true&amp;characterEncoding=UTF-8&amp;allowMultiQueries=true&amp;serverTimezone=Asia/Shanghai&quot;,&quot;root&quot;,&quot;root&quot;);
+
+</code></pre>
+<p>Class.forName()触发了mysql驱动类的加载，通过源码可以发现，mysql的驱动类已经在静态块中被注册到了DriverManager中，所以后续使用时可以直接建立连接。其核心实现如下：</p>
+<pre><code>public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+    public Driver() throws SQLException {
+    }
+
+    static {
+        try {
+            DriverManager.registerDriver(new Driver());
+        } catch (SQLException var1) {
+            throw new RuntimeException(&quot;Can't register driver!&quot;);
+        }
+    }
+}
+</code></pre>
+<pre><code>public static synchronized void registerDriver(java.sql.Driver driver,
+        DriverAction da)
+    throws SQLException {
+
+    /* Register the driver if it has not already been added to our list */
+    if(driver != null) {
+        registeredDrivers.addIfAbsent(new DriverInfo(driver, da));
+    } else {
+        // This is for compatibility with the original DriverManager
+        throw new NullPointerException();
+    }
+
+    println(&quot;registerDriver: &quot; + driver);
+
+}
+
+</code></pre>
+<h4 id="破坏双亲委派模型使用jdni">破坏双亲委派模型（使用JDNI）</h4>
+<p>JDBC4.0以后，开始支持spi注册Driver，具体做法便是在mysql的jar中的META-INF/services/java.sql.Driver文件中指明当前的Driver，然后通过下列方式即可使用。</p>
+<pre><code>// 连接到数据库上去
+Connection connection = DriverManager.getConnection(&quot;jdbc:mysql://localhost:3306/db?useUnicode=true&amp;characterEncoding=UTF-8&amp;allowMultiQueries=true&amp;serverTimezone=Asia/Shanghai&quot;,&quot;root&quot;,&quot;root&quot;);
+
+</code></pre>
+<p>此处相比于不破坏双亲委派模型，少了一句Class.forName()，即加载驱动类的步骤。其对应的Driver是配置在META-INF/services/java.sql.Drive文件中的，由此可以知道其操作为：先从配置文件中读取Driver，随后再进行加载（使用Class.forName()）</p>
+<p>需要注意的是，Class.forName()加载的是调用者的ClassLoader，这个调用者DriverManager是在rt.jar中，ClassLoader是启动类加载器，而com.mysql.cj.jdbc.Driver并没有位于&lt;JAVA_HOME&gt;/lib下，所以肯定是无法直接加载到mysql的这个类的。这边是双亲委派的局限性，父类加载器无法加载子类加载器路径中的类（父对子透明，子对父不透明）。</p>
+<p>为了让父类加载器加载子类加载器路径中的类，可以通过线程上下文加载器去加载第三方jar包中的Driver，这便打破了双亲委派模型。</p>
+<p>以DriverManager为例，当调用其getConnection()方法时，会先执行器静态块中的初始化代码，如下：</p>
+<pre><code>/**
+ * Load the initial JDBC drivers by checking the System property
+ * jdbc.properties and then use the {@code ServiceLoader} mechanism
+ */
+static {
+    loadInitialDrivers();
+    println(&quot;JDBC DriverManager initialized&quot;);
+}
+
+</code></pre>
+<pre><code>AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+    public Void run() {
+        // 各个sql厂商在自己的jar包中通过spi注册的驱动
+        ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);
+        Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();
+
+        /* Load these drivers, so that they can be instantiated.
+         * It may be the case that the driver class may not be there
+         * i.e. there may be a packaged driver with the service class
+         * as implementation of java.sql.Driver but the actual class
+         * may be missing. In that case a java.util.ServiceConfigurationError
+         * will be thrown at runtime by the VM trying to locate
+         * and load the service.
+         *
+         * Adding a try catch block to catch those runtime errors
+         * if driver not available in classpath but it's
+         * packaged as service and that service is there in classpath.
+         */
+        try{
+            while(driversIterator.hasNext()) {
+                driversIterator.next();
+            }
+        } catch(Throwable t) {
+        // Do nothing
+        }
+        return null;
+    }
+});
+
+</code></pre>
+<p>其中ServiceLoader.load()便是拿到线程上下文加载器，并构造了一个ServiceLoader进行返回，如下：</p>
+<pre><code>public static &lt;S&gt; ServiceLoader&lt;S&gt; load(Class&lt;S&gt; service) {
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    return ServiceLoader.load(service, cl);
+}
+
+public static &lt;S&gt; ServiceLoader&lt;S&gt; load(Class&lt;S&gt; service,
+                                        ClassLoader loader)
+{
+    return new ServiceLoader&lt;&gt;(service, loader);
+}
+
+</code></pre>
+<p>DriverManager中的doPrivileged()中还有一句driversIterator.next()，其中实现了类加载过程，具体实现如下：</p>
+<pre><code>private S nextService() {
+    if (!hasNextService())
+        throw new NoSuchElementException();
+    String cn = nextName;
+    nextName = null;
+    Class&lt;?&gt; c = null;
+    try {
+        // 此处的cn便是便是厂商在META-INF/services/java.sql.Drive文件中配置的全限定驱动类名
+        // loader则是上文中ServiceLoader.load()返回的线程上下文加载器。
+        c = Class.forName(cn, false, loader);
+    } catch (ClassNotFoundException x) {
+        fail(service,
+             &quot;Provider &quot; + cn + &quot; not found&quot;);
+    }
+    if (!service.isAssignableFrom(c)) {
+        fail(service,
+             &quot;Provider &quot; + cn  + &quot; not a subtype&quot;);
+    }
+    try {
+        S p = service.cast(c.newInstance());
+        providers.put(cn, p);
+        return p;
+    } catch (Throwable x) {
+        fail(service,
+             &quot;Provider &quot; + cn + &quot; could not be instantiated&quot;,
+             x);
+    }
+    throw new Error();          // This cannot happen
+}
+
+</code></pre>
+<h2 id="hotspot-jvm虚拟机对象探究">Hotspot JVM虚拟机对象探究</h2>
+<h3 id="对象的创建以普通java对象new指令为例">对象的创建（以普通Java对象new指令为例）</h3>
 <ul>
-<li>高层模块不依赖低层模块，而是应该依赖其抽象</li>
-<li>抽象不依赖于细节，细节依赖于抽象</li>
-<li>比如teacher类中应该尽量做一些老师共有的抽象行为，比如教书，这样后面的语文老师，数学老师等可以继承该抽象老师类进行扩展。</li>
+<li>当虚拟机遇到一条new指令时，首先会去常量池中检查是否存在这个对象的引用，并且检查该引用所代表的类是否已经被加载，解析和初始化过，如果没有，则先执行类加载。</li>
+<li>当类加载检查通过之后，虚拟机将会为新生对象分配内存（对象所需的内存大小在类加载完成之后就已经确认了，为对象分配空间就是在Java堆上划分出一块内存来。一般有两种分配方式，根据内存规整程度分为：指针碰撞（规整）以及空闲列表（不规整））。</li>
+<li>针对并发情况下对象内存分配冲突解决方案有：一是同步处理，二是使用本地线程分配缓冲（Thread Local Allocation Buffer，TLAB）（虚拟机是否使用本地线程分配缓冲可通过-XX:+/-UseTLAB参数来设定）。</li>
+<li>内存分配完毕之后，虚拟机会将对应的内存空间初始化为零值（不包括对象头）。接着会对这个对象进行必要的设置，例如此对象是哪个类的实例，如何查找类的元数据信息，对象的哈希码，对象的GC分代年龄等等，这些信息都放在了对象头中。</li>
+<li>执行完new指令之后还需要执行<code>&lt;init&gt;</code>方法，把对象按照程序员的意愿进行初始化，这样一个真正可用的对象才算是完全创建好了。</li>
 </ul>
-<h3 id="接口隔离原则interface-segregation-priciple">接口隔离原则（Interface Segregation Priciple）</h3>
+<h3 id="对象的内存布局">对象的内存布局</h3>
 <ul>
-<li>客户端不应该依赖它不需要的接口;一个类对另一个类的依赖应该建立在最小的接口上</li>
-<li>尽量一个接口只实现一个功能，如果接口功能太多可进行拆分。</li>
+<li>在HotSpot虚拟机中，对象在内存中存储的布局可以分为三块区域：对象头（Header），实例数据（Instance Data）以及对齐填充（Padding）。</li>
+<li>对象头（Header）主要包含两部分信息：第一部分用于存储对象自身的运行时数据（如哈希码（HashCode），GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID，偏向时间戳等，这部分数据长度在32位或者64位的虚拟机中分别为32bit以及64bit，官方称之为“Mark Word”）；第二部分是类型指针，即对象指向它的类元数据的指针，虚拟机可以通过这个指针来确定该对象属于哪个类的实例（并不是所有的虚拟机实现都需要在对象数据上保留类型指针，即查找对象的元数据信息并不一定要经过对象本身），如果对象是一个Java数组，那么对象头还需要记录该数组长度，因为普通的Java对象可以通过元数据信息确认对象大小，而数组却不行。</li>
+<li>实例数据（Instance Data）存储着对象真正有效的信息，即各种类型的字段，无论是继承父类还是子类自定义。</li>
+<li>对齐填充（Padding）不是必然存在的，也没有特殊的含义，仅仅起到占位符的作用，保证对象大小是某个字节的整数倍（HotSpot VM 的自动内存管理系统要求对象起始地址必须为8字节的整数倍）。</li>
 </ul>
-<h3 id="迪米特原则law-of-demeter-or-least-knowlegde-priciple">迪米特原则（Law of Demeter or Least Knowlegde Priciple）</h3>
+<h3 id="对象的访问定位">对象的访问定位</h3>
 <ul>
-<li>一个对象应该对其他对象有最少的了解。</li>
-<li>此原则与接口隔离原则可以结合使用，尽量保持一个方法一个具体行为，而不要涵盖多个行为。</li>
+<li>建立对象的目的是为了使用该对象，Java程序是通过栈上的reference指针来操作堆上的具体对象的。</li>
+<li>目前主流的访问方式有句柄和直接指针两种。</li>
 </ul>
+<h4 id="句柄访问定位">句柄访问定位</h4>
+<ul>
+<li>使用句柄的话，Java堆将会划分出一块内存来作为句柄池，reference中存放的也就是对象的句柄地址（句柄中包含了对象实例数据和类型数据各自的地址）。</li>
+<li>句柄的优势在于其稳定性更高，如果对象频繁的发生移动（GC操作时移动对象），那么只会改变句柄中的实例数据的指针，reference本身不需要改变。</li>
+</ul>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301029.png" alt="img" loading="lazy"></figure>
+<h4 id="直接访问定位">直接访问定位</h4>
+<ul>
+<li>使用直接指针，那么reference将直接指向对象对应的地址（Java堆布局时需要考虑如何存放访问类型数据的相关信息）。</li>
+<li>直接指针的优势在于其速度更快，因为减少了一次指针定位的操作。如果对象访问频繁，那么使用直接访问将会提高相当不错的效率。</li>
+</ul>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301030.png" alt="" loading="lazy"></figure>
 
             </div>
             
@@ -667,7 +898,7 @@
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/" title="Java基础知识">https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/</a>
+      <a href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/" title="java中引用&amp;IO&amp;类加载&amp;对象创建过程">https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -682,12 +913,12 @@
   <div class="nav">
     <div class="nav-prev">
       
-        <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="Java多线程基础" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">Java多线程基础</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="Java多线程基础" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">上一篇</a>
-      
     </div>
     <div class="nav-next">
+      
+        <a class="nav-pc-next" title="JVM详解" href="https://philosopherzb.github.io/post/jvm-xiang-jie/">JVM详解</a>
+        <a class="nav-mobile-next" title="JVM详解" href="https://philosopherzb.github.io/post/jvm-xiang-jie/">下一篇</a>
+        <i class="fa fa-chevron-right"></i>
       
     </div>
   </div>

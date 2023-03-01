@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Java集合基础知识 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677655066253">
+<link rel="shortcut icon" href="/favicon.ico?v=1677658324276">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">7</span>
+        <span class="site-item-stat-count">9</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">1</span>
+        <span class="site-item-stat-count">2</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">1</span>
+        <span class="site-item-stat-count">2</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1166,6 +1166,442 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/"" data-c="
+          &lt;h2 id=&#34;四种引用&#34;&gt;四种引用&lt;/h2&gt;
+&lt;h3 id=&#34;强引用&#34;&gt;强引用&lt;/h3&gt;
+&lt;p&gt;把一个对象复制给一个引用变量，这个引用变量就是一个强引用。当一个对象被强引用变量引用时，它处于可达状态，这时，GC不会对其进行回收（造成OOM的主要原因之一）。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 强引用
+String str = &amp;quot;test&amp;quot;;
+// 取消强引用
+str = null;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;软引用&#34;&gt;软引用&lt;/h3&gt;
+&lt;p&gt;软引用需要使用SoftReference类来实现，对于软引用对象来说，当系统内存足够时不会对其进行回收，反之则进行回收。通常应用在对内存敏感的程序中。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 软引用
+SoftReference&amp;lt;String&amp;gt; softReference = new SoftReference&amp;lt;&amp;gt;(&amp;quot;test&amp;quot;);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;弱引用&#34;&gt;弱引用&lt;/h3&gt;
+&lt;p&gt;弱引用需要使用WeakReference类来实现，它比软引用生存周期更短，对于弱引用对象来说，只要垃圾回收机制一运行，不管JVM内存空间是否充足，都会对其进行回收。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 弱引用
+WeakReference&amp;lt;String&amp;gt; weakReference = new WeakReference&amp;lt;&amp;gt;(&amp;quot;test&amp;quot;);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;虚引用&#34;&gt;虚引用&lt;/h3&gt;
+&lt;p&gt;虚引用需要使用PhantomReference类来实现，它不能单独使用，必须与引用队列联合使用。虚引用的主要作用是跟踪对象被垃圾回收的状态。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 虚引用
+ReferenceQueue&amp;lt;String&amp;gt; queue = new ReferenceQueue&amp;lt;&amp;gt;();
+PhantomReference&amp;lt;String&amp;gt; pr = new PhantomReference&amp;lt;&amp;gt;(&amp;quot;test&amp;quot;, queue);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;java中的io&#34;&gt;Java中的I/O&lt;/h2&gt;
+&lt;h3 id=&#34;bioblock-io&#34;&gt;BIO（Block IO）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;同步阻塞式IO，一般指平常所用的IO类。&lt;/li&gt;
+&lt;li&gt;一个请求对应一个响应，为了合理的利用资源，可以使用多线程（线程池）。&lt;/li&gt;
+&lt;li&gt;此IO一般针对并发量较小的场景（&amp;lt;1000）。&lt;/li&gt;
+&lt;li&gt;BIO操作的对象是流（Stream）。&lt;/li&gt;
+&lt;li&gt;比如：在ATM机上取钱，只能一个一个的取，前面有人的时候，需要等待；取钱的时候，需要本人进行相关取钱操作（取出之后拿到钱才走）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;nionew-io&#34;&gt;NIO（New IO）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;同步非阻塞式IO。&lt;/li&gt;
+&lt;li&gt;利用Channel（通道）通讯，实现了多路复用。&lt;/li&gt;
+&lt;li&gt;核心组件：Buffer（缓冲区），Channel（通道），Selector（选择器）&lt;/li&gt;
+&lt;li&gt;NIO操作的对象是缓存区（Buffer）。&lt;/li&gt;
+&lt;li&gt;基本运行流程：当Channel发生新连接、就绪读，就绪写的时候，首先会在Selector上注册相应的事件，生成一个与Channel绑定的selectKey；其次由一个线程轮询selectKey集合，利用操作系统底层的函数select() 或者 epoll（Linux 2.6之前是select、poll，2.6之后是epoll，Windows是iocp）去操作系统查询IO是否就绪，如果就绪则执行相应的事件处理器（通过selectKey找到Channel，然后利用与Channel绑定的buffer进行实际读写）。&lt;/li&gt;
+&lt;li&gt;比如：在银行大厅取钱，对于前面是否有人等候，只需要隔一段时间去问一下大堂经理是否可以取钱就可以了，不需要一直去排队（这段时间可以做其他事）；取钱的时候，需要柜员进行相关操作，同时也需要保证你也在柜员面前（不能离开，不然柜员可能会找不到你，然后钱就没有实际拿到手里了）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;aioasynchronous-io&#34;&gt;AIO（Asynchronous IO）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;异步非阻塞式IO。&lt;/li&gt;
+&lt;li&gt;其实现是基于事件以及回调机制。&lt;/li&gt;
+&lt;li&gt;AIO与NIO有点相似，不过对于实际读写而言，AIO是交给操作系统底层自己去完成的，完成之后会返回一个IO完成的回调消息。&lt;/li&gt;
+&lt;li&gt;比如：同样是去银行取钱，不过这次你是让朋友去帮忙取的，你朋友会帮你排队，然后取钱，接着把钱给你，并告诉你已经取好了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;io阶段&#34;&gt;IO阶段&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;IO中对于读写一般分为两个阶段：就绪读写（准备数据）以及实际读写（真正读写数据）。&lt;/li&gt;
+&lt;li&gt;对应上面取钱例子而言，就绪读写指的是排队，实际读写指的是取钱操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;同步异步&#34;&gt;同步，异步&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;同步指的是操作的时候，需要等待当前任务返回结果；异步则相反，它不需要等待当前任务返回，通常情况下是依赖于事件，回调机制来实现任务间的次序关系。&lt;/li&gt;
+&lt;li&gt;同步，异步对于IO而言指的是实际读写阶段；对应取钱例子而言，就是真正取钱操作（同步，自己取钱；异步，朋友帮忙取钱）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;阻塞非阻塞&#34;&gt;阻塞，非阻塞&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;阻塞指的是如果任务在执行，当前线程会阻塞，需要等待任务执行完，这期间该线程不能执行其他任务；非阻塞则是说在一个任务执行期间，线程不会阻塞，可以执行其他任务。&lt;/li&gt;
+&lt;li&gt;阻塞，非阻塞对于IO而言指的是就绪读写阶段；对应取钱例子而言，就是排队等候（阻塞，排队没带手机，只能干等着；非阻塞，排队带了手机，可以一边玩手机一边排队）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;jvm类加载&#34;&gt;JVM类加载&lt;/h2&gt;
+&lt;h3 id=&#34;类加载机制&#34;&gt;类加载机制&lt;/h3&gt;
+&lt;p&gt;JVM类加载机制分为五个部分：加载，验证，准备，解析，初始化。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301027.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;1、加载：在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的入口（注意：不一定非得从Class文件中获取，也可以从ZIP（如jar，war）中读取，或者在运行时计算生成（动态代理），或者由其他文件转换而来（如JSP转换为Class））。&lt;/p&gt;
+&lt;p&gt;2、验证：确保Class文件字节流中所包含的信息符合当前虚拟机的要求，并且不会危害虚拟机自身的安全。&lt;/p&gt;
+&lt;p&gt;3、准备：正式为类变量分配内存并为其设置初始值，即在方法区中分配这些变量所使用的内存空间。需要注意这里所说的初始值概念，比如说一个类变量定义为：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static int port = 8080;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;那么此变量在准备阶段所谓的设置初始值，是设置其为0，而不是8080。将port赋值为8080的put static 指令是程序被编译后，存放于类构造器&lt;code&gt;&amp;lt;Client&amp;gt;&lt;/code&gt;方法中的。&lt;/p&gt;
+&lt;p&gt;但如果变量声明如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static final int port = 8080;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;那么在编译期间，会为port生成ConstantValue属性，在准备阶段虚拟机会根据ConstantValue属性将port赋值为8080.&lt;/p&gt;
+&lt;p&gt;4、解析：此阶段指虚拟机将常量池中的符号引用替换为直接引用的过程。&lt;/p&gt;
+&lt;p&gt;符号引用：与虚拟机实现的布局无关，引用的目标不一定要已经加载至内存中。各种虚拟机的内存布局可以不一致，但它们能接受的符号引用必须一致，因为符号引用的字面量形式明确的定义在java虚拟机规范的Class文件格式中。、&lt;/p&gt;
+&lt;p&gt;直接引用：是可以直接指向目标的指针，相对偏移量或是一个能间接定位到目标的句柄，如果存在直接引用，那么引用的目标必定已经在内存中存在。&lt;/p&gt;
+&lt;p&gt;5、初始化：此阶段开始真正执行类中定义的java程序代码，即开始开始执行类构造器&lt;code&gt;&amp;lt;client&amp;gt;&lt;/code&gt;方法。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;&amp;lt;client&amp;gt;&lt;/code&gt;方法是由编译器自动收集类中的类静态变量赋值以及静态语句块中的语句合并而成的。虚拟机会保证子&lt;code&gt;&amp;lt;client&amp;gt;&lt;/code&gt;执行之前，父&lt;code&gt;&amp;lt;client&amp;gt;&lt;/code&gt;已经执行完毕（如果一个类中既没有类静态变量赋值，也没有静态语句块，那虚拟机可以不为其生成&lt;code&gt;&amp;lt;client&amp;gt;&lt;/code&gt;方法）。&lt;/p&gt;
+&lt;p&gt;注意以下几种情形不会执行类初始化：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过子类引用父类的静态字段，只会触发父类的初始化。&lt;/li&gt;
+&lt;li&gt;定义对象数组，不会触发该类的初始化。&lt;/li&gt;
+&lt;li&gt;常量在编译期间会存入调用类的常量池中，本质上并没有直接引用定义常量的类，不会触发定义常量所在类的初始化。&lt;/li&gt;
+&lt;li&gt;通过类名获取Class对象，不会触发初始化。&lt;/li&gt;
+&lt;li&gt;通过Class.forName加载指定类时，如果指定参数initialize为false（initialize是告诉虚拟机是否要对该类进行初始化），也不会触发类的初始化。&lt;/li&gt;
+&lt;li&gt;通过ClassLoader默认的loadClass方法，不会触发类初始化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;类加载器&#34;&gt;类加载器&lt;/h3&gt;
+&lt;p&gt;类的加载并没有发生在JVM中，而是由应用程序来确定如何获取所需要的类。为此JVM提供了三种类加载器，如下：&lt;/p&gt;
+&lt;p&gt;1、启动类加载器（Bootstrap ClassLoader）：负责加载JAVA_HOME\lib目录中的，或通过-Xbootclasspath参数指定路径中的，且被虚拟机认可的类（按文件名识别，如：rt.jar）。&lt;/p&gt;
+&lt;p&gt;2、扩展类加载器（Extension ClassLoader）：负责加载JAVA_HOME\lib\ext目录中的，或通过java.ext.dirs系统变量指定路径中的类库。&lt;/p&gt;
+&lt;p&gt;3、应用程序类加载器（Application ClassLoader）：负责加载用户路径（classpath）上的类库。&lt;/p&gt;
+&lt;h3 id=&#34;双亲委派模型&#34;&gt;双亲委派模型&lt;/h3&gt;
+&lt;p&gt;JVM通过双亲委派模型进行类的加载，当然，开发者也可以通过集成java.lang.ClassLoader实现自定义的类加载器。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301028.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;双亲委派过程：当一个类收到类加载请求时，它首先不会尝试自己去加载这个类，而是将这个请求委派给父类去完成，每一层次的类加载器都是如此操作，因此所有的类加载请求都应该会传送到启动类加载器中，只有当父加载器无法加载此类时（在它的加载路径下没有找到所需加载的Class），子加载器才会尝试自己去加载。&lt;/p&gt;
+&lt;p&gt;双亲委派解决了java基础类统一加载的问题，但某些情况下父类加载器需要委托子类加载器去加载Class文件，例如SPI（Service Provider Interface）代码（spi是一种服务发现机制：即为某个接口寻找服务实现的机制。）。&lt;/p&gt;
+&lt;h3 id=&#34;以jdbc为例谈双亲委派模型的破坏&#34;&gt;以JDBC为例谈双亲委派模型的破坏&lt;/h3&gt;
+&lt;p&gt;Java本身有一套资源管理服务JNDI（Java Naming and Directory Interface，根据名称可以在其中查找对应的方法或者其他参数），其放置于rt.jar中，由启动类加载器进行加载。&lt;/p&gt;
+&lt;p&gt;以数据库管理JDBC为例，java给数据库操作提供了一个Driver（java.sql.Driver）接口，并提供了一个DriverManager（java.sql.DriverManager）来管理Driver的具体实现。&lt;/p&gt;
+&lt;h4 id=&#34;不破坏双亲委派模型不使用jdni&#34;&gt;不破坏双亲委派模型（不使用JDNI）&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;// 加载数据库驱动
+Class.forName(&amp;quot;com.mysql.jdbc.Driver&amp;quot;);
+// 连接到数据库上去
+Connection connection = DriverManager.getConnection(&amp;quot;jdbc:mysql://localhost:3306/db?useUnicode=true&amp;amp;characterEncoding=UTF-8&amp;amp;allowMultiQueries=true&amp;amp;serverTimezone=Asia/Shanghai&amp;quot;,&amp;quot;root&amp;quot;,&amp;quot;root&amp;quot;);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Class.forName()触发了mysql驱动类的加载，通过源码可以发现，mysql的驱动类已经在静态块中被注册到了DriverManager中，所以后续使用时可以直接建立连接。其核心实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+    public Driver() throws SQLException {
+    }
+
+    static {
+        try {
+            DriverManager.registerDriver(new Driver());
+        } catch (SQLException var1) {
+            throw new RuntimeException(&amp;quot;Can&#39;t register driver!&amp;quot;);
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;public static synchronized void registerDriver(java.sql.Driver driver,
+        DriverAction da)
+    throws SQLException {
+
+    /* Register the driver if it has not already been added to our list */
+    if(driver != null) {
+        registeredDrivers.addIfAbsent(new DriverInfo(driver, da));
+    } else {
+        // This is for compatibility with the original DriverManager
+        throw new NullPointerException();
+    }
+
+    println(&amp;quot;registerDriver: &amp;quot; + driver);
+
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;破坏双亲委派模型使用jdni&#34;&gt;破坏双亲委派模型（使用JDNI）&lt;/h4&gt;
+&lt;p&gt;JDBC4.0以后，开始支持spi注册Driver，具体做法便是在mysql的jar中的META-INF/services/java.sql.Driver文件中指明当前的Driver，然后通过下列方式即可使用。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 连接到数据库上去
+Connection connection = DriverManager.getConnection(&amp;quot;jdbc:mysql://localhost:3306/db?useUnicode=true&amp;amp;characterEncoding=UTF-8&amp;amp;allowMultiQueries=true&amp;amp;serverTimezone=Asia/Shanghai&amp;quot;,&amp;quot;root&amp;quot;,&amp;quot;root&amp;quot;);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此处相比于不破坏双亲委派模型，少了一句Class.forName()，即加载驱动类的步骤。其对应的Driver是配置在META-INF/services/java.sql.Drive文件中的，由此可以知道其操作为：先从配置文件中读取Driver，随后再进行加载（使用Class.forName()）&lt;/p&gt;
+&lt;p&gt;需要注意的是，Class.forName()加载的是调用者的ClassLoader，这个调用者DriverManager是在rt.jar中，ClassLoader是启动类加载器，而com.mysql.cj.jdbc.Driver并没有位于&amp;lt;JAVA_HOME&amp;gt;/lib下，所以肯定是无法直接加载到mysql的这个类的。这边是双亲委派的局限性，父类加载器无法加载子类加载器路径中的类（父对子透明，子对父不透明）。&lt;/p&gt;
+&lt;p&gt;为了让父类加载器加载子类加载器路径中的类，可以通过线程上下文加载器去加载第三方jar包中的Driver，这便打破了双亲委派模型。&lt;/p&gt;
+&lt;p&gt;以DriverManager为例，当调用其getConnection()方法时，会先执行器静态块中的初始化代码，如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Load the initial JDBC drivers by checking the System property
+ * jdbc.properties and then use the {@code ServiceLoader} mechanism
+ */
+static {
+    loadInitialDrivers();
+    println(&amp;quot;JDBC DriverManager initialized&amp;quot;);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;AccessController.doPrivileged(new PrivilegedAction&amp;lt;Void&amp;gt;() {
+    public Void run() {
+        // 各个sql厂商在自己的jar包中通过spi注册的驱动
+        ServiceLoader&amp;lt;Driver&amp;gt; loadedDrivers = ServiceLoader.load(Driver.class);
+        Iterator&amp;lt;Driver&amp;gt; driversIterator = loadedDrivers.iterator();
+
+        /* Load these drivers, so that they can be instantiated.
+         * It may be the case that the driver class may not be there
+         * i.e. there may be a packaged driver with the service class
+         * as implementation of java.sql.Driver but the actual class
+         * may be missing. In that case a java.util.ServiceConfigurationError
+         * will be thrown at runtime by the VM trying to locate
+         * and load the service.
+         *
+         * Adding a try catch block to catch those runtime errors
+         * if driver not available in classpath but it&#39;s
+         * packaged as service and that service is there in classpath.
+         */
+        try{
+            while(driversIterator.hasNext()) {
+                driversIterator.next();
+            }
+        } catch(Throwable t) {
+        // Do nothing
+        }
+        return null;
+    }
+});
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;其中ServiceLoader.load()便是拿到线程上下文加载器，并构造了一个ServiceLoader进行返回，如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt;S&amp;gt; service) {
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    return ServiceLoader.load(service, cl);
+}
+
+public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt;S&amp;gt; service,
+                                        ClassLoader loader)
+{
+    return new ServiceLoader&amp;lt;&amp;gt;(service, loader);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;DriverManager中的doPrivileged()中还有一句driversIterator.next()，其中实现了类加载过程，具体实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private S nextService() {
+    if (!hasNextService())
+        throw new NoSuchElementException();
+    String cn = nextName;
+    nextName = null;
+    Class&amp;lt;?&amp;gt; c = null;
+    try {
+        // 此处的cn便是便是厂商在META-INF/services/java.sql.Drive文件中配置的全限定驱动类名
+        // loader则是上文中ServiceLoader.load()返回的线程上下文加载器。
+        c = Class.forName(cn, false, loader);
+    } catch (ClassNotFoundException x) {
+        fail(service,
+             &amp;quot;Provider &amp;quot; + cn + &amp;quot; not found&amp;quot;);
+    }
+    if (!service.isAssignableFrom(c)) {
+        fail(service,
+             &amp;quot;Provider &amp;quot; + cn  + &amp;quot; not a subtype&amp;quot;);
+    }
+    try {
+        S p = service.cast(c.newInstance());
+        providers.put(cn, p);
+        return p;
+    } catch (Throwable x) {
+        fail(service,
+             &amp;quot;Provider &amp;quot; + cn + &amp;quot; could not be instantiated&amp;quot;,
+             x);
+    }
+    throw new Error();          // This cannot happen
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;hotspot-jvm虚拟机对象探究&#34;&gt;Hotspot JVM虚拟机对象探究&lt;/h2&gt;
+&lt;h3 id=&#34;对象的创建以普通java对象new指令为例&#34;&gt;对象的创建（以普通Java对象new指令为例）&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;当虚拟机遇到一条new指令时，首先会去常量池中检查是否存在这个对象的引用，并且检查该引用所代表的类是否已经被加载，解析和初始化过，如果没有，则先执行类加载。&lt;/li&gt;
+&lt;li&gt;当类加载检查通过之后，虚拟机将会为新生对象分配内存（对象所需的内存大小在类加载完成之后就已经确认了，为对象分配空间就是在Java堆上划分出一块内存来。一般有两种分配方式，根据内存规整程度分为：指针碰撞（规整）以及空闲列表（不规整））。&lt;/li&gt;
+&lt;li&gt;针对并发情况下对象内存分配冲突解决方案有：一是同步处理，二是使用本地线程分配缓冲（Thread Local Allocation Buffer，TLAB）（虚拟机是否使用本地线程分配缓冲可通过-XX:+/-UseTLAB参数来设定）。&lt;/li&gt;
+&lt;li&gt;内存分配完毕之后，虚拟机会将对应的内存空间初始化为零值（不包括对象头）。接着会对这个对象进行必要的设置，例如此对象是哪个类的实例，如何查找类的元数据信息，对象的哈希码，对象的GC分代年龄等等，这些信息都放在了对象头中。&lt;/li&gt;
+&lt;li&gt;执行完new指令之后还需要执行&lt;code&gt;&amp;lt;init&amp;gt;&lt;/code&gt;方法，把对象按照程序员的意愿进行初始化，这样一个真正可用的对象才算是完全创建好了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;对象的内存布局&#34;&gt;对象的内存布局&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;在HotSpot虚拟机中，对象在内存中存储的布局可以分为三块区域：对象头（Header），实例数据（Instance Data）以及对齐填充（Padding）。&lt;/li&gt;
+&lt;li&gt;对象头（Header）主要包含两部分信息：第一部分用于存储对象自身的运行时数据（如哈希码（HashCode），GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID，偏向时间戳等，这部分数据长度在32位或者64位的虚拟机中分别为32bit以及64bit，官方称之为“Mark Word”）；第二部分是类型指针，即对象指向它的类元数据的指针，虚拟机可以通过这个指针来确定该对象属于哪个类的实例（并不是所有的虚拟机实现都需要在对象数据上保留类型指针，即查找对象的元数据信息并不一定要经过对象本身），如果对象是一个Java数组，那么对象头还需要记录该数组长度，因为普通的Java对象可以通过元数据信息确认对象大小，而数组却不行。&lt;/li&gt;
+&lt;li&gt;实例数据（Instance Data）存储着对象真正有效的信息，即各种类型的字段，无论是继承父类还是子类自定义。&lt;/li&gt;
+&lt;li&gt;对齐填充（Padding）不是必然存在的，也没有特殊的含义，仅仅起到占位符的作用，保证对象大小是某个字节的整数倍（HotSpot VM 的自动内存管理系统要求对象起始地址必须为8字节的整数倍）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;对象的访问定位&#34;&gt;对象的访问定位&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;建立对象的目的是为了使用该对象，Java程序是通过栈上的reference指针来操作堆上的具体对象的。&lt;/li&gt;
+&lt;li&gt;目前主流的访问方式有句柄和直接指针两种。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;句柄访问定位&#34;&gt;句柄访问定位&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;使用句柄的话，Java堆将会划分出一块内存来作为句柄池，reference中存放的也就是对象的句柄地址（句柄中包含了对象实例数据和类型数据各自的地址）。&lt;/li&gt;
+&lt;li&gt;句柄的优势在于其稳定性更高，如果对象频繁的发生移动（GC操作时移动对象），那么只会改变句柄中的实例数据的指针，reference本身不需要改变。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301029.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;直接访问定位&#34;&gt;直接访问定位&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;使用直接指针，那么reference将直接指向对象对应的地址（Java堆布局时需要考虑如何存放访问类型数据的相关信息）。&lt;/li&gt;
+&lt;li&gt;直接指针的优势在于其速度更快，因为减少了一次指针定位的操作。如果对象访问频繁，那么使用直接访问将会提高相当不错的效率。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301030.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+">java中引用&IO&类加载&对象创建过程</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/jvm-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;jvm概述&#34;&gt;JVM概述&lt;/h2&gt;
+&lt;h3 id=&#34;基本概念&#34;&gt;基本概念&lt;/h3&gt;
+&lt;p&gt;JVM是运行java代码的虚拟计算机平台，它运行于计算机操作系统之上，并不直接与硬件进行交互。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301019.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;运行过程&#34;&gt;运行过程&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;x.java源文件，通过编译器产生对应的&lt;/em&gt;.Class字节码文件，之后又通过java虚拟机中的解释器，编译成特定机器上的机器码。&lt;/p&gt;
+&lt;p&gt;流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Java源文件 ----&amp;gt; 编译器 ----&amp;gt; 字节码文件&lt;/li&gt;
+&lt;li&gt;字节码文件 ----&amp;gt; JVM解释器 ----&amp;gt; 机器码&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;每一种平台的解释器都是不同的，但其依赖的虚拟机是一样的，这也就是java跨平台运行的核心原理。&lt;/p&gt;
+&lt;p&gt;虚拟机实例随着程序的运行而启动，程序退出或关闭则会使对应的虚拟机实例消亡。多个程序启动会存在多个虚拟机实例，各个虚拟机实例之间互不干扰，数据独立。&lt;/p&gt;
+&lt;h2 id=&#34;jvm线程&#34;&gt;JVM线程&lt;/h2&gt;
+&lt;h3 id=&#34;线程&#34;&gt;线程&lt;/h3&gt;
+&lt;p&gt;此处所说的线程为程序执行过程中的一个线程实体。JVM允许一个应用并发执行多个线程。&lt;/p&gt;
+&lt;p&gt;Hotspot JVM中的java线程与操作系统原生线程存在直接的映射关系：当java线程创建完毕后，会同步创建一个操作系统原生线程。java线程结束，原生线程也会随之被回收（原生线程由操作系统负责调度，如将其分配至可用的CPU）。&lt;/p&gt;
+&lt;p&gt;Hotspot JVM 后台运行的系统线程如下图所示：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301020.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;jvm内存区域&#34;&gt;JVM内存区域&lt;/h2&gt;
+&lt;h3 id=&#34;内存区域图&#34;&gt;内存区域图&lt;/h3&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301021.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;运行时数据区域&#34;&gt;运行时数据区域&lt;/h3&gt;
+&lt;p&gt;Java虚拟机在执行java程序时，定义了若干程序运行期间会使用到的运行时数据区域，其中线程共享区域随着虚拟机的启动/关闭而创建/销毁，线程私有区域则与用户线程一一对应，会随着用户线程的启动/关闭而创建/销毁（ Hotspot JVM中，用户线程会与原生线程对应）。&lt;/p&gt;
+&lt;p&gt;运行时数据区域图如下：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301022.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;程序计数器program-counter-register&#34;&gt;程序计数器（Program Counter Register）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;是一块内存小，线程私有，且不会发生OOM（OutOfMemoryError）的区域（因为它只是当前线程所执行的字节码的行号指示器）。&lt;/li&gt;
+&lt;li&gt;在Java虚拟机概念模型中（仅仅指概念模型，各类不同的虚拟机可能有更高效的处理方式），字节码解释器工作时就是通过改变这个计数器的值来选取下一条需要执行指令的字节码指令，分支、循环、跳转、异常处理、线程恢复等基础功能都需要依赖计数器来完成。&lt;/li&gt;
+&lt;li&gt;Java虚拟机可以支持多线程同时执行（可参考《Java 语言规范》第 17 章），是通过轮转时间片的方式让处理器来执行线程的。在任意时刻，一个处理器（对于多核处理器来说是指一个内核）只会处理一个线程中的指令，为了保证线程切换能够回到正确的执行指令，Java虚拟机针对每个线程分配了一个独立的程序计数器，各线程之间的计数器互不干扰，独立存储。&lt;/li&gt;
+&lt;li&gt;如果线程正在执行的方法不是 native的（即Java方法），那程序计数器就保存 Java 虚拟机正在执行的字节码指令的地址，如果该方法是 native 的，那程序计数器的值是 undefined。&lt;/li&gt;
+&lt;li&gt;程序计数器的容量至少应当能保存一个 returnAddress 类型的数据或者一个与平台相关的本地指针的值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;java虚拟机栈java-virtual-machine-stack&#34;&gt;Java虚拟机栈（Java Virtual Machine Stack）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Java虚拟机栈是线程私有的，它的生命周期与线程一致。&lt;/li&gt;
+&lt;li&gt;虚拟机栈描述的是 Java 方法执行的内存模型：每个方法在执行的同时都会创建一个栈帧(Stack Frame)用于存储局部变量表、操作数栈、动态链接、方法出口等信息。每一个方法从调用直至执行完成的过程，就对应着一个栈帧从虚拟机栈中入栈到出栈的过程。&lt;/li&gt;
+&lt;li&gt;局部变量表存放了编译期可知的各种基本类型(boolean、byte、char、short、int、float、long、double)、对象引用(reference类型，它不等同于对象本身)和 returnAddress 类型(指向了一条字节码指令的地址)。&lt;/li&gt;
+&lt;li&gt;需要注意的是64位的long以及double类型的数据会占用两个局部变量空间（Slot），其余的数据类型只占一个。局部变量表所需的内存空间在编译期间就已经完成了分配，当进入一个方法时，这个方法需要在帧中分配多大的局部变量空间是已经确认了的，在方法运行期间不会去改变局部变量表的大小。&lt;/li&gt;
+&lt;li&gt;Java虚拟机栈有可能发生以下两种异常状况：如果线程请求分配的栈容量（栈深度）超过 Java 虚拟机栈允许的最大容量（深度）时，Java 虚拟机将会抛出一 个StackOverflowError异常；如果Java 虚拟机栈可以动态扩展（目前大部分虚拟机都支持动态扩展），并且扩展的动作已经尝试过，但是目前无法申请到足够的内存去完成扩展，或者在建立新的线程时没有足够的内存去创建对应的虚拟机栈，那 Java 虚拟机将会抛出一个 OutOfMemoryError异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;本地方法栈native-method-stack&#34;&gt;本地方法栈（Native Method Stack）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;本地方法栈与Java虚拟机栈是非常类似的，他们的主要区别是Java虚拟机栈是服务于Java方法（字节码）的，而本地方法栈则是服务于Native方法的。&lt;/li&gt;
+&lt;li&gt;与Java虚拟机栈一样，本地方法栈同样会出现StackOverflowError异常和OutOfMemoryError异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;java堆java-heap&#34;&gt;Java堆（Java Heap）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;在 Java 虚拟机中，堆（Heap）是可供各条线程共享的运行时内存区域，也是供所有类实例和数组对象分配内存的区域，一般而言堆（Heap）占用的内存空间也是最大的。&lt;/li&gt;
+&lt;li&gt;Java 堆在虚拟机启动的时候就被创建，它存储了被自动内存管理系统（Automatic Storage Management System，也即是常说的“Garbage Collector（垃圾收集器）”）所管理的各种对象，这些受管理的对象无需，也无法显式地被销毁。所以一般我们也称Java堆为GC堆（Garbage Collected Heap）。&lt;/li&gt;
+&lt;li&gt;如果实际所需的堆超过了自动内存管理系统能提供的最大容量（或者说堆中没有内存来完成实例分配，且无法扩展），那 Java 虚拟机将会抛出一个 OutOfMemoryError异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;方法区method-area&#34;&gt;方法区（Method Area）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;在 Java 虚拟机中，方法区（Method Area）是可供各条线程共享的运行时内存区域。&lt;/li&gt;
+&lt;li&gt;它存储了每一个类的结构信息，例如运行时常量池（Runtime Constant Pool）、字段和方法数据、构造函数和普通方法的字节码内容、还包括一些在类、实例、接口初始化时用到的特殊方法（即存储着已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据）。&lt;/li&gt;
+&lt;li&gt;如果方法区的内存空间不能满足内存分配请求，那 Java 虚拟机将抛出一个 OutOfMemoryError异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;运行时常量池runtime-constant-pool&#34;&gt;运行时常量池（Runtime Constant Pool）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;运行时常量池是方法区（Method Area）的一部分。&lt;/li&gt;
+&lt;li&gt;它是每一个类或接口的常量池（Constant_Pool）的运行时表示形式，它包括了若干种不同的常量：从编译期可知的数值字面量到必须运行期解析后才能获得的方法或字段引用。&lt;/li&gt;
+&lt;li&gt;一般情况下，除了保存Class文件中描述的符号引用外，还会把翻译过来的直接引用也保存在运行时常量池中。&lt;/li&gt;
+&lt;li&gt;运行时常量池相对于Class文件常量池的另一个特征是具备动态性，即运行期间也可将新的常量放入池中，比如String.intern()方法。&lt;/li&gt;
+&lt;li&gt;当创建类或接口的时候，如果构造运行时常量池所需要的内存空间超过了方法区所能提供的最大值，那 Java 虚拟机将会抛出一个 OutOfMemoryError 异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;直接内存direct-memory&#34;&gt;直接内存（Direct Memory）&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;直接内存并不属于Java虚拟机运行时内存区域，也不是Java虚拟机规范中定义的内存区域。&lt;/li&gt;
+&lt;li&gt;在这里提出来的主要原因是因为Java在1.4版本引入了NIO类，是一种基于通道（Channel）和缓存区（Buffer）的IO操作，它可以使用Native函数库直接分配堆外内存，然后通过一个存储在Java堆中的DirectByteBuffer对象作为这块内存的引用进行操作。&lt;/li&gt;
+&lt;li&gt;在某些情况下，通过减少Java堆和Native堆来回复制数据的操作，从而提高一些性能。&lt;/li&gt;
+&lt;li&gt;因为这块内存也是实际存在的，所以受硬件总内存影响，如果需要对虚拟机内存进行扩容操作，需要考虑虚拟机内存加直接内存超过物理内存限制所引起的 OutOfMemoryError异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;jvm运行时内存&#34;&gt;JVM运行时内存&lt;/h3&gt;
+&lt;h4 id=&#34;分代&#34;&gt;分代&lt;/h4&gt;
+&lt;p&gt;Java堆从GC角度还可以细分为新生代（Eden区，From Survivor区，To Survivor区），老年代。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301023.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;新生代&#34;&gt;新生代&lt;/h4&gt;
+&lt;p&gt;用于存储初创对象，一般占据堆内存1/3。对象的创建频繁且杂多，所以此区域会经常触发MinorGC进行垃圾回收。&lt;/p&gt;
+&lt;h5 id=&#34;新生代细分区域&#34;&gt;新生代细分区域&lt;/h5&gt;
+&lt;p&gt;Eden区：Java新对象的出生地（如果新创建的对象占用内存过大，将直接被分配至老年代），当Eden内存不足时，将触发一次MinorGC，对其进行垃圾回收。&lt;/p&gt;
+&lt;p&gt;From Survivor区：上一次GC的幸存者存放在此区域，将作为这一次GC的扫描对象。&lt;/p&gt;
+&lt;p&gt;To Survivor区：经历一次MinorGC过程的幸存者。&lt;/p&gt;
+&lt;h5 id=&#34;新生代gc过程复制算法&#34;&gt;新生代GC过程（复制算法）&lt;/h5&gt;
+&lt;p&gt;首先将Eden和From Survivor区域中存活的对象复制到To Survivor区域（From Survivor区如果存在对象年龄且大于阈值，则直接复制到老年代），同时将这些对象的年龄+1（如果To Survivor区被填满了，剩余的对象会被复制到老年代中）。随后清空Eden和From Survivor区域中的死对象。最后，将From Survivor和To Survivor调换名字，这样，在下一次GC时，原To Survivor将成为From Survivor。&lt;/p&gt;
+&lt;h4 id=&#34;老年代&#34;&gt;老年代&lt;/h4&gt;
+&lt;p&gt;主要存储应用程序中生命周期较长的内存对象。进入老年代的对象一般都比较稳定，所以不会频繁地执行MajorGC。&lt;/p&gt;
+&lt;p&gt;MajorGC采用标记清除算法：首先扫描一次所有老年代，标记出存活的对象，然后回收未标记的对象。此过程耗时较长，且会产生内存碎片。&lt;/p&gt;
+&lt;h4 id=&#34;永久代&#34;&gt;永久代&lt;/h4&gt;
+&lt;p&gt;内存的永久保存区域，主要存放Class以及Meta（元数据）信息。Class在被加载时便放入永久区域，它跟存放实例的区域不同，GC不会在主程序执行期间对永久区域进行清理。所以，这也导致了永久区域随着加载的Class增多而不断膨胀，最终抛出OOM异常。&lt;/p&gt;
+&lt;p&gt;Java8中，永久代已经被移除，被一个称为“元数据区”（元空间）的区域所替代。元空间的本质与永久代类似，它们之间最大的区别在于：元空间并不在虚拟机中，而是使用本地内存。&lt;/p&gt;
+&lt;h3 id=&#34;垃圾回收与算法&#34;&gt;垃圾回收与算法&lt;/h3&gt;
+&lt;h4 id=&#34;gc算法图&#34;&gt;GC算法图&lt;/h4&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301024.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;垃圾确认算法&#34;&gt;垃圾确认算法&lt;/h4&gt;
+&lt;p&gt;引用计数法：对象被引用则+1，否则-1，为0时将被回收（存在循环引用问题）。&lt;/p&gt;
+&lt;p&gt;可达性分析：为了避免引用计数法中的循环引用问题，如今java一般采用可达性分析，通过一系列的GC ROOTS（VM栈中的引用，方法区中的静态引用，JNI中的引用等）作为对象的起点搜索。如果GC ROOTS和一个对象之间没有可达路径，则称其为不可达。需要注意的是：不可达对象不等价于可回收对象，不可达对象变为可回收对象最少需要经历两次标记过程，如果仍然不可达，则会面临回收。&lt;/p&gt;
+&lt;h4 id=&#34;垃圾收集算法&#34;&gt;垃圾收集算法&lt;/h4&gt;
+&lt;h5 id=&#34;标记清除算法mark-sweep&#34;&gt;标记清除算法（Mark-Sweep）&lt;/h5&gt;
+&lt;p&gt;最基础的垃圾回收算法，分为两个阶段，标记和清除。如下图所示（容易出现内存碎片）：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301025.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h5 id=&#34;复制算法copying&#34;&gt;复制算法（copying）&lt;/h5&gt;
+&lt;p&gt;为了解决Mark-Sweep算法中内存碎片化的缺陷而被提出的算法。&lt;/p&gt;
+&lt;p&gt;它按内存容量将内存划分为等大小的两块，每次只使用其中一块，当这一块内存满了之后，便将其中存活的对象移至另一块内存上去，同时把已使用的内存清理掉。&lt;/p&gt;
+&lt;p&gt;这种算法实现简单，内存效率高，不易产生碎片，但同时也带来了一个问题，那就是可用内存被压缩到了原来的一半，且当存活对象过多时，其算法效率又会大大降低。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301026.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h5 id=&#34;分代收集算法&#34;&gt;分代收集算法&lt;/h5&gt;
+&lt;p&gt;此算法是目前大部分JVM所采用的方法，其核心思想是根据对象存活的不同生命周期将内存划分为不同的域。&lt;/p&gt;
+&lt;p&gt;一般情况下，会将GC堆划分为老年代（Tenured/Old Generation）和新生代（Young Generation）。&lt;/p&gt;
+&lt;p&gt;老年代的特点是每次需要回收的对象很少，新生代则与之相反，因此可以根据不同的区域选择不同的算法。&lt;/p&gt;
+&lt;p&gt;新生代由于需要经常进行垃圾回收，所以可以采用复制算法（一般会将其再次划分为Eden，From Survivor以及To Survivor三个区域，比例为8:1:1（实际调优需要根据具体的业务调整））。&lt;/p&gt;
+&lt;p&gt;老年代则一般采用标记复制算法或者标记整理算法，可根据具体场景指定。&lt;/p&gt;
+&lt;h3 id=&#34;gc垃圾收集器&#34;&gt;GC垃圾收集器&lt;/h3&gt;
+&lt;h5 id=&#34;serial垃圾收集器单线程复制算法&#34;&gt;Serial垃圾收集器（单线程，复制算法）&lt;/h5&gt;
+&lt;p&gt;Serial是最基本的垃圾收集器，使用复制算法。JDK1.3.1之前，它是新生代唯一的垃圾收集器。&lt;/p&gt;
+&lt;p&gt;Serial是一个单线程的收集器，它不但只会用一个CPU或一条线程去完成垃圾收集工作，并且在进行垃圾收集的过程中，还要暂停其他所有线程（stop the world），直到垃圾收集结束。&lt;/p&gt;
+&lt;p&gt;Serial在执行时虽然会暂停其他所有线程，但其简单高效，对于限定单个CPU的环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率。&lt;/p&gt;
+&lt;p&gt;因此，Serial依旧是java虚拟机运行在Client模式下新生代的默认垃圾收集器。&lt;/p&gt;
+&lt;h5 id=&#34;parnew垃圾收集器serial-多线程&#34;&gt;ParNew垃圾收集器（serial + 多线程）&lt;/h5&gt;
+&lt;p&gt;ParNew其实是Serial收集器的多线程版本，除了多线程之外，其余与Serial完全一致。&lt;/p&gt;
+&lt;p&gt;ParNew默认开启和CPU数目相同的线程数，可以通过-XX:ParallelGCThreads参数来限制垃圾收集器的线程数。&lt;/p&gt;
+&lt;p&gt;相较于Seria而言，ParNew是java虚拟机运行在Server模式下新生代的默认垃圾收集器。&lt;/p&gt;
+&lt;h5 id=&#34;parallel-scavenge垃圾收集器多线程复制算法高效&#34;&gt;Parallel Scavenge垃圾收集器（多线程复制算法，高效）&lt;/h5&gt;
+&lt;p&gt;Parallel Scavenge 是一个新生代垃圾收集器，使用复制算法，且为多线程。其重点关注的是程序达到一个可控制的吞吐量（Thoughput，CPU用于运行用户代码时间/CPU总消耗时间，即吞吐量=运行用户代码时间/（运行用户代码时间+垃圾收集时间））。&lt;/p&gt;
+&lt;p&gt;高吞吐量可以最高效率的利用CPU时间，尽快地完成程序的运行任务，主要适用于在后台运算，而不需要太多交互的任务。&lt;/p&gt;
+&lt;p&gt;自适应调节策略也是Parallel Scavenge与ParNew的一个重要区别。&lt;/p&gt;
+&lt;h5 id=&#34;serial-old垃圾收集器单线程标记整理算法&#34;&gt;Serial Old垃圾收集器（单线程，标记整理算法）&lt;/h5&gt;
+&lt;p&gt;Serial Old是Serial垃圾收集器的老年代版本，它同样是单线程的，使用的算法为标记整理。Serial Old是java虚拟机运行在Client模式下老年代的默认垃圾收集器。&lt;/p&gt;
+&lt;p&gt;其在Server模式下，主要有两个用途：&lt;/p&gt;
+&lt;p&gt;1、在JDK1.5之前版本与新生代的Parallel Scavenge收集器搭配使用。&lt;/p&gt;
+&lt;p&gt;2、作为老年代中CMS的后备垃圾收集器。&lt;/p&gt;
+&lt;h5 id=&#34;parallel-old垃圾收集器多线程标记整理算法&#34;&gt;Parallel Old垃圾收集器（多线程，标记整理算法）&lt;/h5&gt;
+&lt;p&gt;Parallel Old是Parallel Scavenge垃圾收集器的老年代版本，它同样是多线程的，使用的算法为标记整理（JDK1.6之后才提供）。&lt;/p&gt;
+&lt;h5 id=&#34;cms垃圾收集器多线程标记清除算法&#34;&gt;CMS垃圾收集器（多线程，标记清除算法）&lt;/h5&gt;
+&lt;p&gt;Concurrent Mark Sweep是一种老年代垃圾收集器，其主要目的是为了获取最短垃圾回收停顿时间（在交互过程中提高用户体验），使用的算法为标记清除。&lt;/p&gt;
+&lt;p&gt;CMS执行过程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;初始标记：标记一下GC ROOTS能直接关联的对象，速度很快，需要暂停工作线程。&lt;/li&gt;
+&lt;li&gt;并发标记：进行GC ROOTS跟踪的过程，和用户线程一起工作，不需要暂停工作线程。&lt;/li&gt;
+&lt;li&gt;重新标记：为了修正并发标记期间，因用户程序继续运行而导致标记产生变动的那一部分对象的标记录，需要暂停工作线程。&lt;/li&gt;
+&lt;li&gt;并发清除：清除GC ROOTS不可达对象，和用户线程一起工作，不需要暂停工作线程，由于耗时最长的并发标记和并发清除是与用户线程一起工作的，所以总体上来看，CMS收集过程与用户线程是并发执行的。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h5 id=&#34;g1垃圾收集器多线程标记整理算法&#34;&gt;G1垃圾收集器（多线程，标记整理算法）&lt;/h5&gt;
+&lt;p&gt;Garbage first是目前垃圾收集器理论发展的最前沿成果，相比于CMS收集器，G1最突出的两个改进为：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;基于标记整理算法，不会产生内存碎片。&lt;/li&gt;
+&lt;li&gt;可以非常精准的控制停顿时间，在不牺牲吞吐量的前提下，实现低停顿回收。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;G1避免全区域的垃圾收集，它把堆内存划分为大小固定的几个独立区域，并且跟踪这些区域的垃圾收集进度，同时在后台维护一个优先级列表，每次根据所允许的收集时间，优先回收垃圾最多的区域。&lt;/p&gt;
+&lt;p&gt;区域划分和优先级区域回收机制，确保了G1可以在有限的时间内获得最高的垃圾收集效率。&lt;/p&gt;
+">JVM详解</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/"" data-c="
