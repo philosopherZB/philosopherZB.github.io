@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Java基础知识 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677653917605">
+<link rel="shortcut icon" href="/favicon.ico?v=1677655066253">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">6</span>
+        <span class="site-item-stat-count">7</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -1194,6 +1194,437 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/"" data-c="
+          &lt;h2 id=&#34;stream&#34;&gt;Stream&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;// 获取某个属性的和
+System.out.println(personPojos.stream().mapToInt(PersonPojo::getCount).sum());
+// 最大值
+System.out.println(personPojos.stream().mapToInt(PersonPojo::getCount).max());
+// 最小值
+System.out.println(personPojos.stream().mapToInt(PersonPojo::getCount).min());
+// 平均值
+System.out.println(personPojos.stream().mapToInt(PersonPojo::getCount).average());
+
+// 获取某个属性值最大的集合
+Optional&amp;lt;PersonPojo&amp;gt; couponConfigOptional = personPojos.stream().
+        filter(Objects::nonNull).
+        filter(personPojo -&amp;gt; StringUtils.isNotEmpty(personPojo.getEndTime())).
+        max(Comparator.comparing(PersonPojo::getEndTime));
+couponConfigOptional.ifPresent(personPojo -&amp;gt; System.out.println(JSONObject.toJSONString(personPojo)));
+
+
+// 以对象的某个属性分组
+Map&amp;lt;String, List&amp;lt;PersonPojo&amp;gt;&amp;gt; resultMap = personPojos.stream().collect(Collectors.groupingBy(PersonPojo::getName));
+System.out.println(JSONObject.toJSONString(resultMap));
+
+// 以对象某个属性分组，同时只取列表中的第一条数据
+Map&amp;lt;String, PersonPojo&amp;gt; resultMap = personPojos.stream().collect(Collectors.groupingBy(PersonPojo::getName,Collectors.collectingAndThen(Collectors.toList(), value-&amp;gt;value.get(0)))))));
+System.out.println(JSONObject.toJSONString(resultMap));
+
+// 以对象的某个属性分组，并只汇总某一个属性字段
+Map&amp;lt;String, List&amp;lt;String&amp;gt;&amp;gt; map = personPojos.stream().collect(Collectors.groupingBy(PersonPojo::getId, Collectors.mapping(PersonPojo::getName, Collectors.toList())));
+System.out.println(JSONObject.toJSONString(map));
+
+// 过滤不包含某个对象
+List&amp;lt;PersonPojo&amp;gt; filters = personPojos.stream().filter(personPojo-&amp;gt;!personPojos.contains(personPojo)).collect(Collectors.toList());
+System.out.println(JSONObject.toJSONString(filters));
+
+// 移除不在有效期内的数据
+long currentTime = System.currentTimeMillis();
+personPojos.removeIf(personPojo -&amp;gt; currentTime &amp;lt; personPojo.getStartTime().getTime() || currentTime &amp;gt; personPojo.getEndTime().getTime());
+
+// 获取某个字段作为新的list
+List&amp;lt;String&amp;gt; names =personPojos.stream().map(PersonPojo::getName).collect(Collectors.toList());
+System.out.println(JSONObject.toJSONString(names));
+
+// 获取某个字段作为新的list，去重
+List&amp;lt;String&amp;gt; distinctNames =personPojos.stream().map(PersonPojo::getName).distinct().collect(Collectors.toList());
+System.out.println(JSONObject.toJSONString(distinctNames));
+
+// 判断对象组中是否存在包含指定值的对象
+boolean match = personPojos.stream().anyMatch(personPojo -&amp;gt; &amp;quot;zhangsan&amp;quot;.equals(personPojo.getName()));
+System.out.println(match);
+// 判断对象组是否都是包含指定值的对象
+boolean match2 = personPojos.stream().allMatch(personPojo -&amp;gt; &amp;quot;zhangsan&amp;quot;.equals(personPojo.getName()));
+System.out.println(match2);
+
+//返回 对象集合以类属性一升序排序
+list.stream().sorted(Comparator.comparing(类::属性一));
+
+//返回 对象集合以类属性一降序排序 注意两种写法
+list.stream().sorted(Comparator.comparing(类::属性一).reversed());//先以属性一升序,结果进行属性一降序
+list.stream().sorted(Comparator.comparing(类::属性一,Comparator.reverseOrder()));//以属性一降序
+
+//返回 对象集合以类属性一升序 属性二升序
+list.stream().sorted(Comparator.comparing(类::属性一).thenComparing(类::属性二));
+
+//返回 对象集合以类属性一降序 属性二升序 注意两种写法
+//先以属性一升序,升序结果进行属性一降序,再进行属性二升序
+list.stream().sorted(Comparator.comparing(类::属性一).reversed().thenComparing(类::属性二));
+//先以属性一降序,再进行属性二升序
+list.stream().sorted(Comparator.comparing(类::属性一,Comparator.reverseOrder()).thenComparing(类::属性二));
+
+//返回 对象集合以类属性一降序 属性二降序 注意两种写法
+//先以属性一升序,升序结果进行属性一降序,再进行属性二降序
+list.stream().sorted(Comparator.comparing(类::属性一).reversed().thenComparing(类::属性二,Comparator.reverseOrder()));
+//先以属性一降序,再进行属性二降序
+list.stream().sorted(Comparator.comparing(类::属性一,Comparator.reverseOrder()).thenComparing(类::属性二,Comparator.reverseOrder()));
+
+//返回 对象集合以类属性一升序 属性二降序 注意两种写法
+//先以属性一升序,升序结果进行属性一降序,再进行属性二升序,结果进行属性一降序属性二降序
+list.stream().sorted(Comparator.comparing(类::属性一).reversed().thenComparing(类::属性二).reversed());
+//先以属性一升序,再进行属性二降序
+list.stream().sorted(Comparator.comparing(类::属性一).thenComparing(类::属性二,Comparator.reverseOrder()));
+
+// 多属性分组
+Map&amp;lt;String, Map&amp;lt;String, List&amp;lt;PersonPojo&amp;gt;&amp;gt;&amp;gt; mapMap = personPojos.stream()
+        .collect(Collectors.groupingBy(PersonPojo::getId, Collectors.groupingBy(PersonPojo::getName)));
+System.out.println(JSONObject.toJSONString(mapMap));
+
+// 多个属性合成一个属性
+Map&amp;lt;String, List&amp;lt;PersonPojo&amp;gt;&amp;gt; map = personPojos.stream().collect(Collectors.groupingBy(Test5::fetchGroupKey));
+System.out.println(JSONObject.toJSONString(map));
+private static String fetchGroupKey(PersonPojo p) {
+    return p.getId() + &amp;quot;_&amp;quot; + p.getName();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;completablefuture&#34;&gt;CompletableFuture&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;package com.philosopherzb.demo.test;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * @author philosopherZB
+ * @date 2021/9/28
+ */
+public class Test10 {
+    public static void main(String[] args) {
+//        Test10.testThenAccept();
+//        Test10.testThenRun();
+//        Test10.testThenApply();
+//        Test10.testThenCombine();
+//        Test10.testThenCompose();
+//        Test10.testApplyToEither();
+//        Test10.testExceptionally();
+//        Test10.testHandle();
+        Test10.testAllOf();
+//        Test10.testGet();
+    }
+
+    /**
+     * 功能: 当前任务正常完成后执行，且当前任务的返回值可作为下个任务的入参；thenAccept本身并没有返回值
+     * 样例: 接受第一个任务执行结果的字符串，并将其与第二个任务的字符串进行拼接操作
+     */
+    private static void testThenAccept() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;first&amp;quot;);
+        first.thenAccept(f -&amp;gt; {
+            System.out.println(&amp;quot;accept firstFuture result: &amp;quot; + f);
+            System.out.println(&amp;quot;Splicing result: &amp;quot; + f + &amp;quot;second&amp;quot;);
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 当前任务正常完成后执行；thenRun本身并没有返回值
+     * 样例: 异步顺序执行
+     */
+    private static void testThenRun() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; {
+            System.out.println(&amp;quot;first&amp;quot;);
+            return &amp;quot;first&amp;quot;;
+        });
+        first.thenRun(() -&amp;gt; System.out.println(&amp;quot;result: &amp;quot; + &amp;quot;second&amp;quot;)).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 当前任务正常完成后执行，且当前任务的返回值可作为下个任务的入参；thenApply本身有返回值
+     * 样例: 接受第一个任务执行结果的字符串，并将其与第二个任务的字符串进行拼接操作，最后将结果与第三个任务的字符串拼接（多个任务串行）
+     */
+    private static void testThenApply() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;first&amp;quot;);
+        CompletableFuture&amp;lt;String&amp;gt; second = first.thenApply(f -&amp;gt; {
+            System.out.println(&amp;quot;second accept firstFuture result: &amp;quot; + f);
+            System.out.println(&amp;quot;second Splicing result: &amp;quot; + f + &amp;quot;second&amp;quot;);
+            return f + &amp;quot;second&amp;quot;;
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+        second.thenApply(s -&amp;gt; {
+            System.out.println(&amp;quot;second.thenApply accept firstFuture result: &amp;quot; + s);
+            System.out.println(&amp;quot;second.thenApply Splicing result: &amp;quot; + s + &amp;quot;third&amp;quot;);
+            return s + &amp;quot;third&amp;quot;;
+        }).whenComplete((r, throwable) -&amp;gt; {
+            System.out.println(&amp;quot;third result: &amp;quot; + r);
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 处理两个CompletionStage的结果并进行返回；thenCombine 本身有返回值
+     * 样例: 拼接字符串
+     */
+    private static void testThenCombine() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;first&amp;quot;);
+        CompletableFuture&amp;lt;String&amp;gt; second = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;second&amp;quot;);
+        // 有返回值
+        first.thenCombine(second, (f, s) -&amp;gt; f + s).whenComplete((r, throwable) -&amp;gt; {
+            System.out.println(&amp;quot;thenCombine result: &amp;quot; + r);
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+        // 无返回值
+        first.thenAcceptBoth(second, (f, s) -&amp;gt; {
+            System.out.println(&amp;quot;thenAcceptBoth result: &amp;quot; + f + s);
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+        // 无返回值, 在两个任务执行后执行
+        first.runAfterBoth(second, () -&amp;gt; {
+            System.out.println(&amp;quot;runAfterBoth result: &amp;quot;);
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 处理两个CompletionStage的结果并进行返回, 与thenApply类似，不过lambda接受的是一个CompletableFuture；thenCompose 本身有返回值
+     * 样例: 拼接字符串
+     */
+    private static void testThenCompose() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;first&amp;quot;);
+        CompletableFuture&amp;lt;String&amp;gt; second = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;second&amp;quot;);
+        // 有返回值
+        first.thenCompose(f -&amp;gt; second.thenApply(s -&amp;gt; f + s)).whenComplete((r, throwable) -&amp;gt; {
+            System.out.println(&amp;quot;thenCompose result: &amp;quot; + r);
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 运行两个CompletionStage，并将最先处理结束的结果返回；applyToEither 本身有返回值
+     * 样例: 返回最快处理结果
+     */
+    private static void testApplyToEither() {
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return &amp;quot;first-sleep-1000&amp;quot;;
+        });
+        CompletableFuture&amp;lt;String&amp;gt; second = CompletableFuture.supplyAsync(() -&amp;gt; {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return &amp;quot;second-sleep-2000&amp;quot;;
+        });
+        // 获取一下返回值，否则以下代码不会执行
+        System.out.println(&amp;quot;=====&amp;gt;&amp;quot; + second.join());
+        // 有返回值
+        CompletableFuture&amp;lt;String&amp;gt; third = first.applyToEither(second, s -&amp;gt; s).whenComplete((r, throwable) -&amp;gt; {
+            System.out.println(&amp;quot;applyToEither result: &amp;quot; + r);
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+        // 无返回值
+        first.acceptEither(second, s -&amp;gt; {
+            System.out.println(&amp;quot;acceptEither result: &amp;quot; + s);
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+        // 无返回值, 在两个任务执行后执行
+        first.runAfterEither(second, () -&amp;gt; {
+            System.out.println(&amp;quot;runAfterEither result: &amp;quot;);
+        }).whenComplete((aVoid, throwable) -&amp;gt; {
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        });
+    }
+
+    /**
+     * 功能: 处理运行时异常，并进行额外的补偿操作（类似于try catch）；exceptionally 本身有返回值
+     * 样例: 处理异常
+     */
+    private static void testExceptionally() {
+        // 发生异常，thenApply不会执行（thenApply必须在程序正常运行后才会执行）
+        CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;result: &amp;quot; + (3 / 0))
+                .thenApply(s -&amp;gt; {
+                    System.out.println(&amp;quot;first not running: &amp;quot; + s);
+                    return s;
+                })
+                .exceptionally(throwable -&amp;gt; {
+                    System.out.println(&amp;quot;first e: &amp;quot; + throwable.getLocalizedMessage());
+                    return &amp;quot;first occur exception&amp;quot;;
+                })
+                .whenComplete((r, throwable) -&amp;gt; {
+                    System.out.println(&amp;quot;first exceptionally result: &amp;quot; + r);
+                    if (throwable != null) {
+                        System.out.println(throwable.getLocalizedMessage());
+                    }
+                });
+        // 正常运行，thenApply执行
+        CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;result: &amp;quot; + (3 / 1))
+                .thenApply(s -&amp;gt; {
+                    System.out.println(&amp;quot;second running: &amp;quot; + s);
+                    return s;
+                })
+                .exceptionally(throwable -&amp;gt; {
+                    System.out.println(&amp;quot;second e: &amp;quot; + throwable.getLocalizedMessage());
+                    return &amp;quot;second occur exception&amp;quot;;
+                })
+                .whenComplete((r, throwable) -&amp;gt; {
+                    System.out.println(&amp;quot;second exceptionally result: &amp;quot; + r);
+                    if (throwable != null) {
+                        System.out.println(throwable.getLocalizedMessage());
+                    }
+                });
+    }
+
+    /**
+     * 功能: handle类似于whenComplete，区别在于：handle 有返回值， whenComplete 无返回值
+     * 样例: 打印返回值
+     */
+    private static void testHandle() {
+        // 发生异常，thenApply不会执行（thenApply必须在程序正常运行后才会执行）
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;result: &amp;quot; + (3 / 0))
+                .thenApply(s -&amp;gt; {
+                    System.out.println(&amp;quot;first not running: &amp;quot; + s);
+                    return s;
+                })
+                .exceptionally(throwable -&amp;gt; {
+                    System.out.println(&amp;quot;first e: &amp;quot; + throwable.getLocalizedMessage());
+                    return &amp;quot;first occur exception&amp;quot;;
+                })
+                .handle((r, throwable) -&amp;gt; {
+                    System.out.println(&amp;quot;first handle result: &amp;quot; + r);
+                    if (throwable != null) {
+                        System.out.println(throwable.getLocalizedMessage());
+                    }
+                    return r;
+                });
+        // 正常运行，thenApply执行
+        CompletableFuture&amp;lt;String&amp;gt; second = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;result: &amp;quot; + (3 / 1))
+                .thenApply(s -&amp;gt; {
+                    System.out.println(&amp;quot;second running: &amp;quot; + s);
+                    return s;
+                })
+                .exceptionally(throwable -&amp;gt; {
+                    System.out.println(&amp;quot;second e: &amp;quot; + throwable.getLocalizedMessage());
+                    return &amp;quot;second occur exception&amp;quot;;
+                })
+                .handle((r, throwable) -&amp;gt; {
+                    System.out.println(&amp;quot;second handle result: &amp;quot; + r);
+                    if (throwable != null) {
+                        System.out.println(throwable.getLocalizedMessage());
+                    }
+                    return r;
+                });
+
+        System.out.println(&amp;quot;join result: &amp;quot; + first.join());
+        System.out.println(&amp;quot;join result: &amp;quot; + second.join());
+    }
+
+    /**
+     * 功能: 所有任务完成后执行:allOf; 任意任务完成后执行：anyOf
+     * 样例: 异步查询三个任务信息并返回
+     */
+    private static void testAllOf() {
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        long start = System.currentTimeMillis();
+
+        CompletableFuture&amp;lt;String&amp;gt; first = CompletableFuture.supplyAsync(() -&amp;gt; {
+            try {
+                Thread.sleep(1000 + ThreadLocalRandom.current().nextInt(1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return &amp;quot;first&amp;quot;;
+        }, executorService);
+        CompletableFuture&amp;lt;String&amp;gt; second = CompletableFuture.supplyAsync(() -&amp;gt; {
+            try {
+                Thread.sleep(1000 + ThreadLocalRandom.current().nextInt(1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return &amp;quot;second&amp;quot;;
+        }, executorService);
+        CompletableFuture&amp;lt;String&amp;gt; third = CompletableFuture.supplyAsync(() -&amp;gt; {
+            try {
+                Thread.sleep(1000 + ThreadLocalRandom.current().nextInt(1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return &amp;quot;third&amp;quot;;
+        }, executorService);
+        // 所有任务完成后执行
+        CompletableFuture.allOf(first, second, third).join();
+        System.out.println(first.join() + second.join() + third.join());
+        System.out.println(System.currentTimeMillis() - start);
+
+        // 任意任务完成后执行
+        CompletableFuture.anyOf(first, second, third).join();
+        System.out.println(first.join() + second.join() + third.join());
+        System.out.println(System.currentTimeMillis() - start);
+    }
+
+    /**
+     * 获取返回值
+     */
+    private static void testGet() {
+        CompletableFuture cf = CompletableFuture.supplyAsync(() -&amp;gt; &amp;quot;content&amp;quot;).whenComplete(((result, throwable) -&amp;gt; {
+            System.out.println(&amp;quot;result: &amp;quot; + result);
+            if (throwable != null) {
+                System.out.println(throwable.getLocalizedMessage());
+            }
+        }));
+        try {
+            System.out.println(&amp;quot;cf get: &amp;quot; + cf.get());
+            System.out.println(&amp;quot;cf getWithTimeOut: &amp;quot; + cf.get(1, TimeUnit.SECONDS));
+            System.out.println(&amp;quot;cf join: &amp;quot; + cf.join());
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">Java8新特性Stream&CompletableFuture</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/arraylist-yuan-ma-jie-xi-jdk8/"" data-c="
