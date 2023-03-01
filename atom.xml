@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-03-01T08:50:49.448Z</updated>
+    <updated>2023-03-01T09:02:27.132Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -1699,59 +1699,6 @@ public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[Java集合基础知识]]></title>
-        <id>https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/</id>
-        <link href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/">
-        </link>
-        <updated>2021-01-23T06:50:15.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Java中的集合，list，set，map等结构。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/beach-418742_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="接口继承关系和实现">接口继承关系和实现</h2>
-<h3 id="集合类概念">集合类概念</h3>
-<p>集合类存放于java.util包中，主要有三种，set（集），list（列表包含Queue），map（映射）。</p>
-<p>Collection：集合类的通用接口，直接继承接口有List和Set。</p>
-<p>Iterator：一个轻量级对象（创建代价小），主要用来对集合进行遍历移除等操作。</p>
-<p>Map：使用键值对存储的容器，映射表的基础接口。</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301010.png" alt="" loading="lazy"></figure>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301011.png" alt="img" loading="lazy"></figure>
-<h3 id="list">List</h3>
-<p>有序集合，是一个非常常用的数据类型，它的实现类有ArrayList，Vector以及LinkedList。</p>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301012.png" alt="img" loading="lazy"></figure>
-<p>ArrayList：底层数据结构是一个数组，查询效率比较高，添加删除较慢（默认添加在末尾，在指定位置添加元素效率比较低，因为需要将指定位置后续的元素都往后移位）。</p>
-<p>Vector：与ArrayList基本一致，唯一的差别就是其操作为同步（加了锁），即某一个时刻只有一个线程能够写Vector，这也导致其查询效率比ArrayList慢。</p>
-<p>LinkedList：底层数据结构是一个双向链表（prev指向前节点，next指向后节点），查询效率比较慢，添加删除比较快。另外，它还提供了List接口中没有定义的方法，专门用于操作表头和表尾元素，可以当做堆栈，队列和双向队列来使用。</p>
-<h3 id="set">Set</h3>
-<p>Set注重独一无二的性质，其特点是无序且不能出现重复值。对象的相等性本质是由对象的hashCode值（java是根据对象的内存地址计算出的此序号）判断的。如果两个对象相等，则其hashCode以及equals比较结果必然相等。</p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301013.png" alt="img" loading="lazy"></figure>
-<p>HashSet（hash表）：哈希表中存放的是哈希值，hashSet存储元素并不是按照存入时的顺序（无序），而是按照哈希值来存的，故其取数据也是依据哈希值。元素的哈希值是通过元素的hashCode方法获取的。</p>
-<p>hashSet判断两个元素相等：先判断两个元素的哈希值是否相等，如果哈希值一样，再比较equals方法，如果返回true则两个元素相等，否则不相等。</p>
-<p>hashSet通过hashCode值来确定元素在内存中的位置。一个hashCode位置上可以存放多个元素（equals结果为false）。</p>
-<p>TreeSet（二叉树）：会对插入的元素进行排序（依据二叉树）。如果是自定义的类需要进行排序，需要自定义类实现Comparable，覆写对应的compareTo()函数，并返回相应的值。</p>
-<p>LinkHashSet（hashSet+LinkedHashMap）：其继承于HashSet，底层使用LinkedHashMap保存数据。</p>
-<h3 id="map">Map</h3>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301014.png" alt="img" loading="lazy"></figure>
-<p>hashTable（线程安全）：是一个遗留类，与hashMap类似，只是加了全局锁，保证了多线程下的安全。现在已不建议使用，如果需要线程安全，推荐使用ConcurrentHashMap。</p>
-<p>TreeMap（可排序）：实现了SortedMap接口，能够将其保存的记录按键进行排序（默认升序）。</p>
-<p>LinkHashMap（有序）：hashMap+双向链表，是hashMap的一个子类，保存了记录的插入顺序，在使用Iterator遍历时，先得的数据必然是先插入的（有序），不过也可以对其进行设置，关键参数为accessOrder（true则是访问顺序，false则是插入顺序）。</p>
-<h4 id="hashmap">hashMap</h4>
-<p>hashMap（数组+链表+红黑树）：根据键的hashCode值存储数据。非线程安全（Collections的synchronizedMap以及ConcurrentHashMap可实现线程安全），允许空键值，执行效率相对较高。</p>
-<p>capacity：当前数组容量，始终保持2^n，可以扩容，扩容后数组大小为当前的2倍。</p>
-<p>loadFactor：负载因子，默认为0.75。其大小决定了散列表空间的稀密度（越大，越密集，链表越长，索引越慢；越小，越稀疏，链表越短，索引越快）。</p>
-<p>threshold：扩容阈值，等于capacity * loadFactor</p>
-<p>Java7中，hashMap结构如下：</p>
-<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301015.png" alt="" loading="lazy"></figure>
-<p>Java8中，hashMap结构如下：</p>
-<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301016.png" alt="" loading="lazy"></figure>
-<h4 id="concurrenthashmap">ConcurrenthashMap</h4>
-<p>ConcurrenthashMap：相比于hashMap而言，它是线程安全的，其余基本一致。java7中，使用的是分段锁（Segment，默认并行度16）；java8中使用的是节点锁（粒度更细，且引入了红黑树）。</p>
-<p>Java7中，ConcurrenthashMap结构如下：</p>
-<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301017.png" alt="" loading="lazy"></figure>
-<p>Java8中，ConcurrenthashMap结构如下：</p>
-<figure data-type="image" tabindex="10"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301018.png" alt="" loading="lazy"></figure>
-]]></content>
-    </entry>
-    <entry>
         <title type="html"><![CDATA[Java中的锁]]></title>
         <id>https://philosopherzb.github.io/post/java-zhong-de-suo/</id>
         <link href="https://philosopherzb.github.io/post/java-zhong-de-suo/">
@@ -2214,6 +2161,59 @@ class TestCallable implements Callable&lt;Integer&gt; {
     }
 }
 </code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Java集合基础知识]]></title>
+        <id>https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/</id>
+        <link href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/">
+        </link>
+        <updated>2020-11-19T06:50:15.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Java中的集合，list，set，map等结构。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/beach-418742_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="接口继承关系和实现">接口继承关系和实现</h2>
+<h3 id="集合类概念">集合类概念</h3>
+<p>集合类存放于java.util包中，主要有三种，set（集），list（列表包含Queue），map（映射）。</p>
+<p>Collection：集合类的通用接口，直接继承接口有List和Set。</p>
+<p>Iterator：一个轻量级对象（创建代价小），主要用来对集合进行遍历移除等操作。</p>
+<p>Map：使用键值对存储的容器，映射表的基础接口。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301010.png" alt="" loading="lazy"></figure>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301011.png" alt="img" loading="lazy"></figure>
+<h3 id="list">List</h3>
+<p>有序集合，是一个非常常用的数据类型，它的实现类有ArrayList，Vector以及LinkedList。</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301012.png" alt="img" loading="lazy"></figure>
+<p>ArrayList：底层数据结构是一个数组，查询效率比较高，添加删除较慢（默认添加在末尾，在指定位置添加元素效率比较低，因为需要将指定位置后续的元素都往后移位）。</p>
+<p>Vector：与ArrayList基本一致，唯一的差别就是其操作为同步（加了锁），即某一个时刻只有一个线程能够写Vector，这也导致其查询效率比ArrayList慢。</p>
+<p>LinkedList：底层数据结构是一个双向链表（prev指向前节点，next指向后节点），查询效率比较慢，添加删除比较快。另外，它还提供了List接口中没有定义的方法，专门用于操作表头和表尾元素，可以当做堆栈，队列和双向队列来使用。</p>
+<h3 id="set">Set</h3>
+<p>Set注重独一无二的性质，其特点是无序且不能出现重复值。对象的相等性本质是由对象的hashCode值（java是根据对象的内存地址计算出的此序号）判断的。如果两个对象相等，则其hashCode以及equals比较结果必然相等。</p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301013.png" alt="img" loading="lazy"></figure>
+<p>HashSet（hash表）：哈希表中存放的是哈希值，hashSet存储元素并不是按照存入时的顺序（无序），而是按照哈希值来存的，故其取数据也是依据哈希值。元素的哈希值是通过元素的hashCode方法获取的。</p>
+<p>hashSet判断两个元素相等：先判断两个元素的哈希值是否相等，如果哈希值一样，再比较equals方法，如果返回true则两个元素相等，否则不相等。</p>
+<p>hashSet通过hashCode值来确定元素在内存中的位置。一个hashCode位置上可以存放多个元素（equals结果为false）。</p>
+<p>TreeSet（二叉树）：会对插入的元素进行排序（依据二叉树）。如果是自定义的类需要进行排序，需要自定义类实现Comparable，覆写对应的compareTo()函数，并返回相应的值。</p>
+<p>LinkHashSet（hashSet+LinkedHashMap）：其继承于HashSet，底层使用LinkedHashMap保存数据。</p>
+<h3 id="map">Map</h3>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301014.png" alt="img" loading="lazy"></figure>
+<p>hashTable（线程安全）：是一个遗留类，与hashMap类似，只是加了全局锁，保证了多线程下的安全。现在已不建议使用，如果需要线程安全，推荐使用ConcurrentHashMap。</p>
+<p>TreeMap（可排序）：实现了SortedMap接口，能够将其保存的记录按键进行排序（默认升序）。</p>
+<p>LinkHashMap（有序）：hashMap+双向链表，是hashMap的一个子类，保存了记录的插入顺序，在使用Iterator遍历时，先得的数据必然是先插入的（有序），不过也可以对其进行设置，关键参数为accessOrder（true则是访问顺序，false则是插入顺序）。</p>
+<h4 id="hashmap">hashMap</h4>
+<p>hashMap（数组+链表+红黑树）：根据键的hashCode值存储数据。非线程安全（Collections的synchronizedMap以及ConcurrentHashMap可实现线程安全），允许空键值，执行效率相对较高。</p>
+<p>capacity：当前数组容量，始终保持2^n，可以扩容，扩容后数组大小为当前的2倍。</p>
+<p>loadFactor：负载因子，默认为0.75。其大小决定了散列表空间的稀密度（越大，越密集，链表越长，索引越慢；越小，越稀疏，链表越短，索引越快）。</p>
+<p>threshold：扩容阈值，等于capacity * loadFactor</p>
+<p>Java7中，hashMap结构如下：</p>
+<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301015.png" alt="" loading="lazy"></figure>
+<p>Java8中，hashMap结构如下：</p>
+<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301016.png" alt="" loading="lazy"></figure>
+<h4 id="concurrenthashmap">ConcurrenthashMap</h4>
+<p>ConcurrenthashMap：相比于hashMap而言，它是线程安全的，其余基本一致。java7中，使用的是分段锁（Segment，默认并行度16）；java8中使用的是节点锁（粒度更细，且引入了红黑树）。</p>
+<p>Java7中，ConcurrenthashMap结构如下：</p>
+<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301017.png" alt="" loading="lazy"></figure>
+<p>Java8中，ConcurrenthashMap结构如下：</p>
+<figure data-type="image" tabindex="10"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301018.png" alt="" loading="lazy"></figure>
 ]]></content>
     </entry>
     <entry>
