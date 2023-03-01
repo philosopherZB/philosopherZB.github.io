@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>ArrayList源码解析(JDK8) | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677658324276">
+<link rel="shortcut icon" href="/favicon.ico?v=1677660600850">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -254,6 +254,7 @@
     <ul class="markdownIt-TOC">
 <li>
 <ul>
+<li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
 <li><a href="#%E6%BA%90%E7%A0%81%E6%9D%A5%E8%87%AA%E4%BA%8Ejdk8">源码来自于JDK8</a></li>
 <li><a href="#%E6%89%A9%E5%AE%B9%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90jdk8">扩容源码解析（JDK8）</a></li>
 </ul>
@@ -556,7 +557,7 @@
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4454<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>4484<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
@@ -570,7 +571,10 @@
   </div>
 </section>
             <div class="post-body next-md-body" id="post_body">
-              <h2 id="源码来自于jdk8">源码来自于JDK8</h2>
+              <h2 id="前言">前言</h2>
+<p>本章主要简述Java中的ArrayList的源码以及其中如何进行扩容的逻辑分析（jdk8）</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/road-1072821_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="源码来自于jdk8">源码来自于JDK8</h2>
 <pre><code>package java.util;
 
 import java.util.function.Consumer;
@@ -1908,7 +1912,10 @@ public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/"" data-c="
-          &lt;h2 id=&#34;四种引用&#34;&gt;四种引用&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中的四种引用类型，JavaIO类型（BIO，NIO，AIO），Java类加载机制以及Hotspot JVM虚拟机对象的探究。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/boat-1014711_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;四种引用&#34;&gt;四种引用&lt;/h2&gt;
 &lt;h3 id=&#34;强引用&#34;&gt;强引用&lt;/h3&gt;
 &lt;p&gt;把一个对象复制给一个引用变量，这个引用变量就是一个强引用。当一个对象被强引用变量引用时，它处于可达状态，这时，GC不会对其进行回收（造成OOM的主要原因之一）。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;// 强引用
@@ -1979,7 +1986,7 @@ PhantomReference&amp;lt;String&amp;gt; pr = new PhantomReference&amp;lt;&amp;gt;
 &lt;h2 id=&#34;jvm类加载&#34;&gt;JVM类加载&lt;/h2&gt;
 &lt;h3 id=&#34;类加载机制&#34;&gt;类加载机制&lt;/h3&gt;
 &lt;p&gt;JVM类加载机制分为五个部分：加载，验证，准备，解析，初始化。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301027.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301027.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;1、加载：在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的入口（注意：不一定非得从Class文件中获取，也可以从ZIP（如jar，war）中读取，或者在运行时计算生成（动态代理），或者由其他文件转换而来（如JSP转换为Class））。&lt;/p&gt;
 &lt;p&gt;2、验证：确保Class文件字节流中所包含的信息符合当前虚拟机的要求，并且不会危害虚拟机自身的安全。&lt;/p&gt;
 &lt;p&gt;3、准备：正式为类变量分配内存并为其设置初始值，即在方法区中分配这些变量所使用的内存空间。需要注意这里所说的初始值概念，比如说一个类变量定义为：&lt;/p&gt;
@@ -2011,7 +2018,7 @@ PhantomReference&amp;lt;String&amp;gt; pr = new PhantomReference&amp;lt;&amp;gt;
 &lt;p&gt;3、应用程序类加载器（Application ClassLoader）：负责加载用户路径（classpath）上的类库。&lt;/p&gt;
 &lt;h3 id=&#34;双亲委派模型&#34;&gt;双亲委派模型&lt;/h3&gt;
 &lt;p&gt;JVM通过双亲委派模型进行类的加载，当然，开发者也可以通过集成java.lang.ClassLoader实现自定义的类加载器。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301028.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301028.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;双亲委派过程：当一个类收到类加载请求时，它首先不会尝试自己去加载这个类，而是将这个请求委派给父类去完成，每一层次的类加载器都是如此操作，因此所有的类加载请求都应该会传送到启动类加载器中，只有当父加载器无法加载此类时（在它的加载路径下没有找到所需加载的Class），子加载器才会尝试自己去加载。&lt;/p&gt;
 &lt;p&gt;双亲委派解决了java基础类统一加载的问题，但某些情况下父类加载器需要委托子类加载器去加载Class文件，例如SPI（Service Provider Interface）代码（spi是一种服务发现机制：即为某个接口寻找服务实现的机制。）。&lt;/p&gt;
 &lt;h3 id=&#34;以jdbc为例谈双亲委派模型的破坏&#34;&gt;以JDBC为例谈双亲委派模型的破坏&lt;/h3&gt;
@@ -2176,22 +2183,25 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;li&gt;使用句柄的话，Java堆将会划分出一块内存来作为句柄池，reference中存放的也就是对象的句柄地址（句柄中包含了对象实例数据和类型数据各自的地址）。&lt;/li&gt;
 &lt;li&gt;句柄的优势在于其稳定性更高，如果对象频繁的发生移动（GC操作时移动对象），那么只会改变句柄中的实例数据的指针，reference本身不需要改变。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301029.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301029.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;直接访问定位&#34;&gt;直接访问定位&lt;/h4&gt;
 &lt;ul&gt;
 &lt;li&gt;使用直接指针，那么reference将直接指向对象对应的地址（Java堆布局时需要考虑如何存放访问类型数据的相关信息）。&lt;/li&gt;
 &lt;li&gt;直接指针的优势在于其速度更快，因为减少了一次指针定位的操作。如果对象访问频繁，那么使用直接访问将会提高相当不错的效率。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301030.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301030.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 ">java中引用&IO&类加载&对象创建过程</a>
       </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/jvm-xiang-jie/"" data-c="
-          &lt;h2 id=&#34;jvm概述&#34;&gt;JVM概述&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述JVM，包括jvm线程，jvm运行时区域，jvm垃圾回收机制--回收算法以及垃圾回收器&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-139012_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;jvm概述&#34;&gt;JVM概述&lt;/h2&gt;
 &lt;h3 id=&#34;基本概念&#34;&gt;基本概念&lt;/h3&gt;
 &lt;p&gt;JVM是运行java代码的虚拟计算机平台，它运行于计算机操作系统之上，并不直接与硬件进行交互。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301019.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301019.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;运行过程&#34;&gt;运行过程&lt;/h3&gt;
 &lt;p&gt;&lt;em&gt;x.java源文件，通过编译器产生对应的&lt;/em&gt;.Class字节码文件，之后又通过java虚拟机中的解释器，编译成特定机器上的机器码。&lt;/p&gt;
 &lt;p&gt;流程如下：&lt;/p&gt;
@@ -2206,14 +2216,14 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;p&gt;此处所说的线程为程序执行过程中的一个线程实体。JVM允许一个应用并发执行多个线程。&lt;/p&gt;
 &lt;p&gt;Hotspot JVM中的java线程与操作系统原生线程存在直接的映射关系：当java线程创建完毕后，会同步创建一个操作系统原生线程。java线程结束，原生线程也会随之被回收（原生线程由操作系统负责调度，如将其分配至可用的CPU）。&lt;/p&gt;
 &lt;p&gt;Hotspot JVM 后台运行的系统线程如下图所示：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301020.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301020.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h2 id=&#34;jvm内存区域&#34;&gt;JVM内存区域&lt;/h2&gt;
 &lt;h3 id=&#34;内存区域图&#34;&gt;内存区域图&lt;/h3&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301021.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301021.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;运行时数据区域&#34;&gt;运行时数据区域&lt;/h3&gt;
 &lt;p&gt;Java虚拟机在执行java程序时，定义了若干程序运行期间会使用到的运行时数据区域，其中线程共享区域随着虚拟机的启动/关闭而创建/销毁，线程私有区域则与用户线程一一对应，会随着用户线程的启动/关闭而创建/销毁（ Hotspot JVM中，用户线程会与原生线程对应）。&lt;/p&gt;
 &lt;p&gt;运行时数据区域图如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301022.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301022.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;程序计数器program-counter-register&#34;&gt;程序计数器（Program Counter Register）&lt;/h4&gt;
 &lt;ul&gt;
 &lt;li&gt;是一块内存小，线程私有，且不会发生OOM（OutOfMemoryError）的区域（因为它只是当前线程所执行的字节码的行号指示器）。&lt;/li&gt;
@@ -2265,7 +2275,7 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;h3 id=&#34;jvm运行时内存&#34;&gt;JVM运行时内存&lt;/h3&gt;
 &lt;h4 id=&#34;分代&#34;&gt;分代&lt;/h4&gt;
 &lt;p&gt;Java堆从GC角度还可以细分为新生代（Eden区，From Survivor区，To Survivor区），老年代。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301023.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301023.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;新生代&#34;&gt;新生代&lt;/h4&gt;
 &lt;p&gt;用于存储初创对象，一般占据堆内存1/3。对象的创建频繁且杂多，所以此区域会经常触发MinorGC进行垃圾回收。&lt;/p&gt;
 &lt;h5 id=&#34;新生代细分区域&#34;&gt;新生代细分区域&lt;/h5&gt;
@@ -2282,19 +2292,19 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;p&gt;Java8中，永久代已经被移除，被一个称为“元数据区”（元空间）的区域所替代。元空间的本质与永久代类似，它们之间最大的区别在于：元空间并不在虚拟机中，而是使用本地内存。&lt;/p&gt;
 &lt;h3 id=&#34;垃圾回收与算法&#34;&gt;垃圾回收与算法&lt;/h3&gt;
 &lt;h4 id=&#34;gc算法图&#34;&gt;GC算法图&lt;/h4&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301024.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301024.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;垃圾确认算法&#34;&gt;垃圾确认算法&lt;/h4&gt;
 &lt;p&gt;引用计数法：对象被引用则+1，否则-1，为0时将被回收（存在循环引用问题）。&lt;/p&gt;
 &lt;p&gt;可达性分析：为了避免引用计数法中的循环引用问题，如今java一般采用可达性分析，通过一系列的GC ROOTS（VM栈中的引用，方法区中的静态引用，JNI中的引用等）作为对象的起点搜索。如果GC ROOTS和一个对象之间没有可达路径，则称其为不可达。需要注意的是：不可达对象不等价于可回收对象，不可达对象变为可回收对象最少需要经历两次标记过程，如果仍然不可达，则会面临回收。&lt;/p&gt;
 &lt;h4 id=&#34;垃圾收集算法&#34;&gt;垃圾收集算法&lt;/h4&gt;
 &lt;h5 id=&#34;标记清除算法mark-sweep&#34;&gt;标记清除算法（Mark-Sweep）&lt;/h5&gt;
 &lt;p&gt;最基础的垃圾回收算法，分为两个阶段，标记和清除。如下图所示（容易出现内存碎片）：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301025.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301025.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h5 id=&#34;复制算法copying&#34;&gt;复制算法（copying）&lt;/h5&gt;
 &lt;p&gt;为了解决Mark-Sweep算法中内存碎片化的缺陷而被提出的算法。&lt;/p&gt;
 &lt;p&gt;它按内存容量将内存划分为等大小的两块，每次只使用其中一块，当这一块内存满了之后，便将其中存活的对象移至另一块内存上去，同时把已使用的内存清理掉。&lt;/p&gt;
 &lt;p&gt;这种算法实现简单，内存效率高，不易产生碎片，但同时也带来了一个问题，那就是可用内存被压缩到了原来的一半，且当存活对象过多时，其算法效率又会大大降低。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301026.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301026.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h5 id=&#34;分代收集算法&#34;&gt;分代收集算法&lt;/h5&gt;
 &lt;p&gt;此算法是目前大部分JVM所采用的方法，其核心思想是根据对象存活的不同生命周期将内存划分为不同的域。&lt;/p&gt;
 &lt;p&gt;一般情况下，会将GC堆划分为老年代（Tenured/Old Generation）和新生代（Young Generation）。&lt;/p&gt;
@@ -2302,27 +2312,27 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;p&gt;新生代由于需要经常进行垃圾回收，所以可以采用复制算法（一般会将其再次划分为Eden，From Survivor以及To Survivor三个区域，比例为8:1:1（实际调优需要根据具体的业务调整））。&lt;/p&gt;
 &lt;p&gt;老年代则一般采用标记复制算法或者标记整理算法，可根据具体场景指定。&lt;/p&gt;
 &lt;h3 id=&#34;gc垃圾收集器&#34;&gt;GC垃圾收集器&lt;/h3&gt;
-&lt;h5 id=&#34;serial垃圾收集器单线程复制算法&#34;&gt;Serial垃圾收集器（单线程，复制算法）&lt;/h5&gt;
+&lt;h4 id=&#34;serial垃圾收集器单线程复制算法&#34;&gt;Serial垃圾收集器（单线程，复制算法）&lt;/h4&gt;
 &lt;p&gt;Serial是最基本的垃圾收集器，使用复制算法。JDK1.3.1之前，它是新生代唯一的垃圾收集器。&lt;/p&gt;
 &lt;p&gt;Serial是一个单线程的收集器，它不但只会用一个CPU或一条线程去完成垃圾收集工作，并且在进行垃圾收集的过程中，还要暂停其他所有线程（stop the world），直到垃圾收集结束。&lt;/p&gt;
 &lt;p&gt;Serial在执行时虽然会暂停其他所有线程，但其简单高效，对于限定单个CPU的环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率。&lt;/p&gt;
 &lt;p&gt;因此，Serial依旧是java虚拟机运行在Client模式下新生代的默认垃圾收集器。&lt;/p&gt;
-&lt;h5 id=&#34;parnew垃圾收集器serial-多线程&#34;&gt;ParNew垃圾收集器（serial + 多线程）&lt;/h5&gt;
+&lt;h4 id=&#34;parnew垃圾收集器serial-多线程&#34;&gt;ParNew垃圾收集器（serial + 多线程）&lt;/h4&gt;
 &lt;p&gt;ParNew其实是Serial收集器的多线程版本，除了多线程之外，其余与Serial完全一致。&lt;/p&gt;
 &lt;p&gt;ParNew默认开启和CPU数目相同的线程数，可以通过-XX:ParallelGCThreads参数来限制垃圾收集器的线程数。&lt;/p&gt;
 &lt;p&gt;相较于Seria而言，ParNew是java虚拟机运行在Server模式下新生代的默认垃圾收集器。&lt;/p&gt;
-&lt;h5 id=&#34;parallel-scavenge垃圾收集器多线程复制算法高效&#34;&gt;Parallel Scavenge垃圾收集器（多线程复制算法，高效）&lt;/h5&gt;
+&lt;h4 id=&#34;parallel-scavenge垃圾收集器多线程复制算法高效&#34;&gt;Parallel Scavenge垃圾收集器（多线程复制算法，高效）&lt;/h4&gt;
 &lt;p&gt;Parallel Scavenge 是一个新生代垃圾收集器，使用复制算法，且为多线程。其重点关注的是程序达到一个可控制的吞吐量（Thoughput，CPU用于运行用户代码时间/CPU总消耗时间，即吞吐量=运行用户代码时间/（运行用户代码时间+垃圾收集时间））。&lt;/p&gt;
 &lt;p&gt;高吞吐量可以最高效率的利用CPU时间，尽快地完成程序的运行任务，主要适用于在后台运算，而不需要太多交互的任务。&lt;/p&gt;
 &lt;p&gt;自适应调节策略也是Parallel Scavenge与ParNew的一个重要区别。&lt;/p&gt;
-&lt;h5 id=&#34;serial-old垃圾收集器单线程标记整理算法&#34;&gt;Serial Old垃圾收集器（单线程，标记整理算法）&lt;/h5&gt;
+&lt;h4 id=&#34;serial-old垃圾收集器单线程标记整理算法&#34;&gt;Serial Old垃圾收集器（单线程，标记整理算法）&lt;/h4&gt;
 &lt;p&gt;Serial Old是Serial垃圾收集器的老年代版本，它同样是单线程的，使用的算法为标记整理。Serial Old是java虚拟机运行在Client模式下老年代的默认垃圾收集器。&lt;/p&gt;
 &lt;p&gt;其在Server模式下，主要有两个用途：&lt;/p&gt;
 &lt;p&gt;1、在JDK1.5之前版本与新生代的Parallel Scavenge收集器搭配使用。&lt;/p&gt;
 &lt;p&gt;2、作为老年代中CMS的后备垃圾收集器。&lt;/p&gt;
-&lt;h5 id=&#34;parallel-old垃圾收集器多线程标记整理算法&#34;&gt;Parallel Old垃圾收集器（多线程，标记整理算法）&lt;/h5&gt;
+&lt;h4 id=&#34;parallel-old垃圾收集器多线程标记整理算法&#34;&gt;Parallel Old垃圾收集器（多线程，标记整理算法）&lt;/h4&gt;
 &lt;p&gt;Parallel Old是Parallel Scavenge垃圾收集器的老年代版本，它同样是多线程的，使用的算法为标记整理（JDK1.6之后才提供）。&lt;/p&gt;
-&lt;h5 id=&#34;cms垃圾收集器多线程标记清除算法&#34;&gt;CMS垃圾收集器（多线程，标记清除算法）&lt;/h5&gt;
+&lt;h4 id=&#34;cms垃圾收集器多线程标记清除算法&#34;&gt;CMS垃圾收集器（多线程，标记清除算法）&lt;/h4&gt;
 &lt;p&gt;Concurrent Mark Sweep是一种老年代垃圾收集器，其主要目的是为了获取最短垃圾回收停顿时间（在交互过程中提高用户体验），使用的算法为标记清除。&lt;/p&gt;
 &lt;p&gt;CMS执行过程：&lt;/p&gt;
 &lt;ol&gt;
@@ -2331,7 +2341,7 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
 &lt;li&gt;重新标记：为了修正并发标记期间，因用户程序继续运行而导致标记产生变动的那一部分对象的标记录，需要暂停工作线程。&lt;/li&gt;
 &lt;li&gt;并发清除：清除GC ROOTS不可达对象，和用户线程一起工作，不需要暂停工作线程，由于耗时最长的并发标记和并发清除是与用户线程一起工作的，所以总体上来看，CMS收集过程与用户线程是并发执行的。&lt;/li&gt;
 &lt;/ol&gt;
-&lt;h5 id=&#34;g1垃圾收集器多线程标记整理算法&#34;&gt;G1垃圾收集器（多线程，标记整理算法）&lt;/h5&gt;
+&lt;h4 id=&#34;g1垃圾收集器多线程标记整理算法&#34;&gt;G1垃圾收集器（多线程，标记整理算法）&lt;/h4&gt;
 &lt;p&gt;Garbage first是目前垃圾收集器理论发展的最前沿成果，相比于CMS收集器，G1最突出的两个改进为：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;基于标记整理算法，不会产生内存碎片。&lt;/li&gt;
@@ -2344,7 +2354,10 @@ public static &amp;lt;S&amp;gt; ServiceLoader&amp;lt;S&amp;gt; load(Class&amp;lt
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/"" data-c="
-          &lt;h2 id=&#34;stream&#34;&gt;Stream&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java8新特性，主要是Stream和CompletableFuture的常用例子&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-477832_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;stream&#34;&gt;Stream&lt;/h2&gt;
 &lt;pre&gt;&lt;code&gt;// 获取某个属性的和
 System.out.println(personPojos.stream().mapToInt(PersonPojo::getCount).sum());
 // 最大值
@@ -2775,7 +2788,10 @@ public class Test10 {
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/arraylist-yuan-ma-jie-xi-jdk8/"" data-c="
-          &lt;h2 id=&#34;源码来自于jdk8&#34;&gt;源码来自于JDK8&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中的ArrayList的源码以及其中如何进行扩容的逻辑分析（jdk8）&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/road-1072821_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;源码来自于jdk8&#34;&gt;源码来自于JDK8&lt;/h2&gt;
 &lt;pre&gt;&lt;code&gt;package java.util;
 
 import java.util.function.Consumer;
@@ -3572,30 +3588,33 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/"" data-c="
-          &lt;h2 id=&#34;接口继承关系和实现&#34;&gt;接口继承关系和实现&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中的集合，list，set，map等结构。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/beach-418742_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;接口继承关系和实现&#34;&gt;接口继承关系和实现&lt;/h2&gt;
 &lt;h3 id=&#34;集合类概念&#34;&gt;集合类概念&lt;/h3&gt;
 &lt;p&gt;集合类存放于java.util包中，主要有三种，set（集），list（列表包含Queue），map（映射）。&lt;/p&gt;
 &lt;p&gt;Collection：集合类的通用接口，直接继承接口有List和Set。&lt;/p&gt;
 &lt;p&gt;Iterator：一个轻量级对象（创建代价小），主要用来对集合进行遍历移除等操作。&lt;/p&gt;
 &lt;p&gt;Map：使用键值对存储的容器，映射表的基础接口。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301010.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301011.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301010.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301011.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;list&#34;&gt;List&lt;/h3&gt;
 &lt;p&gt;有序集合，是一个非常常用的数据类型，它的实现类有ArrayList，Vector以及LinkedList。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301012.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301012.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;ArrayList：底层数据结构是一个数组，查询效率比较高，添加删除较慢（默认添加在末尾，在指定位置添加元素效率比较低，因为需要将指定位置后续的元素都往后移位）。&lt;/p&gt;
 &lt;p&gt;Vector：与ArrayList基本一致，唯一的差别就是其操作为同步（加了锁），即某一个时刻只有一个线程能够写Vector，这也导致其查询效率比ArrayList慢。&lt;/p&gt;
 &lt;p&gt;LinkedList：底层数据结构是一个双向链表（prev指向前节点，next指向后节点），查询效率比较慢，添加删除比较快。另外，它还提供了List接口中没有定义的方法，专门用于操作表头和表尾元素，可以当做堆栈，队列和双向队列来使用。&lt;/p&gt;
 &lt;h3 id=&#34;set&#34;&gt;Set&lt;/h3&gt;
 &lt;p&gt;Set注重独一无二的性质，其特点是无序且不能出现重复值。对象的相等性本质是由对象的hashCode值（java是根据对象的内存地址计算出的此序号）判断的。如果两个对象相等，则其hashCode以及equals比较结果必然相等。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301013.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301013.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;HashSet（hash表）：哈希表中存放的是哈希值，hashSet存储元素并不是按照存入时的顺序（无序），而是按照哈希值来存的，故其取数据也是依据哈希值。元素的哈希值是通过元素的hashCode方法获取的。&lt;/p&gt;
 &lt;p&gt;hashSet判断两个元素相等：先判断两个元素的哈希值是否相等，如果哈希值一样，再比较equals方法，如果返回true则两个元素相等，否则不相等。&lt;/p&gt;
 &lt;p&gt;hashSet通过hashCode值来确定元素在内存中的位置。一个hashCode位置上可以存放多个元素（equals结果为false）。&lt;/p&gt;
 &lt;p&gt;TreeSet（二叉树）：会对插入的元素进行排序（依据二叉树）。如果是自定义的类需要进行排序，需要自定义类实现Comparable，覆写对应的compareTo()函数，并返回相应的值。&lt;/p&gt;
 &lt;p&gt;LinkHashSet（hashSet+LinkedHashMap）：其继承于HashSet，底层使用LinkedHashMap保存数据。&lt;/p&gt;
 &lt;h3 id=&#34;map&#34;&gt;Map&lt;/h3&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301014.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301014.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;hashTable（线程安全）：是一个遗留类，与hashMap类似，只是加了全局锁，保证了多线程下的安全。现在已不建议使用，如果需要线程安全，推荐使用ConcurrentHashMap。&lt;/p&gt;
 &lt;p&gt;TreeMap（可排序）：实现了SortedMap接口，能够将其保存的记录按键进行排序（默认升序）。&lt;/p&gt;
 &lt;p&gt;LinkHashMap（有序）：hashMap+双向链表，是hashMap的一个子类，保存了记录的插入顺序，在使用Iterator遍历时，先得的数据必然是先插入的（有序），不过也可以对其进行设置，关键参数为accessOrder（true则是访问顺序，false则是插入顺序）。&lt;/p&gt;
@@ -3605,21 +3624,24 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;p&gt;loadFactor：负载因子，默认为0.75。其大小决定了散列表空间的稀密度（越大，越密集，链表越长，索引越慢；越小，越稀疏，链表越短，索引越快）。&lt;/p&gt;
 &lt;p&gt;threshold：扩容阈值，等于capacity * loadFactor&lt;/p&gt;
 &lt;p&gt;Java7中，hashMap结构如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301015.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301015.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;Java8中，hashMap结构如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301016.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301016.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;concurrenthashmap&#34;&gt;ConcurrenthashMap&lt;/h4&gt;
 &lt;p&gt;ConcurrenthashMap：相比于hashMap而言，它是线程安全的，其余基本一致。java7中，使用的是分段锁（Segment，默认并行度16）；java8中使用的是节点锁（粒度更细，且引入了红黑树）。&lt;/p&gt;
 &lt;p&gt;Java7中，ConcurrenthashMap结构如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301017.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301017.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;Java8中，ConcurrenthashMap结构如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301018.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;10&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301018.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 ">Java集合基础知识</a>
       </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-zhong-de-suo/"" data-c="
-          &lt;h2 id=&#34;锁的类型&#34;&gt;锁的类型&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中的锁，包括锁类型，锁升级，锁优化等细节内容。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/railroad-g16c0f522b_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;锁的类型&#34;&gt;锁的类型&lt;/h2&gt;
 &lt;h3 id=&#34;乐观锁&#34;&gt;乐观锁&lt;/h3&gt;
 &lt;p&gt;乐观锁认为读多写少，遇到并发写的可能性低，每次去拿数据的时候都认为别人不会修改，所以不会上锁。但是，在更新的时候会判断一下在此期间别人有没有去修改这个数据，采取写时先读出当前版本号，然后加锁操作（比较上一次的版本号，一致则更新），如果失败则重复读-比较-写操作。&lt;/p&gt;
 &lt;p&gt;CAS便是典型的乐观锁机制，其中会使用到sun.misc.Unsafe这个类进行Compare And Swap操作。&lt;/p&gt;
@@ -3641,7 +3663,7 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;p&gt;DS：数据段寄存器；存放数据段的段基值；定义了一个数据段。&lt;/p&gt;
 &lt;p&gt;SS：堆栈段寄存器；存放堆栈段的段基值，联合sp定义一个堆栈值，一旦确定了堆栈地址，将不能随便改变。&lt;/p&gt;
 &lt;p&gt;内核态切换到用户态主要使用PSW（Program Status Word，程序状态字，又称状态寄存器），其一般用于反映处理器的状态及某些计算结果以及控制指令的执行：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301001.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301001.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;切换的代价&#34;&gt;切换的代价&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;如果线程切换是一个高频操作，那将耗费很多CPU处理时间（用户态，内核态之间的切换）。&lt;/li&gt;
@@ -3654,12 +3676,12 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;p&gt;如果对象是一个Java数组，那么对象头还需要记录该数组长度，因为普通的Java对象可以通过元数据信息确认对象大小，而数组却不行。&lt;/p&gt;
 &lt;h3 id=&#34;markword&#34;&gt;MarkWord&lt;/h3&gt;
 &lt;p&gt;markword数据的长度在32位和64位（未开启压缩指针）的虚拟机中分别为32bit和64bit，它的最后两位便是锁状态标识位，用来标记当前对象的状态，常用值如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301002.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301002.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;32位虚拟机在不同状态下markword的结构图如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301003.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301003.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h2 id=&#34;java中的锁&#34;&gt;Java中的锁&lt;/h2&gt;
 &lt;h3 id=&#34;主流锁图&#34;&gt;主流锁图&lt;/h3&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301004.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301004.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;自旋锁基于cas&#34;&gt;自旋锁（基于CAS）&lt;/h3&gt;
 &lt;p&gt;如果持有锁的线程可以在很短的时间内释放锁，那么那些等待锁的线程便不需要进入阻塞挂起状态，而是自旋等待一会儿便可获取到同步资源，从而避免了线程切换的开销，这就是自旋锁。&lt;/p&gt;
 &lt;p&gt;自旋锁本身是有缺点的，它不能代替阻塞。&lt;/p&gt;
@@ -3668,7 +3690,7 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;p&gt;自旋锁在JDK1.4.2中引入，使用-XX:+UseSpinning来开启。JDK 6中变为默认开启，并且引入了自适应的自旋锁（适应性自旋锁）。&lt;/p&gt;
 &lt;p&gt;自适应意味着自旋的时间（次数）不再固定，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。&lt;/p&gt;
 &lt;p&gt;如果在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行中，那么虚拟机就会认为这次自旋也是很有可能再次成功，进而它将允许自旋等待持续相对更长的时间。如果对于某个锁，自旋很少成功获得过，那在以后尝试获取这个锁时将可能省略掉自旋过程，直接阻塞线程，避免浪费处理器资源。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301005.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301005.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h4 id=&#34;jvm针对当前cpu的负荷情况还做了如下自旋锁优化操作&#34;&gt;JVM针对当前CPU的负荷情况还做了如下自旋锁优化操作：&lt;/h4&gt;
 &lt;ul&gt;
 &lt;li&gt;如果平均负载小于CPUs则一直自旋&lt;/li&gt;
@@ -3680,7 +3702,7 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;synchronized无锁偏向锁轻量级锁重量级锁&#34;&gt;Synchronized（无锁，偏向锁，轻量级锁，重量级锁）&lt;/h3&gt;
 &lt;h4 id=&#34;synchronized队列&#34;&gt;Synchronized队列&lt;/h4&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301006.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301006.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;可以看出，synchronized有多个队列，当多个线程一起访问某个对象监视器（monitor，其是依赖于底层的操作系统的Mutex Lock（互斥锁）来实现的线程同步））的时候，对象监视器会将这些线程存储在不同的容器里。&lt;/p&gt;
 &lt;h5 id=&#34;结构概述&#34;&gt;结构概述&lt;/h5&gt;
 &lt;ul&gt;
@@ -3727,17 +3749,17 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;p&gt;轻量级锁是由偏向锁升级而来的，当一个线程持有偏向锁执行同步块时，存在另外的线程来竞争锁，这时偏向锁便会升级为轻量级锁。&lt;/p&gt;
 &lt;p&gt;轻量级锁执行过程：&lt;/p&gt;
 &lt;p&gt;a、在代码进入同步块的时候，如果同步对象状态为无锁状态（锁标识位：01，是否偏向锁标识位：0），虚拟机首先会在当前线程的栈帧中建立一个名为锁记录（Lock Record）的空间，用于存储对象目前的MarkWord的拷贝（官方称之为Displaced Mark Word）。线程堆栈与对象头状态图如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301007.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301007.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;b、拷贝对象头的MarkWord复制到锁记录中。&lt;/p&gt;
 &lt;p&gt;c、拷贝成功后，虚拟机将使用CAS操作尝试将对象的MarkWord更新为指向Lock Record的指针，并将Lock Record中的owner指针指向object mark word，如果更新成功，则执行步骤d，否则执行步骤e。&lt;/p&gt;
 &lt;p&gt;d、更新成功后，该线程便拥有了这个对象的锁，此时对象MarkWord中的锁标识位将被设置为‘00’，表示此对象处于轻量级锁定状态。线程堆栈与对象头状态图如下：&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301008.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301008.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;p&gt;e、如果这个更新操作失败了，虚拟机首先会检查对象的MarkWord是否指向当前线程的栈帧，如果是，则表示当前线程已经拥有了这个对象的锁，那就可以直接进入同步块继续执行，否则说明有多个线程在竞争锁。&lt;/p&gt;
 &lt;p&gt;若当前只有一个等待线程，则该线程进行自旋等待，当自旋超过阈值，或者一个线程持有锁，一个在自旋，又有第三个来访问锁时，轻量级锁便会膨胀为重量级锁。&lt;/p&gt;
 &lt;p&gt;锁的标识位将被设置为‘10’，MarkWord中存储的就是指向重量级锁（互斥量）的指针，后面等待锁的线程也会进入阻塞状态。&lt;/p&gt;
 &lt;h4 id=&#34;整体执行过程&#34;&gt;整体执行过程&lt;/h4&gt;
 &lt;h5 id=&#34;锁升级流程图&#34;&gt;锁升级流程图：&lt;/h5&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301009.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;10&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301009.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h5 id=&#34;synchronized执行过程&#34;&gt;synchronized执行过程：&lt;/h5&gt;
 &lt;ol&gt;
 &lt;li&gt;检测Mark Word中的锁标识是否为可偏向状态（锁标识位：01，是否偏向锁：1），如果是，则为偏向锁。&lt;/li&gt;
@@ -3779,7 +3801,10 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-xian-cheng-chi-xiang-jie/"" data-c="
-          &lt;h2 id=&#34;线程池&#34;&gt;线程池&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中关于线程池的优势，参数说明以及常用线程数配置。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/beach-gc2b0bd8e5_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;线程池&#34;&gt;线程池&lt;/h2&gt;
 &lt;h3 id=&#34;线程池的优势&#34;&gt;线程池的优势&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;降低系统资源消耗：通过重用已存在的线程，降低线程创建和销毁所造成的资源消耗。&lt;/li&gt;
@@ -3827,7 +3852,7 @@ public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;
 &lt;li&gt;由于任务队列已满，无法将任务插入到任务队列中。这个时候如果线程池中的线程数量没有达到线程池所设定的最大值（maximumPoolSize），那么这时候就会立即启动一个非核心线程来执行任务。&lt;/li&gt;
 &lt;li&gt;如果线程池中的数量达到了所规定的最大值（maximumPoolSize），那么就会拒绝执行此任务，这时候就会调用RejectedExecutionHandler中的rejectedExecution方法来通知调用者。&lt;/li&gt;
 &lt;/ol&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230228001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230228001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;四种线程池一般不推荐使用&#34;&gt;四种线程池（一般不推荐使用）&lt;/h3&gt;
 &lt;p&gt;1、newCachedThreadPool：用来创建一个可以无限扩大的线程池，适用于负载较轻的场景，执行短期异步任务。（可以使得任务快速得到执行，因为任务时间执行短，可以很快结束，也不会造成cpu过度切换），无界线程池，容易发生OOM。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;public static ExecutorService newCachedThreadPool() {
@@ -3883,13 +3908,16 @@ service.scheduleAtFixedRate(() -&amp;gt; System.out.println(Thread.currentThread
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/"" data-c="
-          &lt;h2 id=&#34;多线程基础&#34;&gt;多线程基础&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中关于多线程的基础知识，几种创建线程的方式以及线程安全性&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sea-g5a284195e_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;多线程基础&#34;&gt;多线程基础&lt;/h2&gt;
 &lt;h3 id=&#34;java多线程并发库&#34;&gt;java多线程并发库&lt;/h3&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;进程与线程&#34;&gt;进程与线程&lt;/h3&gt;
 &lt;p&gt;进程：是程序运行以及资源分配的基本单位，一个程序至少有一个进程。&lt;/p&gt;
 &lt;p&gt;线程：是CPU调度和分配的基本单位，一个进程至少有一个线程。同一个进程中的线程共享其资源（减少切换，可提高效率），且可以并发执行（并发：同一时间间隔可以做多件事；并行：同一时刻可以做多件事（多核））。&lt;/p&gt;
-&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
 &lt;h3 id=&#34;线程的上文切换&#34;&gt;线程的上文切换&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;一个CPU核在任意时刻只能执行一个线程，如果有多个线程（超过CPU核数）存在，CPU将会采用时间片轮转的方式进行线程切换，即给每一个线程分配一个时间片，当一个线程的时间片用完的时候便会处于就绪状态，并让出CPU给其他线程使用，这就是一次上下文切换。&lt;/li&gt;
@@ -4066,7 +4094,10 @@ class TestCallable implements Callable&amp;lt;Integer&amp;gt; {
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/"" data-c="
-          &lt;h2 id=&#34;面向对象的三大特性&#34;&gt;面向对象的三大特性&lt;/h2&gt;
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java中面向对象的三大特性，基本数据结构，六大基本原则。作为博客的第一篇文章，略显简单，不过对于我而言，却是向前迈出了一大步。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/flowers-g5952415a3_1280.jpg&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;面向对象的三大特性&#34;&gt;面向对象的三大特性&lt;/h2&gt;
 &lt;h3 id=&#34;封装&#34;&gt;封装&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;将现实中的客观事物封装成抽象的类。&lt;/li&gt;
