@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-02-28T08:34:44.680Z</updated>
+    <updated>2023-03-01T06:32:36.943Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,169 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[Java中的锁]]></title>
+        <id>https://philosopherzb.github.io/post/java-zhong-de-suo/</id>
+        <link href="https://philosopherzb.github.io/post/java-zhong-de-suo/">
+        </link>
+        <updated>2021-01-16T03:27:32.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="锁的类型">锁的类型</h2>
+<h3 id="乐观锁">乐观锁</h3>
+<p>乐观锁认为读多写少，遇到并发写的可能性低，每次去拿数据的时候都认为别人不会修改，所以不会上锁。但是，在更新的时候会判断一下在此期间别人有没有去修改这个数据，采取写时先读出当前版本号，然后加锁操作（比较上一次的版本号，一致则更新），如果失败则重复读-比较-写操作。</p>
+<p>CAS便是典型的乐观锁机制，其中会使用到sun.misc.Unsafe这个类进行Compare And Swap操作。</p>
+<p>CAS 即比较并交换。是解决多线程并行情况下使用锁造成性能损耗的一种机制，CAS 操作包含三个操作数——内存位置(V)、预期原值(A)和新值(B)。如果内存位置的值(V)与预期原值(A)相匹配，那么处理器会自动将该位置值更新为新值(B)。否则，处理器不做任何操作。无论哪种情况，它都会在 CAS 指令之前返回该位置的值。CAS 有效地说明了“我认为位置(V)应该包含值(A)。如果包含该值，则将新值(B)放到这个位置；否则，不要更改该位置，只告诉我这个位置现在的值即可”。</p>
+<h3 id="悲观锁">悲观锁</h3>
+<p>悲观锁认为写操作更多，遇到并发写的可能性高，每次去拿数据的时候都认为别人会修改，所以会在每次读写的时候上锁，这样别人想读写这个数据便会block直到获取锁。</p>
+<p>Synchronized便是典型的悲观锁，AQS框架下的锁会先尝试CAS获取锁，获取不到便会转为悲观锁。</p>
+<h2 id="线程切换及其代价">线程切换及其代价</h2>
+<h3 id="线程切换">线程切换</h3>
+<p>java线程与操作系统上的原生线程是一一映射的。如果需要阻塞或者唤醒一个线程，便需要操作系统的介入，并切换用户态与内核态（这样的切换需要消耗大量的系统资源）。</p>
+<h4 id="用户态切换到内核态的步骤主要如下">用户态切换到内核态的步骤主要如下</h4>
+<ol>
+<li>从当前进程的描述符中提取其内核栈的ss0及esp0信息。</li>
+<li>使用ss0和esp0指向的内核栈将当前进程的cs，eip，eflags，ss，esp信息保存起来，这个过程也完成了由用户态到内核栈的切换过程，同时保存了被暂停执行的程序的下一条指令。</li>
+<li>将先前由中断向量检索得到的中断处理程序的cs，eip信息装入相应的寄存器，开始执行中断处理程序，这时就转到了内核态的程序执行了。</li>
+</ol>
+<h4 id="名词解释如下">名词解释如下</h4>
+<p>CS：代码段寄存器；存放当前正在运行的程序代码所在段的段基值；联合ip作为cpu指向当前正在执行的指令，不能随便修改。</p>
+<p>DS：数据段寄存器；存放数据段的段基值；定义了一个数据段。</p>
+<p>SS：堆栈段寄存器；存放堆栈段的段基值，联合sp定义一个堆栈值，一旦确定了堆栈地址，将不能随便改变。</p>
+<p>内核态切换到用户态主要使用PSW（Program Status Word，程序状态字，又称状态寄存器），其一般用于反映处理器的状态及某些计算结果以及控制指令的执行：</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301001.png" alt="" loading="lazy"></figure>
+<h3 id="切换的代价">切换的代价</h3>
+<ul>
+<li>如果线程切换是一个高频操作，那将耗费很多CPU处理时间（用户态，内核态之间的切换）。</li>
+<li>甚至，如果同步代码块中的内容过于简单，状态切换消耗的时间有可能比用户代码执行的时间还要长。</li>
+</ul>
+<h2 id="java对象结构之对象头">Java对象结构之对象头</h2>
+<h3 id="对象头">对象头</h3>
+<p>对象头（Header）主要包含两部分信息：第一部分用于存储对象自身的运行时数据（如哈希码（HashCode），GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID，偏向时间戳等，这部分数据长度在32位或者64位的虚拟机中分别为32bit以及64bit，官方称之为“Mark Word”）；</p>
+<p>第二部分是类型指针，即对象指向它的类元数据的指针，虚拟机可以通过这个指针来确定该对象属于哪个类的实例（并不是所有的虚拟机实现都需要在对象数据上保留类型指针，即查找对象的元数据信息并不一定要经过对象本身）。</p>
+<p>如果对象是一个Java数组，那么对象头还需要记录该数组长度，因为普通的Java对象可以通过元数据信息确认对象大小，而数组却不行。</p>
+<h3 id="markword">MarkWord</h3>
+<p>markword数据的长度在32位和64位（未开启压缩指针）的虚拟机中分别为32bit和64bit，它的最后两位便是锁状态标识位，用来标记当前对象的状态，常用值如下：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301002.png" alt="" loading="lazy"></figure>
+<p>32位虚拟机在不同状态下markword的结构图如下：</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301003.png" alt="img" loading="lazy"></figure>
+<h2 id="java中的锁">Java中的锁</h2>
+<h3 id="主流锁图">主流锁图</h3>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301004.png" alt="img" loading="lazy"></figure>
+<h3 id="自旋锁基于cas">自旋锁（基于CAS）</h3>
+<p>如果持有锁的线程可以在很短的时间内释放锁，那么那些等待锁的线程便不需要进入阻塞挂起状态，而是自旋等待一会儿便可获取到同步资源，从而避免了线程切换的开销，这就是自旋锁。</p>
+<p>自旋锁本身是有缺点的，它不能代替阻塞。</p>
+<p>自旋锁虽然避免了线程切换的开销，但其占据了CPU处理器时间。如果锁被占用的时间很短，自旋等待的效果就会非常好；反之，则会白白浪费处理器资源。甚至，当线程过多时，还会影响系统的整体性能。</p>
+<p>因此，自旋等待的时间需要有一个限度，如果超过限定次数（默认10次，可以使用-XX:PreBlockSpin来更改）没有获取到锁，则应当挂起线程。</p>
+<p>自旋锁在JDK1.4.2中引入，使用-XX:+UseSpinning来开启。JDK 6中变为默认开启，并且引入了自适应的自旋锁（适应性自旋锁）。</p>
+<p>自适应意味着自旋的时间（次数）不再固定，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。</p>
+<p>如果在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行中，那么虚拟机就会认为这次自旋也是很有可能再次成功，进而它将允许自旋等待持续相对更长的时间。如果对于某个锁，自旋很少成功获得过，那在以后尝试获取这个锁时将可能省略掉自旋过程，直接阻塞线程，避免浪费处理器资源。</p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301005.png" alt="img" loading="lazy"></figure>
+<h4 id="jvm针对当前cpu的负荷情况还做了如下自旋锁优化操作">JVM针对当前CPU的负荷情况还做了如下自旋锁优化操作：</h4>
+<ul>
+<li>如果平均负载小于CPUs则一直自旋</li>
+<li>如果有超过(CPUs/2)个线程正在自旋，则后来线程直接阻塞</li>
+<li>如果正在自旋的线程发现Owner发生了变化则延迟自旋时间（自旋计数）或进入阻塞</li>
+<li>如果CPU处于节电模式则停止自旋</li>
+<li>自旋时间的最坏情况是CPU的存储延迟（CPU A存储了一个数据，到CPU B得知这个数据直接的时间差）</li>
+<li>自旋时会适当放弃线程优先级之间的差异</li>
+</ul>
+<h3 id="synchronized无锁偏向锁轻量级锁重量级锁">Synchronized（无锁，偏向锁，轻量级锁，重量级锁）</h3>
+<h4 id="synchronized队列">Synchronized队列</h4>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301006.png" alt="img" loading="lazy"></figure>
+<p>可以看出，synchronized有多个队列，当多个线程一起访问某个对象监视器（monitor，其是依赖于底层的操作系统的Mutex Lock（互斥锁）来实现的线程同步））的时候，对象监视器会将这些线程存储在不同的容器里。</p>
+<h5 id="结构概述">结构概述</h5>
+<ul>
+<li>ContentionList：竞争队列，所有请求锁的线程首先会被放入此队列中。</li>
+<li>EntryList：ContentionList中一些有资格获取同步资源的线程将被移动到此队列中。</li>
+<li>WaitSet：调用wait方法被阻塞的线程，放于此处。</li>
+<li>OnDeck：任何时刻，最多只有一个线程正在竞争锁，该线程便是OnDeck。</li>
+<li>Owner：已经获取到锁的线程被称为Owner。</li>
+<li>!Owner：已经释放锁的线程。</li>
+</ul>
+<h5 id="队列协作过程">队列协作过程</h5>
+<ul>
+<li>JVM每次都会从队列尾部取出一个线程用于锁竞争候选者（OnDeck），但是并发情况下，ContentionList会被大量的线程进行CAS访问，为了降低对尾部元素的竞争，JVM会将一部分线程移动到EntryList中作为候选竞争线程。</li>
+<li>Owner在unlock时，也会将ContentionList中的部分线程迁移到EntryList，并指定EntryList中的某个线程为Ondeck（一般是最先进去的线程）。</li>
+<li>Owner不会直接将锁传递给OnDeck，而是将锁竞争的权利交给OnDeck，OnDeck需要重新去竞争锁。这样虽然牺牲了一些公平性，但能极大的提高系统吞吐量，在JVM中，这种选择行为被称为“竞争切换”。</li>
+<li>OnDeck获取到锁后就会变为Owner，而没有得到锁的则仍然停留在EntryList；如果OnDeck线程被wait阻塞，则会被移动至WaitSet，直到某个时刻被notify或notifyAll唤醒，才能重新进入EntryLIst。</li>
+<li>处于ContentionList、EntryList、WaitSet中的线程都处于阻塞状态，该阻塞是由操作系统来完成的（Linux内核下采用pthread_mutex_lock内核函数实现的）。</li>
+</ul>
+<h4 id="无锁cas">无锁（CAS）</h4>
+<p>无锁没有对资源进行锁定，所有的线程都能访问并修改同一个资源，但同时只有一个线程能修改成功。</p>
+<p>无锁的特点就是修改操作在循环内进行，线程会不断的尝试修改共享资源。如果没有冲突就修改成功并退出，否则就会继续循环尝试。如果有多个线程修改同一个值，必定会有一个线程能修改成功，而其他修改失败的线程会不断重试直到修改成功。无锁无法全面代替有锁，但无锁在某些场合下的性能是非常高的。</p>
+<h4 id="偏向锁">偏向锁</h4>
+<p>偏向锁是指一段同步代码一直被一个线程所访问，那么这个线程便会自动获取锁，降低了获取锁的代价。</p>
+<p>在运行过程中，不存在多线程竞争，则线程不需要触发同步，此时为了提高线程执行同步代码的效率，便出现了偏向锁。</p>
+<h5 id="偏向锁执行过程">偏向锁执行过程</h5>
+<ol>
+<li>访问MarkWord中偏向锁的标识位是否设置为1，锁标识位是否设置为01，确认为可偏向状态。</li>
+<li>如果为可偏向状态，则判断线程id是否指向当前线程，如果是，则进入步骤5，否则进入步骤3。</li>
+<li>如果线程id未指向当前线程，则通过CAS操作竞争锁，如果竞争成功，则将MarkWord中的线程id设置为当前线程id，然后执行步骤5，否则进入步骤4。</li>
+<li>如果CAS获取锁失败，则表示存在锁竞争。当到达全局安全点（safepoint，会导致很短时间的stop-the-world）时，获取偏向锁的线程将被挂起，偏向锁升级为轻量级锁，然后被阻塞在安全点的线程继续往下执行同步代码。</li>
+<li>执行同步代码。</li>
+</ol>
+<h5 id="偏向锁的释放">偏向锁的释放</h5>
+<p>偏向锁只有遇到其他线程尝试竞争偏向锁时，持有偏向锁的线程才会释放锁，线程不会主动去释放偏向锁。</p>
+<p>偏向锁的撤销，需要等待全局安全点（在这个时间点上没有字节码正在执行），它会首先暂停拥有偏向锁的线程，判断锁对象是否处于被锁定状态，撤销偏向锁后恢复到未锁定（标志位为“01”）或轻量级锁（标志位为“00”）的状态。</p>
+<h5 id="偏向锁适用场景">偏向锁适用场景</h5>
+<p>始终只有一个线程操作同步资源，也就是锁无竞争状况下使用。一旦有了竞争，偏向锁便会升级为轻量级锁（升级需要撤销偏向锁，这个过程会stop-the-world）。</p>
+<p>如果存在高并发锁竞争，应当禁用偏向锁，这样可以适当提高程序性能。</p>
+<h5 id="jvm开启关闭偏向锁">jvm开启/关闭偏向锁</h5>
+<p>开启偏向锁：-XX:+UseBiasedLocking -XX:BiasedLockingStartupDelay=0<br>
+（-XX:BiasedLockingStartupDelay=0的作用是在虚拟机启动后，立即启用偏向锁，如果不设置该参数，默认虚拟会在4秒后，才启动偏向锁。）</p>
+<p>关闭偏向锁：-XX:-UseBiasedLocking</p>
+<h4 id="轻量级锁">轻量级锁</h4>
+<p>轻量级锁是由偏向锁升级而来的，当一个线程持有偏向锁执行同步块时，存在另外的线程来竞争锁，这时偏向锁便会升级为轻量级锁。</p>
+<p>轻量级锁执行过程：</p>
+<p>a、在代码进入同步块的时候，如果同步对象状态为无锁状态（锁标识位：01，是否偏向锁标识位：0），虚拟机首先会在当前线程的栈帧中建立一个名为锁记录（Lock Record）的空间，用于存储对象目前的MarkWord的拷贝（官方称之为Displaced Mark Word）。线程堆栈与对象头状态图如下：</p>
+<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301007.png" alt="img" loading="lazy"></figure>
+<p>b、拷贝对象头的MarkWord复制到锁记录中。</p>
+<p>c、拷贝成功后，虚拟机将使用CAS操作尝试将对象的MarkWord更新为指向Lock Record的指针，并将Lock Record中的owner指针指向object mark word，如果更新成功，则执行步骤d，否则执行步骤e。</p>
+<p>d、更新成功后，该线程便拥有了这个对象的锁，此时对象MarkWord中的锁标识位将被设置为‘00’，表示此对象处于轻量级锁定状态。线程堆栈与对象头状态图如下：</p>
+<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301008.png" alt="img" loading="lazy"></figure>
+<p>e、如果这个更新操作失败了，虚拟机首先会检查对象的MarkWord是否指向当前线程的栈帧，如果是，则表示当前线程已经拥有了这个对象的锁，那就可以直接进入同步块继续执行，否则说明有多个线程在竞争锁。</p>
+<p>若当前只有一个等待线程，则该线程进行自旋等待，当自旋超过阈值，或者一个线程持有锁，一个在自旋，又有第三个来访问锁时，轻量级锁便会膨胀为重量级锁。</p>
+<p>锁的标识位将被设置为‘10’，MarkWord中存储的就是指向重量级锁（互斥量）的指针，后面等待锁的线程也会进入阻塞状态。</p>
+<h4 id="整体执行过程">整体执行过程</h4>
+<h5 id="锁升级流程图">锁升级流程图：</h5>
+<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301009.png" alt="img" loading="lazy"></figure>
+<h5 id="synchronized执行过程">synchronized执行过程：</h5>
+<ol>
+<li>检测Mark Word中的锁标识是否为可偏向状态（锁标识位：01，是否偏向锁：1），如果是，则为偏向锁。</li>
+<li>如果不是，则检查Mark Word里面的线程id是不是当前线程的ID，如果是，表示当前线程处于偏向锁</li>
+<li>如果不是，则使用CAS将当前线程的ID替换Mard Word，如果成功则表示当前线程获得偏向锁，置偏向标志位1</li>
+<li>如果失败，则说明发生竞争，撤销偏向锁，进而升级为轻量级锁。</li>
+<li>当前线程使用CAS将对象头的Mark Word替换为锁记录指针，如果成功，当前线程获得锁</li>
+<li>如果失败，表示其他线程竞争锁，当前线程便尝试使用自旋来获取锁。</li>
+<li>如果自旋成功则依然处于轻量级状态。</li>
+<li>如果自旋失败，则升级为重量级锁。</li>
+</ol>
+<h3 id="锁优化">锁优化</h3>
+<h4 id="减少锁的时间">减少锁的时间</h4>
+<p>不需要同步执行的代码，尽量不要放在同步块中，这样可以让锁更快的释放。</p>
+<h4 id="减少锁的粒度">减少锁的粒度</h4>
+<p>锁粒度的减少核心思想是利用空间换时间，它将物理上的一个锁，拆分为逻辑上的多个锁，增加并发度，从而降低了锁竞争。</p>
+<p>典型代表有：ConcurrentHashMap（jdk1.8之前，有用到Segment数组）；LongAdder（实现机制与ConcurrentHashMap类似，其中有一个根据当前并发状态动态改变的Cell数组，注意：其竞争维度为cell个数+1，因为还有一个base数组）；LinkedBlockQueue（出队，入队采用了不同的锁，增加了并行效率）。</p>
+<p>锁的拆分不能无限拆，需要根据当前系统CPU核数进行限制（不能超过CPU核数）。</p>
+<h4 id="锁粗化">锁粗化</h4>
+<p>大部分情况下，是要求将锁粒度减小，但某些情况下，也需要粗化锁粒度，比如循环中加锁。</p>
+<h4 id="使用读写锁">使用读写锁</h4>
+<p>ReentrantReadWriteLock 是一个读写锁，读操作加读锁，可以并发读，写操作使用写锁，只能单线程写。例如：CopyOnWriteArrayList 、CopyOnWriteArraySet</p>
+<p>CopyOnWrite容器即写时复制的容器。通俗的理解是当我们往一个容器添加元素的时候，不直接往当前容器添加，而是先将当前容器进行Copy，复制出一个新的容器，然后新的容器里添加元素，添加完元素之后，再将原容器的引用指向新的容器。这样做的好处是我们可以对CopyOnWrite容器进行并发的读，而不需要加锁，因为当前容器不会添加任何元素。所以CopyOnWrite容器也是一种读写分离的思想，读和写不同的容器。</p>
+<p>CopyOnWrite并发容器用于读多写少的并发场景，因为，读的时候没有锁，但是对其进行更改的时候是会加锁的，否则会导致多个线程同时复制出多个副本，各自修改各自的。</p>
+<h4 id="使用cas">使用CAS</h4>
+<p>如果需要同步的操作执行速度非常快，并且线程竞争并不激烈，这时候使用cas效率会更高，因为加锁会导致线程的上下文切换，如果上下文切换的耗时比同步操作本身更耗时，且线程对资源的竞争不激烈，使用volatiled+cas操作会是非常高效的选择。</p>
+<h4 id="消除缓存行的伪共享">消除缓存行的伪共享</h4>
+<p>除了我们在代码中使用的同步锁和jvm自己内置的同步锁外，还有一种隐藏的锁就是缓存行，它也被称为性能杀手。</p>
+<p>在多核cup的处理器中，每个cup都有自己独占的一级缓存、二级缓存，甚至还有一个共享的三级缓存，为了提高性能，cpu读写数据是以缓存行为最小单元读写的；32位的cpu缓存行为32字节，64位cup的缓存行为64字节，这就导致了一些问题。</p>
+<p>例如，多个不需要同步的变量因为存储在连续的32字节或64字节里面，当需要其中的一个变量时，就将它们作为一个缓存行一起加载到某个cup-1私有的缓存中（虽然只需要一个变量，但是cpu读取会以缓存行为最小单位，将其相邻的变量一起读入），被读入cpu缓存的变量相当于是对主内存变量的一个拷贝，也相当于变相的将在同一个缓存行中的几个变量加了一把锁，这个缓存行中任何一个变量发生了变化，当cup-2需要读取这个缓存行时，就需要先将cup-1中被改变了的整个缓存行更新回主存（即使其它变量没有更改），然后cup-2才能够读取，而cup-2可能需要更改这个缓存行的变量与cpu-1已经更改的缓存行中的变量是不一样的，所以这相当于给几个毫不相关的变量加了一把同步锁；</p>
+<p>为了防止伪共享，不同jdk版本实现方式是不一样的：</p>
+<ol>
+<li>在jdk1.7之前会 将需要独占缓存行的变量前后添加一组long类型的变量，依靠这些无意义的数组的填充做到一个变量自己独占一个缓存行；</li>
+<li>在jdk1.7因为jvm会将这些没有用到的变量优化掉，所以采用继承一个声明了好多long变量的类的方式来实现；</li>
+<li>在jdk1.8中通过添加sun.misc.Contended注解来解决这个问题，若要使该注解有效必须在jvm中添加以下参数：-XX:-RestrictContended。sun.misc.Contended注解会在变量前面添加128字节的padding将当前变量与其他变量进行隔离</li>
+</ol>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Java线程池详解]]></title>
         <id>https://philosopherzb.github.io/post/java-xian-cheng-chi-xiang-jie/</id>
@@ -378,81 +541,6 @@ class TestCallable implements Callable&lt;Integer&gt; {
 <li>一个对象应该对其他对象有最少的了解。</li>
 <li>此原则与接口隔离原则可以结合使用，尽量保持一个方法一个具体行为，而不要涵盖多个行为。</li>
 </ul>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Hello Gridea]]></title>
-        <id>https://philosopherzb.github.io/post/hello-gridea/</id>
-        <link href="https://philosopherzb.github.io/post/hello-gridea/">
-        </link>
-        <updated>2020-09-03T16:00:00.000Z</updated>
-        <summary type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
-✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
-]]></summary>
-        <content type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
-✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
-<!-- more -->
-<p><a href="https://github.com/getgridea/gridea">Github</a><br>
-<a href="https://gridea.dev/">Gridea 主页</a><br>
-<a href="http://fehey.com/">示例网站</a></p>
-<h2 id="特性">特性👇</h2>
-<p>📝  你可以使用最酷的 <strong>Markdown</strong> 语法，进行快速创作</p>
-<p>🌉  你可以给文章配上精美的封面图和在文章任意位置插入图片</p>
-<p>🏷️  你可以对文章进行标签分组</p>
-<p>📋  你可以自定义菜单，甚至可以创建外部链接菜单</p>
-<p>💻  你可以在 <strong>Windows</strong>，<strong>MacOS</strong> 或 <strong>Linux</strong> 设备上使用此客户端</p>
-<p>🌎  你可以使用 <strong>𝖦𝗂𝗍𝗁𝗎𝖻 𝖯𝖺𝗀𝖾𝗌</strong> 或 <strong>Coding Pages</strong> 向世界展示，未来将支持更多平台</p>
-<p>💬  你可以进行简单的配置，接入 <a href="https://github.com/gitalk/gitalk">Gitalk</a> 或 <a href="https://github.com/SukkaW/DisqusJS">DisqusJS</a> 评论系统</p>
-<p>🇬🇧  你可以使用<strong>中文简体</strong>或<strong>英语</strong></p>
-<p>🌁  你可以任意使用应用内默认主题或任意第三方主题，强大的主题自定义能力</p>
-<p>🖥  你可以自定义源文件夹，利用 OneDrive、百度网盘、iCloud、Dropbox 等进行多设备同步</p>
-<p>🌱 当然 <strong>Gridea</strong> 还很年轻，有很多不足，但请相信，它会不停向前 🏃</p>
-<p>未来，它一定会成为你离不开的伙伴</p>
-<p>尽情发挥你的才华吧！</p>
-<p>😘 Enjoy~</p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Typora]]></title>
-        <id>https://philosopherzb.github.io/post/typora/</id>
-        <link href="https://philosopherzb.github.io/post/typora/">
-        </link>
-        <updated>2019-09-03T05:41:02.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="welcome">Welcome</h2>
-<p>Thank you for choosing <strong>Typora</strong>. This document will help you to start Typora. Please note that Typora for Windows is still in beta phase, so this document may be updated in future version-ups.</p>
-<h2 id="live-preview">Live Preview</h2>
-<p><strong>Typora</strong> use the feature: <em>Live Preview</em>, meaning that you could see these inline styles after you finish typing, and see block styles when you type or after you press <code>Enter</code> key or focus to another paragraph. Just try to type some markdown in typora, and you would see how it works.</p>
-<p><strong>Note</strong>: Markdown tags for inline styles, such as <code>**</code> will be hidden or displayed smartly. Markdown tags for block level styles, such as <code>###</code> or <code>- [x]</code> will be hidden once the block is rendered.</p>
-<p>You could switch to source code mode temporary from menu bar, footer bar or short cut key (<code>ctrl+/</code>). But we only provide very basic support for source code mode and won't recommend users to do so.</p>
-<h2 id="markdown-for-typora">Markdown For Typora</h2>
-<p><strong>Typora</strong> is using <a href="https://help.github.com/articles/github-flavored-markdown/">GitHub Flavored Markdown</a> .</p>
-<p>To see full markdown Syntax references and extra usage, please check <code>Help</code>-&gt;<code>Markdown Reference</code> in menu bar or <code>About</code> panel.</p>
-<h2 id="shortcut-keys">Shortcut Keys</h2>
-<p>You could find shortcut keys in the right side of menu items from menu bar.For more shortcut key details and custom key bindings, you can refer <a href="http://support.typora.io/Shortcut-Keys/">here</a>.</p>
-<h2 id="copy">Copy</h2>
-<p>We create typora and want to make it your default markdown editor, thus copy and paste means copy from another app or paste to another app, instead of <em>copy/paste from/to another markdown editor</em>. Therefore, by default, <code>Copy</code> means <code>Copy As HTML</code> ( and <code>Paste</code> means <code>Paste from HTML</code>).</p>
-<p>However, after click &quot;<strong>Copy Markdown source by default</strong>&quot;, typora will copy selected text in HTML/markdown format (When pasting, rich editors will accept the HTML format, while plain text / code editor will accept the markdown source code format).</p>
-<p>To <strong>copy Markdown source code</strong> explicitly, please use shortcut key <code>shift+cmd+c</code> or <code>Copy as Markdown</code> from menu. To <strong>Copy as HTML Code</strong>, please select <code>Copy as HTML Code</code> from menu.</p>
-<h2 id="smart-paste">Smart Paste</h2>
-<p><strong>Typora</strong> is able to analyze styles of the text content in your clipboard when pasting. For example, after pasting a <code>&lt;h1&gt;HEADING&lt;/h1&gt;</code> from some website, typora will keep the 'first level heading’ format instead of paste ‘heading’ as plain text.</p>
-<p>To <strong>paste as markdown source</strong> or plain text, you should use <code>paste as plain text</code> or press the shortcut key: <code>shift+cmd+v</code>.</p>
-<h2 id="themes">Themes</h2>
-<p>Please refer to <code>Help</code> → <code>Custom Themes</code> from menu bar.</p>
-<h2 id="publish">Publish</h2>
-<p>Currently Typora only support to export as <strong>PDF</strong> or <strong>HTML</strong>. More data format support as import/export will be integrated in future.</p>
-<h2 id="auto-save-and-file-recovery">Auto Save and File Recovery</h2>
-<p>Typora support  auto save feature, user could enable it from preference panel.</p>
-<p>Typora does not provide professional version control and file backup feature, but typora would backup the last file content from time to time automatically, so even when typora crashes or users forget to save the file before close, it is possible to recovery most of the work by clicking <code>Recovery Unsaved Drafts</code> from preference folder, and copy out backed-up files. The File name in this folder is consists of last saved date, originally file name and last saved timestamp.</p>
-<h2 id="more-useful-tips-documents">More Useful Tips &amp; Documents</h2>
-<p><a href="https://support.typora.io/">https://support.typora.io/</a></p>
-<h2 id="and-more">And More ?</h2>
-<p>For more questions or feedbacks, please contact us by:</p>
-<ul>
-<li>Home Page: http://typora.io</li>
-<li>Email: <a href="mailto:hi@typora.io">hi@typora.io</a></li>
-<li>Twitter <a href="https://twitter.com/typora">@typora</a></li>
-</ul>
-<p>We opened a Github issue page in case you want to start a discussion or as an alternative way to report bugs/suggestions: https://github.com/typora/typora-issues/issues</p>
 ]]></content>
     </entry>
 </feed>
