@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Java多线程基础 | Philosopher</title>
+<title>Java中的常用排序算法 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1677726157535">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="Java多线程基础" />
-  <meta name="keywords" content="java" />
+  <meta name="description" content="Java中的常用排序算法" />
+  <meta name="keywords" content="算法,java" />
 </head>
 
 <body>
@@ -255,29 +255,20 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%9F%BA%E7%A1%80">多线程基础</a>
+<li><a href="#java%E4%B8%AD%E7%9A%84%E5%B8%B8%E7%94%A8%E7%AE%97%E6%B3%95">Java中的常用算法</a>
 <ul>
-<li><a href="#java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%B9%B6%E5%8F%91%E5%BA%93">java多线程并发库</a></li>
-<li><a href="#%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B">进程与线程</a></li>
-<li><a href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E4%B8%8A%E6%96%87%E5%88%87%E6%8D%A2">线程的上文切换</a></li>
-<li><a href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E7%8A%B6%E6%80%81">线程的几种状态</a></li>
-</ul>
-</li>
-<li><a href="#%E5%88%9B%E5%BB%BA%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F">创建线程的几种方式</a>
-<ul>
-<li><a href="#%E7%BB%A7%E6%89%BFthread">继承Thread</a></li>
-<li><a href="#%E5%AE%9E%E7%8E%B0runnable">实现Runnable</a></li>
-<li><a href="#%E5%AE%9E%E7%8E%B0callable">实现Callable</a></li>
-</ul>
-</li>
-<li><a href="#%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E6%80%A7">线程安全性</a>
-<ul>
-<li><a href="#%E7%BA%BF%E7%A8%8B%E6%AD%BB%E9%94%81">线程死锁</a>
-<ul>
-<li><a href="#%E6%AD%BB%E9%94%81">死锁</a></li>
-<li><a href="#%E6%AD%BB%E9%94%81%E5%9B%9B%E4%B8%AA%E5%BF%85%E8%A6%81%E6%9D%A1%E4%BB%B6%E4%BB%A5%E5%8F%8A%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%AD%BB%E9%94%81">死锁四个必要条件以及如何避免死锁</a></li>
-</ul>
-</li>
+<li><a href="#%E6%9C%AF%E8%AF%AD%E8%AF%B4%E6%98%8E%E5%8F%8A%E6%8E%92%E5%BA%8F%E5%9B%BE%E8%A1%A8">术语说明及排序图表</a></li>
+<li><a href="#%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE">二分查找</a></li>
+<li><a href="#%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F">冒泡排序</a></li>
+<li><a href="#%E9%80%89%E6%8B%A9%E6%8E%92%E5%BA%8F">选择排序</a></li>
+<li><a href="#%E6%8F%92%E5%85%A5%E6%8E%92%E5%BA%8F">插入排序</a></li>
+<li><a href="#%E5%B8%8C%E5%B0%94%E6%8E%92%E5%BA%8F">希尔排序</a></li>
+<li><a href="#%E5%BD%92%E5%B9%B6%E6%8E%92%E5%BA%8F">归并排序</a></li>
+<li><a href="#%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F">快速排序</a></li>
+<li><a href="#%E5%A0%86%E6%8E%92%E5%BA%8F">堆排序</a></li>
+<li><a href="#%E8%AE%A1%E6%95%B0%E6%8E%92%E5%BA%8F">计数排序</a></li>
+<li><a href="#%E6%A1%B6%E6%8E%92%E5%BA%8F">桶排序</a></li>
+<li><a href="#%E5%9F%BA%E6%95%B0%E6%8E%92%E5%BA%8F">基数排序</a></li>
 </ul>
 </li>
 </ul>
@@ -547,8 +538,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">
-      Java多线程基础
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhong-de-chang-yong-pai-xu-suan-fa/">
+      Java中的常用排序算法
     </a>
   </h1>
   <div class="post-meta">
@@ -556,13 +547,19 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2020-12-18 16:13:34">2020-12-18</span>
+      <span class="publish-time" data-t="2021-03-13 10:46:59">2021-03-13</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
     <span class="meta-item">
       <i class="fa fa-folder-o"></i>
       <span class="pc-show language" data-lan="category-in">分类于</span>
+      
+      
+      <a href="https://philosopherzb.github.io/tag/cRhWx5aNF/">
+        <span>算法</span>
+      </a>、
+      
       
       
       <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
@@ -575,17 +572,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>8<span class="language" data-lan="minute">分钟</span></span>
+      <span>25<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>1918<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>5600<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/java-duo-xian-cheng-ji-chu/" data-flag-title="Java多线程基础" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/java-zhong-de-chang-yong-pai-xu-suan-fa/" data-flag-title="Java中的常用排序算法" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -595,185 +592,658 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Java中关于多线程的基础知识，几种创建线程的方式以及线程安全性</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sea-g5a284195e_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="多线程基础">多线程基础</h2>
-<h3 id="java多线程并发库">java多线程并发库</h3>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227001.png" alt="img" loading="lazy"></figure>
-<h3 id="进程与线程">进程与线程</h3>
-<p>进程：是程序运行以及资源分配的基本单位，一个程序至少有一个进程。</p>
-<p>线程：是CPU调度和分配的基本单位，一个进程至少有一个线程。同一个进程中的线程共享其资源（减少切换，可提高效率），且可以并发执行（并发：同一时间间隔可以做多件事；并行：同一时刻可以做多件事（多核））。</p>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230227002.png" alt="img" loading="lazy"></figure>
-<h3 id="线程的上文切换">线程的上文切换</h3>
+<p>本章主要简述java中常用的一些排序算法极其实现代码，如二分查找，快速排序，堆排，归并排序，冒泡排序等。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-192979_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="java中的常用算法">Java中的常用算法</h2>
+<h3 id="术语说明及排序图表">术语说明及排序图表</h3>
+<p>稳定：如果a原本在b前面，而a=b，排序之后a仍然在b的前面（如果我们只对一串数字排序，那么稳定与否确实不重要，因为一串数字的属性是单一的，就是数字值的大小。但是排序的元素往往不只有一个属性，例如我们对一群人按年龄排序，但是人除了年龄属性还有身高体重属性，在年龄相同时如果不想破坏原先身高体重的次序，就必须用稳定排序算法.）；</p>
+<p>不稳定：如果a原本在b的前面，而a=b，排序之后a可能会出现在b的后面；</p>
+<p>内排序：所有排序操作都在内存中完成；</p>
+<p>外排序：由于数据太大，因此把数据放在磁盘中，而排序通过磁盘和内存的数据传输才能进行；</p>
+<p>时间复杂度： 一个算法执行所耗费的时间。</p>
+<p>空间复杂度：运行完一个程序所需内存的大小。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230302005.png" alt="" loading="lazy"></figure>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230302006.png" alt="img" loading="lazy"></figure>
+<h3 id="二分查找">二分查找</h3>
+<p>又称折半查找，要求待查找的列表有序，每次取中间位置的值与待查关键字比较，如果中间位置的值比关键字大，则在列表前半部分循环此查找过程，否则在列表后半部分循环此查找过程。</p>
+<pre><code>public static void main(String[] args) {
+    // 正常二分查找
+    int[] array = {1, 2, 3, 4, 5, 6};
+    int a = 3;
+    System.out.println(binarySerach(array, a));
+
+    // 寻找左侧边界的二分查找
+    int[] array_left = {1, 2, 2, 4, 4, 6};
+    int a_left = 2;
+    System.out.println(binarySerachForLeftBound(array_left, a_left));
+
+    // 寻找右侧边界的二分查找
+    int[] array_right = {1, 2, 2, 5, 5, 6};
+    int a_right = 5;
+    System.out.println(binarySerachForRightBound(array_right, a_right));
+}
+
+/**
+ * 二分查找,如果存在，则输出待查找数据在数组中的下标值，否则返回-1
+ *
+ * @param numbers 指定查询数组
+ * @param target  待查找数据
+ * @return 查找结果
+ */
+private static int binarySerach(int[] numbers, int target) {
+    int low = 0;
+    int high = numbers.length - 1;
+    int middle;
+    // 此处用 &lt;= 是因为high = numbers.length - 1
+    // 如果high = numbers.length，则此处需要使用 &lt;,同时返回结果需要更改为 return numbers[low] == target ? low : -1;
+    while (low &lt;= high) {
+        // (low + high)/2，如果low + high大于Integer的MAX_VALUE会发生整型溢出
+        // 使用low + (high - low) / 2可以防止整型溢出。
+        middle = low + (high - low) / 2;
+        // 匹配目标值，返回其在数组中所在的下标
+        if (numbers[middle] == target) {
+            return middle;
+        } else if (numbers[middle] &gt; target) {
+            high = middle - 1;
+        } else if (numbers[middle] &lt; target) {
+            low = middle + 1;
+        }
+    }
+    return -1;
+}
+
+/**
+ * 寻找左侧边界的二分查找,如果存在，则输出待查找数据在数组中最左侧的下标值，否则返回-1
+ *
+ * @param numbers 指定查询数组
+ * @param target  待查找数据
+ * @return 查找结果
+ */
+private static int binarySerachForLeftBound(int[] numbers, int target) {
+    int low = 0;
+    int high = numbers.length - 1;
+    int middle;
+    // 此处用 &lt;= 是因为high = numbers.length - 1
+    // 如果high = numbers.length，则此处需要使用 &lt;,同时返回结果需要更改为 return numbers[low] == target ? low : -1;
+    while (low &lt;= high) {
+        // 匹配返回下标
+        if (numbers[low] == target) {
+            return low;
+        }
+        // (low + high)/2，如果low + high大于Integer的MAX_VALUE会发生整型溢出
+        // 使用low + (high - low) / 2可以防止整型溢出。
+        middle = low + (high - low) / 2;
+        // 匹配目标值，将其下标赋给high，往左侧缩小边界
+        if (numbers[middle] == target) {
+            high = middle;
+        } else if (numbers[middle] &gt; target) {
+            high = middle - 1;
+        } else if (numbers[middle] &lt; target) {
+            low = middle + 1;
+        }
+    }
+    return -1;
+}
+
+/**
+ * 寻找左侧边界的二分查找,如果存在，则输出待查找数据在数组中最右侧的下标值，否则返回-1
+ *
+ * @param numbers 指定查询数组
+ * @param target  待查找数据
+ * @return 查找结果
+ */
+private static int binarySerachForRightBound(int[] numbers, int target) {
+    int low = 0;
+    int high = numbers.length - 1;
+    int middle;
+    // 此处用 &lt;= 是因为high = numbers.length - 1
+    // 如果high = numbers.length，则此处需要使用 &lt;,同时返回结果需要更改为 return numbers[low] == target ? low : -1;
+    while (low &lt;= high) {
+        // (low + high)/2，如果low + high大于Integer的MAX_VALUE会发生整型溢出
+        // 使用low + (high - low) / 2可以防止整型溢出。
+        middle = low + (high - low) / 2;
+        // 匹配目标值，将其下标+1赋给low，往右侧边界缩小
+        if (numbers[middle] == target) {
+            low = middle + 1;
+        } else if (numbers[middle] &gt; target) {
+            high = middle - 1;
+        } else if (numbers[middle] &lt; target) {
+            low = middle + 1;
+        }
+    }
+    // 匹配返回下标
+    return numbers[high] == target ? high : -1;
+}
+
+</code></pre>
+<h3 id="冒泡排序">冒泡排序</h3>
+<p>比较前后相邻的两个的数据，如果前面数据大于后面数据，则将两个数据所在位置交换。步骤如下（以从小到大为例）：</p>
 <ul>
-<li>一个CPU核在任意时刻只能执行一个线程，如果有多个线程（超过CPU核数）存在，CPU将会采用时间片轮转的方式进行线程切换，即给每一个线程分配一个时间片，当一个线程的时间片用完的时候便会处于就绪状态，并让出CPU给其他线程使用，这就是一次上下文切换。</li>
-<li>上下文切换时是通过运行时数据区中的程序计数器来存储各个线程的运行状态的，以便于下次运行线程时可以接着上次指令继续运行（比如线程A做了一次计算准备返回数据时，切换到了线程B，然后又切回线程A，是直接返回数据，而不是再去计算一遍）。</li>
-<li>程序计数器指的是JVM中的一块内存区域，它可以看作是当前线程所执行字节码的行号指示器，通过它，Java可以知道每个线程执行到了哪一步指令（由此可以看出程序计数器是线程私有的）。</li>
-<li>一般而言，上下文切换是比较耗费CPU时间的一种操作。</li>
+<li>比较相邻的元素。如果第一个比第二个大，就交换它们两个；</li>
+<li>对每一对相邻元素作同样的工作，从开始第一对到结尾的最后一对，这样在最后的元素应该会是最大的数；</li>
+<li>针对所有的元素重复以上的步骤，除了最后一个；</li>
+<li>重复步骤1~3，直到排序完成。</li>
 </ul>
-<h3 id="线程的几种状态">线程的几种状态</h3>
-<ul>
-<li>创建：指的是生成线程对象，此时并没有调用start方法。</li>
-<li>就绪：调用线程的start方法后，线程便进入了就绪状态，此时等待系统调度。</li>
-<li>运行：通过系统调度，开始运行线程中的run函数。</li>
-<li>等待：调用了Object.wait()会进入等待队列。一般需要等待其他线程做出一些特定的通知或者中断。</li>
-<li>超时等待：该状态与等待状态有一点区别就是它会自动返回，比如调用Threa.sleep(long)，在超时之后，会自动返回进入就绪状态。</li>
-<li>阻塞：指的是去获取锁时(等待进入synchronized方法或块)，发现同步锁被占用了，这时线程会被放入锁池，等待获取锁。</li>
-<li>死亡：运行完run方法，main方法（main方法指的是主线程）之后正常退出，也有可能出现异常导致死亡；死亡的线程不能重新启用，否则报错。</li>
-</ul>
-<h2 id="创建线程的几种方式">创建线程的几种方式</h2>
-<h3 id="继承thread">继承Thread</h3>
-<pre><code>public class ThreadTest {
-    public static void main(String[] args){
-        new TestThread().start();
+<pre><code>public static void main(String[] args) {
+    int[] numbers = {4, 2, 5, 3, 7, 9, 1};
+    bubbleSort3(numbers);
+    for (int number : numbers) {
+        System.out.println(number);
     }
 }
 
-class TestThread extends Thread{
-    @Override
-    public void run(){
-        System.out.println(&quot;Test Thread&quot;);
+// 从小到大
+private static void bubbleSort(int[] numbers) {
+    if (numbers.length == 0) {
+        return;
     }
-}
-</code></pre>
-<h3 id="实现runnable">实现Runnable</h3>
-<pre><code>public class ThreadTest {
-    public static void main(String[] args){
-        new Thread(new TestRunnable()).start();
-    }
-}
-
-class TestRunnable implements Runnable{
-    @Override
-    public void run() {
-        System.out.println(&quot;Test Runnable&quot;);
-    }
-}
-</code></pre>
-<h3 id="实现callable">实现Callable</h3>
-<pre><code>public class ThreadTest {
-    public static void main(String[] args){
-        FutureTask&lt;Integer&gt; task = new FutureTask(new TestCallable());
-        new Thread(task).start();
-        try {
-            System.out.println(task.get());//get方法会得到call执行完之后的值
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+    for (int i = 0; i &lt; numbers.length; i++) {
+        for (int j = 0; j &lt; numbers.length - 1 - i; j++) {
+            if (numbers[j] &gt; numbers[j + 1]) {
+                int temp = numbers[j];
+                numbers[j] = numbers[j + 1];
+                numbers[j + 1] = temp;
+            }
         }
     }
 }
 
-class TestCallable implements Callable&lt;Integer&gt; {
-    @Override
-    public Integer call() throws Exception {
-        int num = 0;
-        while(num &lt; 5){
-            num++;
+// 优化，去掉多余排序
+private static void bubbleSort2(int[] numbers) {
+    if (numbers.length == 0) {
+        return;
+    }
+    for (int i = 0; i &lt; numbers.length; i++) {
+        // 排序标识
+        boolean isSorted = true;
+        for (int j = 0; j &lt; numbers.length - 1 - i; j++) {
+            if (numbers[j] &gt; numbers[j + 1]) {
+                int temp = numbers[j];
+                numbers[j] = numbers[j + 1];
+                numbers[j + 1] = temp;
+                // 存在交换过程，继续排序
+                isSorted = false;
+            }
         }
-        return num;
+        if (isSorted) {
+            break;
+        }
     }
 }
+
+//从大到小
+private static void bubbleSort3(int[] numbers) {
+    if (numbers.length == 0) {
+        return;
+    }
+    for (int i = numbers.length - 1; i &gt; 0; i--) {
+        for (int j = numbers.length - 1; j &gt; numbers.length - 1 - i; j--) {
+            if (numbers[j] &gt; numbers[j - 1]) {
+                int temp = numbers[j];
+                numbers[j] = numbers[j - 1];
+                numbers[j - 1] = temp;
+            }
+        }
+    }
+}
+
 </code></pre>
-<h2 id="线程安全性">线程安全性</h2>
+<h3 id="选择排序">选择排序</h3>
+<p>每一次从待排序的数据元素中选出最小（最大）的一个元素，存放在序列的起始（末尾）位置，直到全部待排序数据排完。</p>
+<p>选择排序是不稳定的排序方法，比如序列[5， 5， 3]第一次就将第一个[5]与[3]交换，导致第一个5挪动到第二个5后面。步骤如下：</p>
 <ul>
-<li>原子性：同一时刻只允许一个线程对数据进行操作（atomic开头的原子类,synchronized，Lock）。</li>
-<li>可见性：一个线程对共享变量的修改，可以及时地被其他线程观察到，（synchronized,volatile，Lock）。</li>
-<li>有序性：指的是可以观察到其他线程的指令执行顺序，由于指令重排，一般情况下是无序的（happens-before原则）。</li>
+<li>初始状态：无序区为R[1..n]，有序区为空；</li>
+<li>第i趟排序(i=1,2,3…n-1)开始时，当前有序区和无序区分别为R[1..i-1]和R(i..n）。该趟排序从当前无序区中-选出关键字最小的记录 R[k]，将它与无序区的第1个记录R交换，使R[1..i]和R[i+1..n)分别变为记录个数增加1个的新有序区和记录个数减少1个的新无序区；</li>
+<li>n-1趟结束，数组有序化了</li>
 </ul>
-<h3 id="线程死锁">线程死锁</h3>
-<h4 id="死锁">死锁</h4>
-<ul>
-<li>指的是多个线程在执行过程中，因争夺资源而陷入环路阻塞的一种现象。</li>
-<li>示例代码如下（运行之后，两个线程陷入死锁中，如果没有外力中断，将会一直锁定）：</li>
-</ul>
-<pre><code>public class ThreadTest {
-    //共享资源A
-    private static final Object A = new Object();
-    //共享资源B
-    private static final Object B = new Object();
+<pre><code>public static void main(String[] args) {
+    int[] array = {2, 3, 1, 5, 4};
+    selectSort(array);
+    System.out.println(Arrays.toString(array));
+}
 
-    public static void main(String[] args){
-        new Thread(() -&gt; {
-            synchronized (A){
-                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
-                try {
-                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
-                synchronized (B){
-                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
-                }
+private static void selectSort(int[] array) {
+    if (array.length == 0) {
+        return;
+    }
+    int minIndex;
+    for (int i = 0; i &lt; array.length; i++) {
+        minIndex = i;
+        for (int j = i + 1; j &lt; array.length; j++) {
+            if (array[minIndex] &gt; array[j]) {
+                minIndex = j;
             }
-        },&quot;Thread-01&quot;).start();
-
-        new Thread(() -&gt; {
-            synchronized (B){
-                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
-                try {
-                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---A&quot;);
-                synchronized (A){
-                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
-                }
-            }
-        },&quot;Thread-02&quot;).start();
+        }
+        if (minIndex != i) {
+            int temp = array[minIndex];
+            array[minIndex] = array[i];
+            array[i] = temp;
+        }
     }
 }
+
 </code></pre>
-<h4 id="死锁四个必要条件以及如何避免死锁">死锁四个必要条件以及如何避免死锁</h4>
+<h3 id="插入排序">插入排序</h3>
+<p>通过构建有序序列，对于未排序的数据，在已排序的数据中从后向前扫描，找到相应的位置并插入。步骤如下：</p>
 <ul>
-<li>互斥条件：一个资源在任意时刻只能被一个线程占用，如果有其他线程请求该资源，需要等待原线程释放资源（此条件不能被破坏，因为锁本身就是为了互斥访问）。</li>
-<li>请求和保持条件：一个线程已经获取了一部分资源，又去请求其他资源，如果其他资源正被占用，原线程陷入阻塞，且不会释放自己占用的资源（一次性申请所有资源；或者阻塞时，释放自己占用的资源）。</li>
-<li>不可剥夺条件：一个线程已经获得的资源，在自己未使用完之前不能被其他线程剥夺，只能自己使用结束后释放（如果去获取正在被其他线程使用的资源而阻塞时，可以释放自己占用的资源）。</li>
-<li>环路等待条件：多个进程之间形成一种头尾相接的循环等待资源关系（按一定的顺序来获取资源）。</li>
-<li>针对上述例子而言，可以让现线程1先获取资源AB，执行完之后，再让线程2获取资源AB，改动如下（执行顺序为：线程1先获取资源A，接着释放CPU，线程2执行准备去获取资源A，发现资源A已被占用，此时线程2阻塞，然后一秒之后释放CPU，线程1接着执行，去获取资源B，正常获取，执行完毕，释放CPU；线程2开始获取资源A，由于线程1已经执行完毕释放了锁，所以线程2正常获取资源A，接着休眠一秒释放CPU，然后又去获取资源B，同样正常获取，执行完毕）：</li>
+<li>从第一个元素开始，该元素可以认为已经被排序；</li>
+<li>取出下一个元素，在已经排序的元素序列中从后向前扫描；</li>
+<li>如果该元素（已排序）大于新元素，将该元素移到下一位置；</li>
+<li>重复步骤3，直到找到已排序的元素小于或者等于新元素的位置；</li>
+<li>将新元素插入到该位置后；</li>
+<li>重复步骤2~5。</li>
 </ul>
-<pre><code>public class ThreadTest {
-    //共享资源A
-    private static final Object A = new Object();
-    //共享资源B
-    private static final Object B = new Object();
+<pre><code>public static void main(String[] args) {
+    int[] array = {3, 1, 2, 5, 4};
+    binaryInsertSort(array);
+    System.out.println(Arrays.toString(array));
+}
 
-    public static void main(String[] args){
-        new Thread(() -&gt; {
-            synchronized (A){
-                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
-                try {
-                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
-                synchronized (B){
-                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
-                }
-            }
-        },&quot;Thread-01&quot;).start();
-
-        new Thread(() -&gt; {
-            //线程2去获取A时被阻塞
-            synchronized (A){
-                System.out.println(Thread.currentThread().getName() + &quot;：得到资源---A&quot;);
-                try {
-                    Thread.sleep(1000);//此处休眠是为了让其他线程获得执行机会
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(Thread.currentThread().getName() + &quot;：去获取资源---B&quot;);
-                synchronized (B){
-                    System.out.println(Thread.currentThread().getName() + &quot;：得到资源---B&quot;);
-                }
-            }
-        },&quot;Thread-02&quot;).start();
+// 直接插入
+private static void insertSort(int[] array) {
+    for (int i = 1; i &lt; array.length; i++) {
+        // 待插入数据
+        int insertVal = array[i];
+        // 待插入数据的前一个数据
+        int insertIndex = i - 1;
+        // insertIndex &gt;= 0防止数组越界
+        while (insertIndex &gt;= 0 &amp;&amp; insertVal &lt; array[insertIndex]) {
+            // 如果插入数据比已排序数据要小，则将已排序数据向后移动一位
+            array[insertIndex + 1] = array[insertIndex];
+            // 同时，让insertIndex向前移动一位
+            insertIndex--;
+        }
+        // 插入指定位置
+        array[insertIndex + 1] = insertVal;
     }
 }
+
+// 折半插入
+private static void binaryInsertSort(int[] array) {
+    int temp;
+    int low, high, middle;
+    for (int i = 1; i &lt; array.length; i++) {
+        // 待插入数据
+        temp = array[i];
+        // 二分查找合适的插入位置
+        // 左边默认为已排序
+        low = 0;
+        // 右边终点取已排序数组的索引
+        high = i - 1;
+        while (low &lt;= high) {
+            // 无符号右移一位，等同于/2
+            middle = (low + high) &gt;&gt;&gt; 1;
+            if (array[middle] &gt; temp) {
+                high = middle - 1;
+            } else {
+                // 等于的情形包含在此，因为相等的话，插入数据在其左边，右边都是一致的
+                low = middle + 1;
+            }
+        }
+        // 已排序的所有数据向后移动
+//        for (int j = i - 1; j &gt;= high + 1; j--) {
+//            array[j + 1] = array[j];
+//        }
+        if (i - (high + 1) &gt;= 0) {
+            System.arraycopy(array, high + 1, array, high + 1 + 1, i - (high + 1));
+        }
+        // 插入元素
+        array[high + 1] = temp;
+    }
+}
+
+</code></pre>
+<h3 id="希尔排序">希尔排序</h3>
+<p>又称缩小增量排序，它按一定的增量（gap=lengh/2 -&gt; gap=gap/2,也称希尔增量）进行分组，对每一组数据进行直接插入排序，直至增量减为1，所有分组再次合并为一个，接着对这个最终分组进行直接插入排序，即可得到排序结果。步骤如下：</p>
+<ul>
+<li>选择一个增量序列t1，t2，…，tk，其中ti&gt;tj，tk=1；</li>
+<li>按增量序列个数k，对序列进行k 趟排序；</li>
+<li>每趟排序，根据对应的增量ti，将待排序列分割成若干长度为m 的子序列，分别对各子表进行直接插入排序。仅增量因子为1 时，整个序列作为一个表来处理，表长度即为整个序列的长度。</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    int[] array = {2, 3, 1, 5, 4};
+    shellSort(array);
+    System.out.println(Arrays.toString(array));
+}
+
+// 希尔排序
+private static void shellSort(int[] array) {
+    if (array.length == 0) {
+        return;
+    }
+    // 无符号右移1位，等同/2
+    int gap = array.length &gt;&gt;&gt; 1;
+    while (gap &gt; 0) {
+        for (int i = gap; i &lt; array.length; i++) {
+            // 待插入数据
+            int insertVal = array[i];
+            // 待插入数据的前一个数据
+            int insertIndex = i - gap;
+            // insertIndex &gt;= 0防止数组越界
+            while (insertIndex &gt;= 0 &amp;&amp; insertVal &lt; array[insertIndex]) {
+                // 如果插入数据比已排序数据要小，则将已排序数据向后移动一位
+                array[insertIndex + gap] = array[insertIndex];
+                // 同时，让insertIndex向前移动一位
+                insertIndex -= gap;
+            }
+            // 插入指定位置
+            array[insertIndex + gap] = insertVal;
+        }
+        // 无符号右移1位，等同/2
+        gap &gt;&gt;&gt;= 1;
+    }
+}
+
+</code></pre>
+<h3 id="归并排序">归并排序</h3>
+<p>归并排序（MERGE-SORT）是建立在归并操作上的一种有效的排序算法,该算法是采用分治法（Divide and Conquer）的一个非常典型的应用。将已有序的子序列合并，得到完全有序的序列；即先使每个子序列有序，再使子序列段间有序。若将两个有序表合并成一个有序表，称为二路归并。步骤如下：</p>
+<ul>
+<li>把长度为n的输入序列分成两个长度为n/2的子序列；</li>
+<li>对这两个子序列分别采用归并排序；</li>
+<li>将两个排序好的子序列合并成一个最终的排序序列。</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    int[] array = {2, 1, 3, 9, 5, 8, 4, 6};
+    System.out.println(Arrays.toString(mergeSort(array)));
+}
+
+private static int[] mergeSort(int[] array) {
+    // 只有一位或者没有数据时，直接返回原数组
+    if (array.length &lt; 2) {
+        return array;
+    }
+    // 无符号右移（此处必为正数，效果与右移一致），等同于/2
+    int middle = array.length &gt;&gt;&gt; 1;
+    int[] left = Arrays.copyOfRange(array, 0, middle);
+    int[] right = Arrays.copyOfRange(array, middle, array.length);
+    return merge(mergeSort(left), mergeSort(right));
+}
+
+private static int[] merge(int[] left, int[] right) {
+    // 合并之后的数组
+    int[] result = new int[left.length + right.length];
+    for (int index = 0, i = 0, j = 0; index &lt; result.length; index++) {
+        // 左侧数组已经全部放入结果数组中,将右侧数组数据直接递增放入
+        if (i &gt;= left.length) {
+            result[index] = right[j++];
+        } else if (j &gt;= right.length) {
+            // 右侧数组已经全部放入结果数组中,将左侧数组数据直接递增放入
+            result[index] = left[i++];
+        } else if (left[i] &gt; right[j]) {
+            // 左侧数组中的数据比右侧数组中的数据值大,将右侧数组数据直接放入，随后递增
+            result[index] = right[j++];
+        } else {
+            // 左侧数组中的数据比右侧数组中的数据值小,将左侧数组数据直接放入，随后递增
+            result[index] = left[i++];
+        }
+    }
+    return result;
+}
+
+</code></pre>
+<h3 id="快速排序">快速排序</h3>
+<p>快速排序由C. A. R. Hoare在1962年提出。它的基本思想是：通过一趟排序将要排序的数据分割成独立的两部分，其中一部分的所有数据都比另外一部分的所有数据都要小，然后再按此方法对这两部分数据分别进行快速排序，整个排序过程可以递归进行，以此达到整个数据变成有序序列。</p>
+<p>注意：在此过程中需要先选取一个关键值作为基准值，这样比基准值小的都在左边，大的都在右边。步骤如下：</p>
+<ul>
+<li>从数列中挑出一个元素，称为 “基准”（pivot）；</li>
+<li>重新排序数列，所有元素比基准值小的摆放在基准前面，所有元素比基准值大的摆在基准的后面（相同的数可以到任一边）。在这个分区退出之后，该基准就处于数列的中间位置。这个称为分区（partition）操作；</li>
+<li>递归地（recursive）把小于基准值元素的子数列和大于基准值元素的子数列排序。</li>
+</ul>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230302007.png" alt="" loading="lazy"></figure>
+<pre><code>public static void main(String[] args) {
+    int[] array = {3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48, 1};
+    quickSort(array, 0, array.length - 1);
+    System.out.println(Arrays.toString(array));
+}
+
+// 填坑法
+private static void quickSort(int[] array, int start, int end) {
+    if (array.length &lt; 1 || start &lt; 0 || end &gt;= array.length || start &gt; end) {
+        return;
+    }
+    int i = start;
+    int j = end;
+    // 基准值
+    int pivot = array[i];
+    // 左右两边同时扫描，直到两者交错
+    while (i &lt;= j) {
+        // 从右边寻找比基准值小的数
+        while (array[j] &gt; pivot) {
+            j--;
+        }
+        // 从左边寻找比基准值大的数
+        while (array[i] &lt; pivot) {
+            i++;
+        }
+        // 此处已找到比基准值大的数（左边），比基准值小的数（右边），两者进行交换
+        if (i &lt;= j) {
+            swap(array, i, j);
+            i++;
+            j--;
+        }
+    }
+    // 左边再做排序，直到只剩下一个数，则退出递归
+    if (start &lt; j) {
+        quickSort(array, start, j);
+    }
+    // 右边再做排序，直到只剩下一个数，则退出递归
+    if (end &gt; i) {
+        quickSort(array, i, end);
+    }
+}
+
+private static void swap(int[] array, int i, int j) {
+    if (i != j) {
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+</code></pre>
+<h3 id="堆排序">堆排序</h3>
+<p>堆排序(Heapsort)是指利用堆积树（堆）这种数据结构所设计的一种排序算法，它是选择排序的一种。可以利用数组的特点快速定位指定索引的元素。堆分为大根堆和小根堆，是完全二叉树。步骤如下：</p>
+<ul>
+<li>将初始待排序关键字序列(R1,R2….Rn)构建成大顶堆，此堆为初始的无序区；</li>
+<li>将堆顶元素R[1]与最后一个元素R[n]交换，此时得到新的无序区(R1,R2,……Rn-1)和新的有序区(Rn),且满足R[1,2…n-1]&lt;=R[n]；</li>
+<li>由于交换后新的堆顶R[1]可能违反堆的性质，因此需要对当前无序区(R1,R2,……Rn-1)调整为新堆，然后再次将R[1]与无序区最后一个元素交换，得到新的无序区(R1,R2….Rn-2)和新的有序区(Rn-1,Rn)。不断重复此过程直到有序区的元素个数为n-1，则整个排序过程完成。</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    int[] array = {3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48, 1};
+    heapSort(array);
+    System.out.println(Arrays.toString(array));
+}
+
+private static void heapSort(int[] array) {
+    int length = array.length;
+    if (length &lt; 1) {
+        return;
+    }
+    buildMaxHeap(array, length);
+    while (length &gt; 0) {
+        swap(array, 0, length - 1);
+        length--;
+        adjustHeap(array, 0, length);
+    }
+}
+
+private static void buildMaxHeap(int[] array, int length) {
+    // 从最后一个非叶子节点开始向上构建最大堆
+    for (int i = (length / 2 - 1); i &gt;= 0; i--) {
+        adjustHeap(array, i, length);
+    }
+}
+
+private static void adjustHeap(int[] array, int i, int length) {
+    int maxIndex = i;
+    // 如果有左子树，且左子树大于父节点，则将最大指针指向左子树
+    if (i * 2 &lt; length &amp;&amp; array[i * 2] &gt; array[maxIndex]) {
+        maxIndex = i * 2;
+    }
+    // 如果有右子树，且右子树大于父节点，则将最大指针指向右子树
+    if (i * 2 + 1 &lt; length &amp;&amp; array[i * 2 + 1] &gt; array[maxIndex]) {
+        maxIndex = i * 2 + 1;
+    }
+    // 如果父节点不是最大值，则将父节点与最大值交换，并递归调整与父节点交换的位置
+    if (maxIndex != i) {
+        swap(array, maxIndex, i);
+        adjustHeap(array, maxIndex, length);
+    }
+}
+
+private static void swap(int[] array, int i, int j) {
+    if (i != j) {
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+</code></pre>
+<h3 id="计数排序">计数排序</h3>
+<p>计数排序的核心在于将输入的数据值转化为键存储在额外开辟的数组空间中。 作为一种线性时间复杂度的排序，计数排序要求输入的数据必须是有确定范围的整数。</p>
+<p>计数排序(Counting sort)是一种稳定的排序算法。计数排序使用一个额外的数组C，其中第i个元素是待排序数组A中值等于i的元素的个数。然后根据数组C来将A中的元素排到正确的位置。它只能对整数进行排序。步骤如下：</p>
+<ul>
+<li>找出待排序的数组中最大和最小的元素；</li>
+<li>统计数组中每个值为i的元素出现的次数，存入数组C的第i项；</li>
+<li>对所有的计数累加（从C中的第一个元素开始，每一项和前一项相加）；</li>
+<li>反向填充目标数组：将每个元素i放在新数组的第C(i)项，每放一个元素就将C(i)减去1。</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    int[] array = {3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48, 1};
+    CountingSort(array);
+    System.out.println(Arrays.toString(array));
+}
+
+private static void CountingSort(int[] array) {
+    if (array.length &lt; 1) {
+        return;
+    }
+    int bias, min = array[0], max = array[0];
+    for (int i = 1; i &lt; array.length; i++) {
+        if (array[i] &gt; max)
+            max = array[i];
+        if (array[i] &lt; min)
+            min = array[i];
+    }
+    bias = 0 - min;
+    int[] bucket = new int[max - min + 1];
+    Arrays.fill(bucket, 0);
+    for (int anArray : array) {
+        bucket[anArray + bias]++;
+    }
+    int index = 0, i = 0;
+    while (index &lt; array.length) {
+        if (bucket[i] != 0) {
+            array[index] = i - bias;
+            bucket[i]--;
+            index++;
+        } else
+            i++;
+    }
+}
+
+</code></pre>
+<h3 id="桶排序">桶排序</h3>
+<p>桶排序是计数排序的升级版。它利用了函数的映射关系，高效与否的关键就在于这个映射函数的确定。</p>
+<p>桶排序 (Bucket sort)的工作的原理：假设输入数据服从均匀分布，将数据分到有限数量的桶里，每个桶再分别排序（有可能再使用别的排序算法或是以递归方式继续使用桶排序进行排序。</p>
+<p>注意：如果递归使用桶排序为各个桶排序，则当桶数量为1时要手动减小BucketSize增加下一循环桶的数量，否则会陷入死循环，导致内存溢出。步骤如下：</p>
+<ul>
+<li>人为设置一个BucketSize，作为每个桶所能放置多少个不同数值（例如当BucketSize==5时，该桶可以存放｛1,2,3,4,5｝这几种数字，但是容量不限，即可以存放100个3）；</li>
+<li>遍历输入数据，并且把数据一个一个放到对应的桶里去；</li>
+<li>对每个不是空的桶进行排序，可以使用其它排序方法，也可以递归使用桶排序；</li>
+<li>从不是空的桶里把排好序的数据拼接起来。</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    Integer[] array = {3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48, 1};
+    ArrayList&lt;Integer&gt; list = new ArrayList&lt;&gt;(array.length);
+    Collections.addAll(list, array);
+    System.out.println(bucketSort(list, array.length));
+}
+
+private static ArrayList&lt;Integer&gt; bucketSort(ArrayList&lt;Integer&gt; array, int bucketSize) {
+    if (array == null || array.size() &lt; 2)
+        return array;
+    int max = array.get(0), min = array.get(0);
+    // 找到最大值最小值
+    for (Integer i : array) {
+        if (i &gt; max)
+            max = i;
+        if (i &lt; min)
+            min = i;
+    }
+    int bucketCount = (max - min) / bucketSize + 1;
+    ArrayList&lt;ArrayList&lt;Integer&gt;&gt; bucketArr = new ArrayList&lt;&gt;(bucketCount);
+    ArrayList&lt;Integer&gt; resultArr = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; bucketCount; i++) {
+        bucketArr.add(new ArrayList&lt;&gt;());
+    }
+    for (Integer i : array) {
+        bucketArr.get((i - min) / bucketSize).add(i);
+    }
+    for (int i = 0; i &lt; bucketCount; i++) {
+        if (bucketSize == 1) { // 如果带排序数组中有重复数字时
+            resultArr.addAll(bucketArr.get(i));
+        } else {
+            if (bucketCount == 1) {
+                bucketSize--;
+            }
+            ArrayList&lt;Integer&gt; temp = BucketSort(bucketArr.get(i), bucketSize);
+            resultArr.addAll(temp);
+        }
+    }
+    return resultArr;
+}
+
+</code></pre>
+<h3 id="基数排序">基数排序</h3>
+<p>基数排序(radix sort)属于&quot;分配式排序&quot;(distribution sort)，又称&quot;桶子法&quot;(bucket sort)或bin sort，顾名思义，它是透过键值的部份资讯，将要排序的元素分配至某些&quot;桶&quot;中，藉以达到排序的作用，基数排序法是属于稳定性的排序，其时间复杂度为O (nlog(r)m)，其中r为所采取的基数，而m为堆数，在某些时候，基数排序法的效率高于其它的稳定性排序法。</p>
+<p>基数排序是按照低位先排序，然后收集；再按照高位排序，然后再收集；依次类推，直到最高位。有时候有些属性是有优先级顺序的，先按低优先级排序，再按高优先级排序。最后的次序就是高优先级高的在前，高优先级相同的低优先级高的在前。基数排序基于分别排序，分别收集，所以是稳定的。步骤如下：</p>
+<ul>
+<li>取得数组中的最大数，并取得位数；</li>
+<li>arr为原始数组，从最低位开始取每个位组成radix数组；</li>
+<li>对radix进行计数排序（利用计数排序适用于小范围数的特点）；</li>
+</ul>
+<pre><code>public static void main(String[] args) {
+    int[] array = {3, 44, 38, 5, 47, 15, 36, 26, 27, 2, 46, 4, 19, 50, 48, 1};
+    radixSort(array);
+    System.out.println(Arrays.toString(array));
+}
+
+private static void radixSort(int[] array) {
+    if (array == null || array.length &lt; 2) {
+        return;
+    }
+    // 1.先算出最大数的位数；
+    int max = array[0];
+    for (int i = 1; i &lt; array.length; i++) {
+        max = Math.max(max, array[i]);
+    }
+    int maxDigit = 0;
+    while (max != 0) {
+        max /= 10;
+        maxDigit++;
+    }
+    int mod = 10, div = 1;
+    ArrayList&lt;ArrayList&lt;Integer&gt;&gt; bucketList = new ArrayList&lt;ArrayList&lt;Integer&gt;&gt;();
+    for (int i = 0; i &lt; 10; i++) {
+        bucketList.add(new ArrayList&lt;&gt;());
+    }
+    for (int i = 0; i &lt; maxDigit; i++, mod *= 10, div *= 10) {
+        for (int j : array) {
+            int num = (j % mod) / div;
+            bucketList.get(num).add(j);
+        }
+        int index = 0;
+        for (ArrayList&lt;Integer&gt; buckets : bucketList) {
+            for (Integer bucket : buckets) {
+                array[index++] = bucket;
+            }
+            buckets.clear();
+        }
+    }
+}
+
 </code></pre>
 
             </div>
@@ -787,7 +1257,7 @@ class TestCallable implements Callable&lt;Integer&gt; {
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/" title="Java多线程基础">https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/</a>
+      <a href="https://philosopherzb.github.io/post/java-zhong-de-chang-yong-pai-xu-suan-fa/" title="Java中的常用排序算法">https://philosopherzb.github.io/post/java-zhong-de-chang-yong-pai-xu-suan-fa/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -796,6 +1266,8 @@ class TestCallable implements Callable&lt;Integer&gt; {
   </ul>
   <div class="tags">
     
+      <a href="https://philosopherzb.github.io/tag/cRhWx5aNF/"># 算法</a>
+    
       <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
@@ -803,14 +1275,14 @@ class TestCallable implements Callable&lt;Integer&gt; {
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="数据结构基础知识" href="https://philosopherzb.github.io/post/shu-ju-jie-gou-ji-chu-zhi-shi/">数据结构基础知识</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="数据结构基础知识" href="https://philosopherzb.github.io/post/shu-ju-jie-gou-ji-chu-zhi-shi/">上一篇</a>
+        <a class="nav-pc-next" title="IDEA属性及插件配置" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/">IDEA属性及插件配置</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="IDEA属性及插件配置" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="Java集合基础知识" href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/">Java集合基础知识</a>
-        <a class="nav-mobile-next" title="Java集合基础知识" href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/">下一篇</a>
+        <a class="nav-pc-next" title="java中引用&amp;IO&amp;类加载&amp;对象创建过程" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">java中引用&amp;IO&amp;类加载&amp;对象创建过程</a>
+        <a class="nav-mobile-next" title="java中引用&amp;IO&amp;类加载&amp;对象创建过程" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
