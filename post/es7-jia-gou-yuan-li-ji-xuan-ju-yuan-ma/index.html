@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Philosopher</title>
+<title>ES7架构原理及选举源码 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1677832590696">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,6 +41,8 @@
 
 
 
+  <meta name="description" content="ES7架构原理及选举源码" />
+  <meta name="keywords" content="elasticsearch" />
 </head>
 
 <body>
@@ -173,10 +175,26 @@
   <div class="main-continer">
     
     <div
-      class="section-layout  pisces">
+      class="section-layout pisces ">
       <div class="section-layout-wrapper">
-        <div id="sidebarMeta" class="sidebar">
-    
+        
+
+<div class="sidebar">
+  
+    <div class="sidebar-box box-shadow-wrapper bg-color right-motion" id="sidebar">
+      
+        <div class="post-list-sidebar">
+          <div class="sidebar-title">
+            <span id="tocSideBar" class="sidebar-title-item sidebar-title-active language" data-lan="index">文章目录</span>
+            <span id="metaSideBar" class="sidebar-title-item language" data-lan="preview">站点概览</span>
+          </div>
+        </div>
+      
+      <div class="sidebar-body pisces" id="sidebar_body">
+        
+          
+            <div class="post-side-meta" id="post_side_meta">
+              
 <div class="sidebar-wrapper box-shadow-wrapper bg-color">
   <div class="sidebar-item">
     <img class="site-author-image right-motion" src="/images/avatar.png"/>
@@ -228,136 +246,778 @@
 
 
 </div>
+            </div>
+            <div class="post-toc sidebar-body-active" id="post_toc" style="opacity: 1;">
+              <div class="toc-box right-motion">
+  <div class="toc-wrapper auto-number auto"
+    id="toc_wrapper">
+    <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
+<li><a href="#%E5%8E%9F%E7%90%86%E6%A6%82%E8%BF%B0">原理概述</a>
+<ul>
+<li><a href="#%E5%9F%BA%E7%A1%80%E6%9E%B6%E6%9E%84%E5%9B%BE">基础架构图</a></li>
+</ul>
+</li>
+<li><a href="#%E8%AF%BB%E5%86%99%E5%8E%9F%E7%90%86">读写原理</a>
+<ul>
+<li><a href="#%E6%9C%AF%E8%AF%AD%E4%BB%8B%E7%BB%8D">术语介绍</a></li>
+<li><a href="#%E5%86%99%E6%93%8D%E4%BD%9C%E5%8E%9F%E7%90%86">写操作原理</a></li>
+<li><a href="#%E8%AF%BB%E6%93%8D%E4%BD%9C%E5%8E%9F%E7%90%86">读操作原理</a></li>
+</ul>
+</li>
+<li><a href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96">性能优化</a>
+<ul>
+<li><a href="#filesystem-cache">filesystem cache</a></li>
+<li><a href="#%E6%95%B0%E6%8D%AE%E9%A2%84%E7%83%AD%E4%B8%8E%E5%86%B7%E7%83%AD%E5%88%86%E7%A6%BB">数据预热与冷热分离</a></li>
+<li><a href="#%E5%90%88%E7%90%86%E7%9A%84%E6%96%87%E6%A1%A3%E8%AE%BE%E8%AE%A1">合理的文档设计</a></li>
+<li><a href="#%E9%81%BF%E5%85%8D%E6%B7%B1%E5%BA%A6%E5%88%86%E9%A1%B5">避免深度分页</a></li>
+</ul>
+</li>
+<li><a href="#%E8%8A%82%E7%82%B9%E5%8F%91%E7%8E%B0%E4%B8%8E%E9%80%89%E4%B8%BE%E6%B5%81%E7%A8%8B%E6%BA%90%E7%A0%81">节点发现与选举流程源码</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
 </div>
+
 <script>
-  let sidebarMeta = document.querySelector('#sidebarMeta');
-  let scheme = 'pisces';
-  let sidebarWrapper = document.querySelector('.sidebar-wrapper');
-  if (sidebarMeta && (scheme === 'pisces' || scheme === 'gemini')) {
-    document.addEventListener('scroll', function(e) {
-      if (document.scrollingElement.scrollTop > parseInt(sidebarMeta.style.marginTop) + 10) {
-        sidebarWrapper.classList.add('home-sidebar-fixed')
-      } else {
-        sidebarWrapper.classList.remove('home-sidebar-fixed')
+
+  let lastTop = 0, lList = [], hList = [], postBody, lastIndex = -1;
+  let active = 'active-show', activeClass = 'active-current';
+  let tocWrapper = document.querySelector('#toc_wrapper');
+  let tocContent = tocWrapper.children[0];
+  let autoNumber = tocWrapper && tocWrapper.classList.contains('auto-number');
+
+  function addTocNumber(elem, deep) {
+    if (!elem) {
+      return;
+    }
+    let prop = elem.__proto__;
+
+    if (prop === HTMLUListElement.prototype) {
+      for (let i = 0; i < elem.children.length; i++) {
+        addTocNumber(elem.children[i], deep + (i + 1) + '.');
       }
+    } else if (prop === HTMLLIElement.prototype) {
+      // 保存li元素
+      if (elem.children[0] && elem.children[0].__proto__ === HTMLAnchorElement.prototype) {
+        lList.push(elem);
+      }
+      for (let i = 0; i < elem.children.length; i++) {
+        let cur = elem.children[i];
+        if (cur.__proto__ === HTMLAnchorElement.prototype) {
+          if (autoNumber) {
+            cur.text = deep + ' ' + cur.text;
+          }
+        } else if (cur.__proto__ === HTMLUListElement.prototype) {
+          addTocNumber(cur, deep);
+        }
+      }
+    }
+  }
+
+  function removeParentActiveClass() {
+    let parents = tocContent.querySelectorAll('.' + active)
+    parents.forEach(function (elem) {
+      elem.classList.remove(active);
     });
   }
-  </script>
-        <div class="section-box tag-line box-shadow-wrapper">
-          <section class="section tags-section posts-expand bg-color">
-            <div class="padding-wrapper">
-  <div class="tag-timeline-box">
-    <div class="tag-timeline-wrapper">
-      <div class="tag-timeline-title">
-        <h2>
-          docker
-          <small class="language" data-lan="tag">标签</small>
-        </h2>
+
+  function addActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.add(activeClass);
+    }
+  }
+
+  function removeActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.remove(activeClass);
+    }
+  }
+
+  function addActiveLiElemment(elem, parent) {
+    if (!elem || elem === parent) {
+      return;
+    } else {
+      if (elem.__proto__ === HTMLLIElement.prototype) {
+        elem.classList.add(active);
+      }
+      addActiveLiElemment(elem.parentElement, parent);
+    }
+  }
+
+  function showToc() {
+    if (tocWrapper) {
+      postBody = document.querySelector('#post_body');
+      for (let i = 0; i < postBody.children.length; i++) {
+        if (postBody.children[i].__proto__ === HTMLHeadingElement.prototype) {
+          hList.push(postBody.children[i]);
+        }
+      }
+      if (tocWrapper.classList.contains('compress')) {
+        tocContent.classList.add('closed');
+      } else if (tocWrapper.classList.contains('no_compress')) {
+        tocContent.classList.add('expanded');
+      } else {
+        if (hList.length > 10) {
+          active = 'active-hidden'
+          tocContent.classList.add('closed');
+        } else {
+          tocContent.classList.add('expanded');
+        }
+      }
+    }
+  }
+
+  (function () {
+    // 处理不是从#一级标题开始目录
+    if (tocContent.children.length === 1 && tocContent.children[0].__proto__ === HTMLLIElement.prototype) {
+      let con = tocContent.children[0].children[0];
+      tocContent.innerHTML = con.innerHTML;
+    }
+    let markdownItTOC = document.querySelector('.markdownIt-TOC');
+    let innerHeight = window.innerHeight;
+    markdownItTOC.style = `max-height: ${innerHeight - 80 > 0 ? innerHeight - 80 : innerHeight}px`
+    addTocNumber(tocContent, '');
+  })();
+
+  document.addEventListener('scroll', function (e) {
+    if (lList.length <= 0) {
+      return;
+    }
+    let scrollTop = document.scrollingElement.scrollTop + 10;
+    let dir;
+
+    if (lastTop - scrollTop > 0) {
+      dir = 'up';
+    } else {
+      dir = 'down';
+    }
+
+    lastTop = scrollTop;
+    if (scrollTop <= 0) {
+      if (lastIndex >= 0 && lastIndex < hList.length) {
+        lList[lastIndex].classList.remove(activeClass);
+      }
+      return;
+    }
+
+    let current = 0, hasFind = false;
+    for (let i = 0; i < hList.length; i++) {
+      if (hList[i].offsetTop > scrollTop) {
+        current = i;
+        hasFind = true;
+        break;
+      }
+    }
+    if (!hasFind && scrollTop > lList[lList.length - 1].offsetTop) {
+      current = hList.length - 1;
+    } else {
+      current--;
+    }
+    if (dir === 'down') {
+      if (current > lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex)
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    } else {
+      if (current < lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex);
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    }
+  });
+
+
+  window.addEventListener('load', function () {
+    showToc();
+    document.querySelector('#sidebar').style = 'display: block;';
+    tocWrapper.classList.add('toc-active');
+    setTimeout(function () {
+      if ("createEvent" in document) {
+        let evt = document.createEvent("HTMLEvents");
+        evt.initEvent("scroll", false, true);
+        document.dispatchEvent(evt);
+      }
+      else {
+        document.fireEvent("scroll");
+      }
+    }, 500)
+  })
+
+</script>
+            </div>
+          
+        
       </div>
+    </div>
+  
+</div>
+<script>
+  const SIDEBAR_TITLE_ACTIVE = 'sidebar-title-active';
+  const SIDEBAR_BODY_ACTIVE = 'sidebar-body-active';
+  const SLIDE_UP_IN = 'slide-up-in';
+
+  let sidebar = document.querySelector('#sidebar'),
+  tocSideBar = document.querySelector('#tocSideBar'),
+  metaSideBar = document.querySelector('#metaSideBar'),
+  postToc = document.querySelector('#post_toc'),
+  postSiteMeta = document.querySelector('#post_side_meta'),
+  sidebarTitle = document.querySelector('.sidebar-title'),
+  sidebarBody = document.querySelector('#sidebar_body');
+
+  tocSideBar && tocSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  metaSideBar && metaSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  function toggleSidebar(e) {
+    let currentTitle = document.querySelector("."+SIDEBAR_TITLE_ACTIVE);
+    if (currentTitle == e.srcElement) {
+      return ;
+    }
+    let current, showElement, hideElement;
+    if (e.srcElement == metaSideBar) {
+      showElement = postSiteMeta;
+      hideElement = postToc;
+    } else if (e.srcElement == tocSideBar){
+      showElement = postToc;
+      hideElement = postSiteMeta;
+    }
+    currentTitle.classList.remove(SIDEBAR_TITLE_ACTIVE);
+    e.srcElement.classList.add(SIDEBAR_TITLE_ACTIVE);
+
+    window.Velocity(hideElement, 'stop');
+    window.Velocity(hideElement, 'transition.slideUpOut', {
+      display: 'none',
+      duration: 200,
+      complete: function () {
+        window.Velocity(showElement, 'transition.slideDownIn', {
+          duration: 200
+        });
+      }
+    })
+    hideElement.classList.remove(SIDEBAR_BODY_ACTIVE);
+    showElement.classList.add(SIDEBAR_BODY_ACTIVE);
+  }
+
+  postToc && postToc.addEventListener('transitionend', function() {
+    this.classList.remove(SLIDE_UP_IN);
+  });
+
+  if (sidebarBody) {
+    if (sidebarBody.classList.contains('pisces') || sidebarBody.classList.contains('gemini')) {
+      let hasFix = false;
+      let scrollEl = document.querySelector('.main-continer');
+      let limitTop = document.querySelector('#nav_ul').children.length * 42 + 162;
+      window.addEventListener('scroll', function(e) {
+        if (document.scrollingElement.scrollTop >= limitTop) {
+          if (!hasFix) {
+            sidebar.classList.add('sidebar-fixed');
+            hasFix = true;
+          }
+        } else {
+          if (hasFix) {
+            sidebar.classList.remove('sidebar-fixed');
+            hasFix = false;
+          }
+        }
+      });
+    }
+  }
+  
+</script>
+        <div class="section-box box-shadow-wrapper">
+          <div class="section bg-color post post-page">
+            <section class="post-header">
+  <h1 class="post-title">
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/">
+      ES7架构原理及选举源码
+    </a>
+  </h1>
+  <div class="post-meta">
+    
+    <span class="meta-item pc-show">
+      <i class="fa fa-calendar-o"></i>
+      <span class="language" data-lan="publish">发布于</span>
+      <span class="publish-time" data-t="2022-02-28 15:00:07">2022-02-28</span>
+      <span class="post-meta-divider pc-show">|</span>
+    </span>
+    
+    <span class="meta-item">
+      <i class="fa fa-folder-o"></i>
+      <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      <a href="https://philosopherzb.github.io/post/wsl2-and-docker-and-zabbix/">
-        <div class="motion-warpper">
-          <div class="tag-post-node">
-            <h1>
-              01-08
-              <small>WSL2 &amp; Docker &amp; Zabbix</small>
-            </h1>
-          </div>
-        </div>
+      <a href="https://philosopherzb.github.io/tag/zrErJ2St2/">
+        <span>elasticsearch</span>
       </a>
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+    </span>
+    <span class="post-meta-divider">|</span>
+    
+    <span class="meta-item">
+      <i class="fa fa-clock-o"></i>
+      <span>18<span class="language" data-lan="minute">分钟</span></span>
+    </span>
+    <span class="meta-item">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-file-word-o"></i>
+      <span>4268<span class="pc-show language" data-lan="words">字数</span></span>
+    </span>
+    
+    
+    
+    <span id="/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/" data-flag-title="ES7架构原理及选举源码" class="meta-item pc-show leancloud_visitors">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-eye"></i>
+      <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
+    </span>
+    
+  </div>
+</section>
+            <div class="post-body next-md-body" id="post_body">
+              <h2 id="前言">前言</h2>
+<p>本章主要简述elasticsearch架构组件，读写原理，性能优化以及节点选举和选举流程源码。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-1462655_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="原理概述">原理概述</h2>
+<h3 id="基础架构图">基础架构图</h3>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303025.png" alt="img" loading="lazy"></figure>
+<p>1: Gateway是ES用来存储索引的文件系统。支持多种类型：包括本地文件系统(默认)，分片文件系统，HDFS，S3等。</p>
+<p>2: Distributed Lucene Directory指的是Apach Lucene框架。</p>
+<p>3: Lucene之上是ES的模块，包括：索引模块、搜索模块、映射解析模块以及River模块（river代表数据从其他存储框架（如：mysql）流入ES）。</p>
+<p>4: ES模块之上是 Discovery、Scripting和第三方插件。</p>
+<p>5: 再上层是ES的传输模块和JMX.传输模块支持多种传输协议，如 Thrift、memecached、http，默认使用http。JMX是java的管理框架，用来管理ES应用。</p>
+<p>6: 最上层是ES提供给用户的接口，可以通过RESTful接口或定制的SDK和ES集群进行交互。</p>
+<h2 id="读写原理">读写原理</h2>
+<h3 id="术语介绍">术语介绍</h3>
+<p>segment file: 类似于倒排索引，但其中包含的数据结构更丰富（Inverted Index, Stored Fields, Document Values, Cache等）；一组segment集合加上commit point便构成了Lucene中的index（动态索引，可类比Java中的动态数组概念，每个segment便是一个数组，commit point便是ArrayList；也类似于Java1.8的ConcurrentHashMap分段概念）。</p>
+<p>commit point: 记录了当前所有可用的segment file文件。数据可被搜索到。</p>
+<p>translog: 持久化地记录了所有还没被刷到磁盘的操作，避免宕机时，数据丢失。当 Elasticsearch 启动的时候，它会从磁盘中使用最后一个提交点去恢复已知的段，并且会重放 translog 中所有在最后一次提交后发生的变更操作。translog 会每隔 5 秒异步执行或者在每一个请求完成之后执行一次 fsync 操作，将 translog 从缓存刷入磁盘，这个操作比较耗时，如果对数据一致性要求不是很高时建议将索引改为 async ，如果节点宕机时会有 5 秒数据丢失;</p>
+<p>In-memory buffer: ES中的内存缓存，每当索引数据时，都会将数据先存储到该buffer及translog中。</p>
+<p>refresh: 打开或创建一个新的segment的过程，即将数据从内存刷入filesystem cache并清空当前buffer的过程(默认每隔一秒或者buffer满了便会执行该操作)。</p>
+<p>merge: refresh操作会导致segment频繁的生成，这些segment会占据独立的文件句柄/内存/CPU等，且每次搜索时，都要在segment上执行查询，这样会导致整个执行效率变得低下；所以，有必要对segment进行适当的merge操作，此过程会将多个相似的segment合并为一个大的segment，并删除那些被标记为删除的document（此时为实际物理删除文件）。</p>
+<p>flush&amp;commit: 默认每隔30分钟或者translog数据量达到512mb则会触发一次flush操作。此过程会将所有数据刷入硬盘中进行持久化存储。</p>
+<h3 id="写操作原理">写操作原理</h3>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303026.png" alt="img" loading="lazy"></figure>
+<p>具体步骤如下：</p>
+<p>1、数据写入buffer及translog中，此时是搜索不到的。</p>
+<p>2、默认每隔一秒或buffer已满，则执行一次refresh操作，将数据刷入filesystem cache生成segment file，此时数据可被搜索，并清空当前的buffer。</p>
+<p>3、translog中的数据存储在os cache中，之后默认每隔5秒会持久化到磁盘中（时间可设置，长短将影响性能）。</p>
+<p>4、重复上述步骤，直到抵达默认的30分钟或者translog达到512mb时（相关参数可配置），便会触发一次flush操作（commit操作）：该操作首先将buffer中现有的数据refresh到os cache中去，并清空buffer；然后将一个commit point写入磁盘文件，里面标识着这个commit point 对应的所有segment file，同时强行将os cache中目前所有的数据都fsync到磁盘文件中去；最后清空现有 translog日志文件，重启一个新的translog，此时flush操作完成。</p>
+<p>额外补充：</p>
+<p>5、删除操作，commit的时候会产生一个.del文件，里面将某个doc标记为delete状态（并非实时删除），搜索时会自动过滤掉标记为删除状态的数据。</p>
+<p>6、更新操作，将原来的doc标识为delete状态，然后重新写入一条新数据即可。</p>
+<p>7、refresh操作会导致segment频繁的生成，这些segment会占据独立的文件句柄/内存/CPU等，且每次搜索时，都要在segment上执行查询，这样会导致整个执行效率变得低下；所以，有必要对segment进行适当的merge操作，此过程会将多个相似大小的segment合并为一个大的segment，并删除那些被标记为删除的document（此时为实际物理删除文件）。</p>
+<p>8、数据一致性由translog保证（丢失数据取决于fsync的时间）；副本一致性则是采用的半同步机制，即主分片写成功后，只需一部分数量（quorum）的副本写入成功即可返回。相关配置wait_for_active_shards的默认值为int( (primary + number_of_replicas) / 2 ) + 1</p>
+<h3 id="读操作原理">读操作原理</h3>
+<p>读过程大体上分为查询与取回两个阶段。</p>
+<ol>
+<li>查询阶段</li>
+<li>当一个搜索请求被发送到某个节点时，该节点就变成协调节点。这个节点的任务是广播查询请求到所有相关分片并将它们的响应整合成全局排序后的结果集合，这个结果集合会返回给客户端。</li>
+<li>首先将广播请求到索引中每一个节点的分片拷贝，查询请求可以被某个主分片或某个副分片处理（这就是为什么更多的副本（当结合更多的硬件）能够增加搜索吞吐率），协调节点将在之后的请求中轮训所有的分片拷贝来分摊负载。</li>
+<li>每个分片在本地执行查询请求并且创建一个长度为 from + size 的优先队列—也就是说，每个分片创建的结果集足够大，均可以满足全局的搜索请求。分片返回一个轻量级的结果列表到协调节点，它仅包含文档 ID 集合以及任何排序需要用到的值，例如 _score 。</li>
+<li>协调节点将这些分片级的结果合并到自己的有序优先队列里，它代表了全局排序结果集合。至此查询过程结束。</li>
+<li>取回阶段</li>
+<li>查询过程得到的排序结果，标记出哪些文档是符合要求的，此时仍然需要获取这些文档返回给客户端。</li>
+<li>协调节点会辨别出哪些文档需要被取回并向相关的分片提交多个 GET 请求；每个分片加载并修饰文档，如果有需要的话，接着返回文档给协调节点</li>
+<li>一旦所有的文档都被取回了，协调节点返回结果给客户端。</li>
+</ol>
+<p>注意1：先查后取的过程支持用 from 和 size 参数分页，但是这是有限制的。要记住需要传递信息给协调节点的每个分片必须先创建一个 from + size 长度的队列，协调节点需要根据 number_of_shards * (from + size) 排序文档，来找到被包含在 size 里的文档。</p>
+<p>注意2：一般不建议使用深度搜索，这将会耗费大量额外的cpu，内存与带宽（ES默认深度分页限制为10000条，即from + size &lt;=10000）;如果有需要，可以使用scroll进行查询。</p>
+<h2 id="性能优化">性能优化</h2>
+<h3 id="filesystem-cache">filesystem cache</h3>
+<p>由上述写过程原理可知，ES的数据在filesystem cache中便可被搜索到，那么对应的，如果给予filesystem cache更多的机器内存，让它足以容纳下所有的index segment file，相应的查询效率将会获得长足的提高（内存与磁盘查询效率相差巨大）。同时，如果数据量非常之大，那么ES中应该尽量存储doc_id之类的字段，减少大文本存储（大文本存入分布式文件系统中）。</p>
+<h3 id="数据预热与冷热分离">数据预热与冷热分离</h3>
+<p>某些热点数据，可通过缓存预热系统进行提前查询，让其流入filesystem cache中；同时，对冷热数据进行隔离存储，确保热数据一直在filesystem cache。</p>
+<h3 id="合理的文档设计">合理的文档设计</h3>
+<p>不要出现复杂性的查询操作，尽量在设计阶段就做一定的冗余，让相关数据在同一个文档中。</p>
+<h3 id="避免深度分页">避免深度分页</h3>
+<p>就像读过程原理中所描述，过度的深分页查询，会占用大量的cpu，内存与带宽；如果有对应的需求，可通过scroll api进行查询。</p>
+<h2 id="节点发现与选举流程源码">节点发现与选举流程源码</h2>
+<p>节点启动时，便会开始加入集群；启动函数：org.elasticsearch.node.Node.start()</p>
+<pre><code>public Node start() throws NodeValidationException {
+    // start after transport service so the local disco is known
+    // start before cluster service so that it can set initial state on ClusterApplierService
+    discovery.start(); 
+    clusterService.start();
+    // 服务发现函数
+    discovery.startInitialJoin();
+}
+
+</code></pre>
+<p>查询mater节点；对应函数在discovery.startInitialJoin()中；<br>
+核心函数为：org.elasticsearch.discovery.zen.ZenDiscovery.findMaster()；此处选举id最小的节点是因为es沿用了bully算法。</p>
+<pre><code>private DiscoveryNode findMaster() {
+    logger.trace(&quot;starting to ping&quot;);
+    // 开始ping操作，获取当前集群处于活跃状态的节点信息
+    // pingAndWait函数实际上调用了org.elasticsearch.discovery.zen.UnicastZenPing.ping()
+    // 它会主动从discovery.seed_hosts配置中读取信息（7.*之前的老版本配置为：discovery.zen.ping.unicast.hosts）
+    // 最终返回的节点信息中，包含有master信息
+    List&lt;ZenPing.PingResponse&gt; fullPingResponses = pingAndWait(pingTimeout).toList();
+
+    // 将本节点也加入 fullPingResponses 中
+    final DiscoveryNode localNode = transportService.getLocalNode();
+    assert fullPingResponses.stream().map(ZenPing.PingResponse::node).filter(n -&gt; n.equals(localNode)).findAny().isPresent() == false;
+    fullPingResponses.add(new ZenPing.PingResponse(localNode, null, this.clusterState()));
+
+    // filter responses
+    // 如果配置了discovery.zen.master_election.ignore_non_master_ping（即：masterElectionIgnoreNonMasters）为true将会过滤出所有的主节点信息
+    // 默认为false
+    final List&lt;ZenPing.PingResponse&gt; pingResponses = filterPingResponses(fullPingResponses, masterElectionIgnoreNonMasters, logger);
+
+    // 遍历列表，将节点认为的主节点信息存入activeMasters
+    List&lt;DiscoveryNode&gt; activeMasters = new ArrayList&lt;&gt;();
+    for (ZenPing.PingResponse pingResponse : pingResponses) {
+        // We can't include the local node in pingMasters list, otherwise we may up electing ourselves without
+        // any check / verifications from other nodes in ZenDiscover#innerJoinCluster()
+        if (pingResponse.master() != null &amp;&amp; localNode.equals(pingResponse.master()) == false) {
+            activeMasters.add(pingResponse.master());
+        }
+    }
+
+    // 如果ping过程中发现了具备资格成为master的节点，将其存入masterCandidates 
+    List&lt;ElectMasterService.MasterCandidate&gt; masterCandidates = new ArrayList&lt;&gt;();
+    for (ZenPing.PingResponse pingResponse : pingResponses) {
+        if (pingResponse.node().isMasterNode()) {
+            masterCandidates.add(new ElectMasterService.MasterCandidate(pingResponse.node(), pingResponse.getClusterStateVersion()));
+        }
+    }
+
+    if (activeMasters.isEmpty()) {
+        // 判断是否有足够的候选者，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.hasEnoughMasterNodes()
+        if (electMaster.hasEnoughCandidates(masterCandidates)) {
+            // 从候选者中选举新的主节点，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.electMaster()
+            // 选举逻辑比较简单，直接按id排序，随后取出最小id的节点，即为主节点
+            final ElectMasterService.MasterCandidate winner = electMaster.electMaster(masterCandidates);
+            logger.trace(&quot;candidate {} won election&quot;, winner);
+            return winner.getNode();
+        } else {
+            // if we don't have enough master nodes, we bail, because there are not enough master to elect from
+            logger.warn(
+                    &quot;not enough master nodes discovered during pinging (found [{}], but needed [{}]), pinging again&quot;,
+                    masterCandidates,
+                    electMaster.minimumMasterNodes()
+            );
+            return null;
+        }
+    } else {
+        assert activeMasters.contains(localNode) == false
+                : &quot;local node should never be elected as master when other nodes indicate an active master&quot;;
+        // lets tie break between discovered nodes
+        // 按id进行二级排序，并返回最小id的主节点，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.tieBreakActiveMasters()
+        return electMaster.tieBreakActiveMasters(activeMasters);
+    }
+}
+
+</code></pre>
+<p>确认mater节点；对应函数在discovery.startInitialJoin()中；<br>
+核心函数为：org.elasticsearch.discovery.zen.ZenDiscovery.innerJoinCluster()</p>
+<pre><code>// 1.本节点是master
+if (transportService.getLocalNode().equals(masterNode)) {
+    // 等待足够多的节点加入本节点
+    final int requiredJoins = Math.max(0, electMaster.minimumMasterNodes() - 1); // we count as one
+    logger.debug(&quot;elected as master, waiting for incoming joins ([{}] needed)&quot;, requiredJoins);
+    // masterElectionWaitForJoinsTimeout默认超时时间为30秒，如果超时则直接return
+    // 对应函数：org.elasticsearch.discovery.zen.NodeJoinController.waitToBeElectedAsMaster()
+    nodeJoinController.waitToBeElectedAsMaster(
+        requiredJoins,
+        masterElectionWaitForJoinsTimeout,
+        new NodeJoinController.ElectionCallback() {
+            // 进行master选举
+            @Override
+            public void onElectedAsMaster(ClusterState state) {
+                synchronized (stateMutex) {
+                    joinThreadControl.markThreadAsDone(currentThread);
+                }
+            }
+
+            // 失败则重新发起加入集群流程
+            @Override
+            public void onFailure(Throwable t) {
+                logger.trace(&quot;failed while waiting for nodes to join, rejoining&quot;, t);
+                synchronized (stateMutex) {
+                    joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+                }
+            }
+        }
+
+    );
+}
+
+// NodeJoinController.waitToBeElectedAsMaster()
+public void waitToBeElectedAsMaster(int requiredMasterJoins, TimeValue timeValue, final ElectionCallback callback) {
+    try {
+        // check what we have so far..
+        // capture the context we add the callback to make sure we fail our own
+        // 检查是否已有requiredMasterJoins的节点数
+        synchronized (this) {
+            assert electionContext != null : &quot;waitToBeElectedAsMaster is called we are not accumulating joins&quot;;
+            myElectionContext = electionContext;
+            electionContext.onAttemptToBeElected(requiredMasterJoins, wrapperCallback);
+            // 如果节点数已达标，将该节点设置为master
+            checkPendingJoinsAndElectIfNeeded();
+        }
+
+        try {
+            // 超时直接return
+            if (done.await(timeValue.millis(), TimeUnit.MILLISECONDS)) {
+                // callback handles everything
+                return;
+            }
+        } catch (InterruptedException e) {
+
+        }
+    } catch (Exception e) {
+        logger.error(&quot;unexpected failure while waiting for incoming joins&quot;, e);
+        if (myElectionContext != null) {
+            failContextIfNeeded(myElectionContext, &quot;unexpected failure while waiting for pending joins [&quot; + e.getMessage() + &quot;]&quot;);
+        }
+    }
+}
+
+// NodeJoinController.checkPendingJoinsAndElectIfNeeded()
+private synchronized void checkPendingJoinsAndElectIfNeeded() {
+    // 发布clusterState
+    electionContext.closeAndBecomeMaster();
+}
+
+// NodeJoinController.closeAndBecomeMaster
+public synchronized void closeAndBecomeMaster() {
+    innerClose();
+
+    Map&lt;JoinTaskExecutor.Task, ClusterStateTaskListener&gt; tasks = getPendingAsTasks(&quot;become master&quot;);
+    final String source = &quot;zen-disco-elected-as-master ([&quot; + tasks.size() + &quot;] nodes joined)&quot;;
+
+    // noop listener, the election finished listener determines result
+    tasks.put(JoinTaskExecutor.newBecomeMasterTask(), (source1, e) -&gt; {});
+    tasks.put(JoinTaskExecutor.newFinishElectionTask(), electionFinishedListener);
+    // 提交更新状态的任务
+    masterService.submitStateUpdateTasks(source, tasks, ClusterStateTaskConfig.build(Priority.URGENT), joinTaskExecutor);
+}
+
+</code></pre>
+<pre><code>// 本节点不是master
+// process any incoming joins (they will fail because we are not the master)
+// 拒绝其他节点加入，因为本节点不是master
+nodeJoinController.stopElectionContext(masterNode + &quot; elected&quot;);
+
+// send join request
+// 发送加入master的请求
+final boolean success = joinElectedMaster(masterNode);
+
+synchronized (stateMutex) {
+    if (success) {
+        // currentMasterNode 为空，或者当选的master不是之前选择的节点，进行重试加入
+        DiscoveryNode currentMasterNode = this.clusterState().getNodes().getMasterNode();
+        if (currentMasterNode == null) {
+            // Post 1.3.0, the master should publish a new cluster state before acking our join request. we now should have
+            // a valid master.
+            logger.debug(&quot;no master node is set, despite of join request completing. retrying pings.&quot;);
+            joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+        } else if (currentMasterNode.equals(masterNode) == false) {
+            // update cluster state
+            joinThreadControl.stopRunningThreadAndRejoin(&quot;master_switched_while_finalizing_join&quot;);
+        }
+
+        joinThreadControl.markThreadAsDone(currentThread);
+    } else {
+        // failed to join. Try again...
+        // 失败则重新发起加入集群流程
+        joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+    }
+}
+
+private boolean joinElectedMaster(DiscoveryNode masterNode) {
+    try {
+        // first, make sure we can connect to the master
+        transportService.connectToNode(masterNode);
+    } catch (Exception e) {
+        logger.warn(() -&gt; new ParameterizedMessage(&quot;failed to connect to master [{}], retrying...&quot;, masterNode), e);
+        return false;
+    }
+    int joinAttempt = 0; // we retry on illegal state if the master is not yet ready
+    while (true) {
+        try {
+            logger.trace(&quot;joining master {}&quot;, masterNode);
+            // joinTimeout 默认超时时间60s，org.elasticsearch.discovery.zen.MembershipAction.MembershipAction()
+            membership.sendJoinRequestBlocking(masterNode, transportService.getLocalNode(), joinTimeout);
+            return true;
+        } catch (Exception e) {
+            final Throwable unwrap = ExceptionsHelper.unwrapCause(e);
+            if (unwrap instanceof NotMasterException) {
+                // joinRetryAttempts 重试次数，默认3次
+                if (++joinAttempt == this.joinRetryAttempts) {
+                    logger.info(
+                        &quot;failed to send join request to master [{}], reason [{}], tried [{}] times&quot;,
+                        masterNode,
+                        ExceptionsHelper.detailedMessage(e),
+                        joinAttempt
+                    );
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        try {
+            Thread.sleep(this.joinRetryDelay.millis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+</code></pre>
+<p>由上述步骤总结如下：</p>
+<p>1、服务启动后，开始进行加入集群操作；</p>
+<p>2、调用ping命令，最终获取一个包含节点基本信息及其所认为的master信息的列表（包括本节点）；</p>
+<p>3、过滤结果列表，将master节点汇总到activeMasters，将master候选者节点汇总到masterCandidates；</p>
+<p>4、判断如果activeMasters不为空，则从activeMasters中选择最小ID的一个节点；否则从candidateMasters中选择，先判断是否有足够的候选者，之后再排序选择ID最小的一个节点作为新的master；</p>
+<p>5、投票阶段，每个节点都向自己认为的master进行joinRequest请求,对应的会产生如下两种情形：</p>
+<ul>
+<li>本节点是master：该节点统计发送过来的joinRequest个数，如果在指定的时间（默认30s，可配置）内达到requiredJoins个数，则发布集群信息，并回复joinRequest请求，最后完成选举，否则选举失败；</li>
+<li>本节点不是master：首先，拒绝其他节点的joinRequest，其次向该节点认为的master发送joinRequest请求，并等待，如果在指定的时间（60s，可配置）未收到回复或异常重试3次都失败了则选举失败，之后将重新发起加入集群流程；否则如果收到的回复中没有master信息或者master信息不是之前选择的临时master节点则选举失败，同样会进行重新加入操作。</li>
+</ul>
+<p>注意：es使用延迟选举解决了选举过程中不断出现master假死现象（即master由于负载过重而假死，随后第二小id的节点成为master，之后故障节点又恢复再次被选为master，接着又假死...如此循环）；同时，es增加了法定得票人数机制，解决了脑裂（split-brain）问题。</p>
+<p>脑裂指的是集群中出现多个主节点，导致集群割裂的一种异常情况。</p>
+<p>法定个数：有master资格的节点数（官方建议）：n/2 + 1；其中n为有资格成为主节点的节点数。</p>
+<pre><code>// 7.*版本后，discovery.zen.minimum_master_node已不再提供配置，而是由内置的代码处理
+private void commonNodeConfig(ElasticsearchNode node, String nodeNames, ElasticsearchNode firstNode) {
+    if (node.getVersion().onOrAfter(&quot;7.0.0&quot;)) {
+        node.defaultConfig.keySet()
+            .stream()
+            .filter(name -&gt; name.startsWith(&quot;discovery.zen.&quot;))
+            .collect(Collectors.toList())
+            .forEach(node.defaultConfig::remove);
+        if (nodeNames != null &amp;&amp; node.settings.getOrDefault(&quot;discovery.type&quot;, &quot;anything&quot;).equals(&quot;single-node&quot;) == false) {
+            node.defaultConfig.put(&quot;cluster.initial_master_nodes&quot;, &quot;[&quot; + nodeNames + &quot;]&quot;);
+        }
+        node.defaultConfig.put(&quot;discovery.seed_providers&quot;, &quot;file&quot;);
+        node.defaultConfig.put(&quot;discovery.seed_hosts&quot;, &quot;[]&quot;);
+    } else {
+        node.defaultConfig.put(&quot;discovery.zen.master_election.wait_for_joins_timeout&quot;, &quot;5s&quot;);
+        if (nodes.size() &gt; 1) {
+            node.defaultConfig.put(&quot;discovery.zen.minimum_master_nodes&quot;, Integer.toString(nodes.size() / 2 + 1));
+        }
+        if (node.getVersion().onOrAfter(&quot;6.5.0&quot;)) {
+            node.defaultConfig.put(&quot;discovery.zen.hosts_provider&quot;, &quot;file&quot;);
+            node.defaultConfig.put(&quot;discovery.zen.ping.unicast.hosts&quot;, &quot;[]&quot;);
+        } else {
+            if (firstNode == null) {
+                node.defaultConfig.put(&quot;discovery.zen.ping.unicast.hosts&quot;, &quot;[]&quot;);
+            } else {
+                firstNode.waitForAllConditions();
+                node.defaultConfig.put(&quot;discovery.zen.ping.unicast.hosts&quot;, &quot;[\&quot;&quot; + firstNode.getTransportPortURI() + &quot;\&quot;]&quot;);
+            }
+        }
+    }
+}
+
+</code></pre>
+
+            </div>
+            
+            
+              <div class="post-footer">
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong class="language" data-lan="author">本文作者：</strong>
+      Philosopher
+    </li>
+    <li class="post-copyright-link">
+      <strong class="language" data-lan="link">本文链接：</strong>
+      <a href="https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/" title="ES7架构原理及选举源码">https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong class="language" data-lan="copyright">版权声明： </strong>
+      本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i> BY-NC-SA</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+  <div class="tags">
+    
+      <a href="https://philosopherzb.github.io/tag/zrErJ2St2/"># elasticsearch</a>
+    
+  </div>
+  <div class="nav">
+    <div class="nav-prev">
+      
+    </div>
+    <div class="nav-next">
+      
+        <a class="nav-pc-next" title="ES基本概念与集群" href="https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/">ES基本概念与集群</a>
+        <a class="nav-mobile-next" title="ES基本概念与集群" href="https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/">下一篇</a>
+        <i class="fa fa-chevron-right"></i>
       
     </div>
   </div>
 </div>
-          </section>
+            
+            
+  <script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<div id="vcomments" style="padding: 10px 0px 0px 0px"></div>
+
+<style>
+  .v .veditor {
+    min-height: 10rem;
+    background-image: url('');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right;
+    background-color: rgba(255, 255, 255, 0);
+    resize: none;
+  }
+
+  .v .vwrap {
+    border: 1px solid #000 !important;
+  }
+
+  .v .vbtn {
+    padding: .4rem 1.2rem !important;
+    border-color: #fff !important;
+    background-color: #49b1f5 !important;
+    color: #fff !important;
+    font-size: .7rem !important;
+  }
+
+  .v .vcards .vcard .vh .vmeta .vat {
+    padding: 0 .8rem !important;
+    border: 1px solid #00c4b6 !important;
+    border-radius: 5px !important;
+    color: #00c4b6 !important;
+  }
+</style>
+<script>
+  new Valine({
+    el: '#vcomments',
+    appId: 'vTL9neewLgXcivf073tLdmIO-gzGzoHsz',
+    appKey: '6EMsHOzs5kmg8TqCyk0OI7qU',
+    avatar: 'mp',
+    placeholder: 'Comments welcome',
+    pageSize: '10',
+    lang: 'zh-cn',
+    enableQQ: 'true' === 'false',
+    visitor: 'true' === 'true',
+    highlight: 'true' === 'true',
+    avatarForce: 'true' === 'false',
+  });
+</script>
+
+          </div>
         </div>
       </div>
     </div>
@@ -572,6 +1232,223 @@
     aelem.appendChild(image);
     parent.insertBefore(aelem, next);
   })
+</script>
+
+    <div class="reward-mask" style="display: none;">
+  <div class="reward-relative">
+    <span class="close" aria-hidden="true">x</span>
+    <div class="reward-body">
+      <h2>感谢您的支持，我会继续努力的!</h2>
+      <div class="reward-img-box">
+        <div style="position: relative; width: 140px; height: 140px;">
+          
+          
+          
+        </div>
+      </div>
+      <p class="reward-word">扫码打赏，你说多少就多少</p>
+      <p class="reward-tip">打开微信扫一扫，即可进行扫码打赏哦</p>
+    </div>
+    <div class="bottom">
+      
+      
+    </div>
+  </div>
+</div>
+<style>
+  .reward-mask {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #00000054;
+  }
+
+  .reward-relative {
+    position: relative;
+    width: 480px;
+    text-align: center;
+    margin: 0 auto;
+    border-radius: 5px;
+    background-color: #fff;
+    top: 50%;
+    margin-top: -205px;
+  }
+
+  .reward-relative .close {
+    position: absolute;
+    right: 10px;
+    font-weight: normal;
+    font-size: 16px;
+    color: #929292;
+  }
+
+  .reward-body {
+    padding: 40px 20px 20px;
+  }
+
+  .bottom {
+    display: flex;
+  }
+
+  .reward-btn {
+    text-align: center;
+  }
+
+  .reward-btn-text {
+    display: inline-block;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    border-radius: 50%;
+    background-color: #ff9734;
+    color: #FFF;
+    margin-top: 20px;
+  }
+
+  .pay-text {
+    margin-top: 10px;
+    padding: 10px;
+    flex: 1;
+    transition: all .2s linear;
+  }
+
+  .pay-text:hover {
+    background-color: #a5a5a536;
+  }
+
+  .reward-body h2 {
+    padding-top: 10px;
+    text-align: center;
+    color: #a3a3a3;
+    font-size: 16px;
+    font-weight: normal;
+    margin: 0 0 20px;
+  }
+
+  .reward-body h2:after,
+  .reward-body h2:before {
+    font-family: Arial, Helvetica, sans-serif;
+    background: 0 0;
+    width: 0;
+    height: 0;
+    font-style: normal;
+    color: #eee;
+    font-size: 80px;
+    position: absolute;
+    top: 20px;
+  }
+
+  .reward-body h2:before {
+    content: '\201c';
+    left: 50px;
+  }
+
+  .reward-body h2:after {
+    content: '\201d';
+    right: 80px;
+  }
+
+  .reward-img-box {
+    display: inline-block;
+    padding: 10px;
+    border: 6px solid #ea5f00;
+    margin: 0 auto;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .reward-img {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .reward-relative {
+      height: 100%;
+      top: 0px;
+      margin-top: 0;
+      width: auto;
+    }
+
+    .reward-relative .bottom {
+      flex-direction: column;
+    }
+
+    .reward-relative .pay-text {
+      width: 80%;
+      margin: 5px auto;
+      border: 1px solid silver;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    .reward-body h2:after {
+      right: 40px;
+    }
+
+    .reward-body h2:after,
+    .reward-body h2:before {
+      font-size: 60px;
+    }
+
+    .reward-body h2:before {
+      left: 20px;
+    }
+  }
+</style>
+<script>
+  !function () {
+    var mask = document.querySelector('.reward-mask');
+    let close = document.querySelector('.reward-relative .close');
+    let rewardBtn = document.querySelector('.reward-btn');
+
+    let zfb = document.querySelector('#zfb'),
+      wx = document.querySelector('#wx'),
+      zfbBtn = document.querySelector('#zfbBtn'),
+      wxBtn = document.querySelector('#wxBtn');
+
+    if (zfbBtn && wxBtn) {
+      zfbBtn.addEventListener('click', () => {
+        window.Velocity(zfb, 'transition.slideLeftIn', {
+          duration: 400
+        });
+        window.Velocity(wx, 'transition.slideRightOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+
+      wxBtn.addEventListener('click', () => {
+        window.Velocity(wx, 'transition.slideRightIn', {
+          duration: 400
+        });
+        window.Velocity(zfb, 'transition.slideLeftOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+    }
+
+    rewardBtn.addEventListener('click', (e) => {
+      window.Velocity(mask, 'transition.slideDownIn', {
+        duration: 400
+      })
+    });
+
+    close.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.Velocity(mask, 'transition.slideUpOut', {
+        duration: 400
+      })
+    })
+  }()
 </script>
 
   </div>
@@ -5292,7 +6169,6 @@ gridea doc: &lt;a href=&#34;https://gridea.dev/gridea-start/&#34;&gt;https://gri
     speed: 200
   });
 </script>
-
 
 
 

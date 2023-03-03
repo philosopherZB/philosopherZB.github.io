@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Java中的常用排序算法 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1677811833174">
+<link rel="shortcut icon" href="/favicon.ico?v=1677832590696">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">16</span>
+        <span class="site-item-stat-count">19</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">9</span>
+        <span class="site-item-stat-count">11</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">9</span>
+        <span class="site-item-stat-count">11</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1790,6 +1790,526 @@ private static void radixSort(int[] array) {
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述elasticsearch架构组件，读写原理，性能优化以及节点选举和选举流程源码。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-1462655_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;原理概述&#34;&gt;原理概述&lt;/h2&gt;
+&lt;h3 id=&#34;基础架构图&#34;&gt;基础架构图&lt;/h3&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303025.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;1: Gateway是ES用来存储索引的文件系统。支持多种类型：包括本地文件系统(默认)，分片文件系统，HDFS，S3等。&lt;/p&gt;
+&lt;p&gt;2: Distributed Lucene Directory指的是Apach Lucene框架。&lt;/p&gt;
+&lt;p&gt;3: Lucene之上是ES的模块，包括：索引模块、搜索模块、映射解析模块以及River模块（river代表数据从其他存储框架（如：mysql）流入ES）。&lt;/p&gt;
+&lt;p&gt;4: ES模块之上是 Discovery、Scripting和第三方插件。&lt;/p&gt;
+&lt;p&gt;5: 再上层是ES的传输模块和JMX.传输模块支持多种传输协议，如 Thrift、memecached、http，默认使用http。JMX是java的管理框架，用来管理ES应用。&lt;/p&gt;
+&lt;p&gt;6: 最上层是ES提供给用户的接口，可以通过RESTful接口或定制的SDK和ES集群进行交互。&lt;/p&gt;
+&lt;h2 id=&#34;读写原理&#34;&gt;读写原理&lt;/h2&gt;
+&lt;h3 id=&#34;术语介绍&#34;&gt;术语介绍&lt;/h3&gt;
+&lt;p&gt;segment file: 类似于倒排索引，但其中包含的数据结构更丰富（Inverted Index, Stored Fields, Document Values, Cache等）；一组segment集合加上commit point便构成了Lucene中的index（动态索引，可类比Java中的动态数组概念，每个segment便是一个数组，commit point便是ArrayList；也类似于Java1.8的ConcurrentHashMap分段概念）。&lt;/p&gt;
+&lt;p&gt;commit point: 记录了当前所有可用的segment file文件。数据可被搜索到。&lt;/p&gt;
+&lt;p&gt;translog: 持久化地记录了所有还没被刷到磁盘的操作，避免宕机时，数据丢失。当 Elasticsearch 启动的时候，它会从磁盘中使用最后一个提交点去恢复已知的段，并且会重放 translog 中所有在最后一次提交后发生的变更操作。translog 会每隔 5 秒异步执行或者在每一个请求完成之后执行一次 fsync 操作，将 translog 从缓存刷入磁盘，这个操作比较耗时，如果对数据一致性要求不是很高时建议将索引改为 async ，如果节点宕机时会有 5 秒数据丢失;&lt;/p&gt;
+&lt;p&gt;In-memory buffer: ES中的内存缓存，每当索引数据时，都会将数据先存储到该buffer及translog中。&lt;/p&gt;
+&lt;p&gt;refresh: 打开或创建一个新的segment的过程，即将数据从内存刷入filesystem cache并清空当前buffer的过程(默认每隔一秒或者buffer满了便会执行该操作)。&lt;/p&gt;
+&lt;p&gt;merge: refresh操作会导致segment频繁的生成，这些segment会占据独立的文件句柄/内存/CPU等，且每次搜索时，都要在segment上执行查询，这样会导致整个执行效率变得低下；所以，有必要对segment进行适当的merge操作，此过程会将多个相似的segment合并为一个大的segment，并删除那些被标记为删除的document（此时为实际物理删除文件）。&lt;/p&gt;
+&lt;p&gt;flush&amp;amp;commit: 默认每隔30分钟或者translog数据量达到512mb则会触发一次flush操作。此过程会将所有数据刷入硬盘中进行持久化存储。&lt;/p&gt;
+&lt;h3 id=&#34;写操作原理&#34;&gt;写操作原理&lt;/h3&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303026.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;具体步骤如下：&lt;/p&gt;
+&lt;p&gt;1、数据写入buffer及translog中，此时是搜索不到的。&lt;/p&gt;
+&lt;p&gt;2、默认每隔一秒或buffer已满，则执行一次refresh操作，将数据刷入filesystem cache生成segment file，此时数据可被搜索，并清空当前的buffer。&lt;/p&gt;
+&lt;p&gt;3、translog中的数据存储在os cache中，之后默认每隔5秒会持久化到磁盘中（时间可设置，长短将影响性能）。&lt;/p&gt;
+&lt;p&gt;4、重复上述步骤，直到抵达默认的30分钟或者translog达到512mb时（相关参数可配置），便会触发一次flush操作（commit操作）：该操作首先将buffer中现有的数据refresh到os cache中去，并清空buffer；然后将一个commit point写入磁盘文件，里面标识着这个commit point 对应的所有segment file，同时强行将os cache中目前所有的数据都fsync到磁盘文件中去；最后清空现有 translog日志文件，重启一个新的translog，此时flush操作完成。&lt;/p&gt;
+&lt;p&gt;额外补充：&lt;/p&gt;
+&lt;p&gt;5、删除操作，commit的时候会产生一个.del文件，里面将某个doc标记为delete状态（并非实时删除），搜索时会自动过滤掉标记为删除状态的数据。&lt;/p&gt;
+&lt;p&gt;6、更新操作，将原来的doc标识为delete状态，然后重新写入一条新数据即可。&lt;/p&gt;
+&lt;p&gt;7、refresh操作会导致segment频繁的生成，这些segment会占据独立的文件句柄/内存/CPU等，且每次搜索时，都要在segment上执行查询，这样会导致整个执行效率变得低下；所以，有必要对segment进行适当的merge操作，此过程会将多个相似大小的segment合并为一个大的segment，并删除那些被标记为删除的document（此时为实际物理删除文件）。&lt;/p&gt;
+&lt;p&gt;8、数据一致性由translog保证（丢失数据取决于fsync的时间）；副本一致性则是采用的半同步机制，即主分片写成功后，只需一部分数量（quorum）的副本写入成功即可返回。相关配置wait_for_active_shards的默认值为int( (primary + number_of_replicas) / 2 ) + 1&lt;/p&gt;
+&lt;h3 id=&#34;读操作原理&#34;&gt;读操作原理&lt;/h3&gt;
+&lt;p&gt;读过程大体上分为查询与取回两个阶段。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;查询阶段&lt;/li&gt;
+&lt;li&gt;当一个搜索请求被发送到某个节点时，该节点就变成协调节点。这个节点的任务是广播查询请求到所有相关分片并将它们的响应整合成全局排序后的结果集合，这个结果集合会返回给客户端。&lt;/li&gt;
+&lt;li&gt;首先将广播请求到索引中每一个节点的分片拷贝，查询请求可以被某个主分片或某个副分片处理（这就是为什么更多的副本（当结合更多的硬件）能够增加搜索吞吐率），协调节点将在之后的请求中轮训所有的分片拷贝来分摊负载。&lt;/li&gt;
+&lt;li&gt;每个分片在本地执行查询请求并且创建一个长度为 from + size 的优先队列—也就是说，每个分片创建的结果集足够大，均可以满足全局的搜索请求。分片返回一个轻量级的结果列表到协调节点，它仅包含文档 ID 集合以及任何排序需要用到的值，例如 _score 。&lt;/li&gt;
+&lt;li&gt;协调节点将这些分片级的结果合并到自己的有序优先队列里，它代表了全局排序结果集合。至此查询过程结束。&lt;/li&gt;
+&lt;li&gt;取回阶段&lt;/li&gt;
+&lt;li&gt;查询过程得到的排序结果，标记出哪些文档是符合要求的，此时仍然需要获取这些文档返回给客户端。&lt;/li&gt;
+&lt;li&gt;协调节点会辨别出哪些文档需要被取回并向相关的分片提交多个 GET 请求；每个分片加载并修饰文档，如果有需要的话，接着返回文档给协调节点&lt;/li&gt;
+&lt;li&gt;一旦所有的文档都被取回了，协调节点返回结果给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意1：先查后取的过程支持用 from 和 size 参数分页，但是这是有限制的。要记住需要传递信息给协调节点的每个分片必须先创建一个 from + size 长度的队列，协调节点需要根据 number_of_shards * (from + size) 排序文档，来找到被包含在 size 里的文档。&lt;/p&gt;
+&lt;p&gt;注意2：一般不建议使用深度搜索，这将会耗费大量额外的cpu，内存与带宽（ES默认深度分页限制为10000条，即from + size &amp;lt;=10000）;如果有需要，可以使用scroll进行查询。&lt;/p&gt;
+&lt;h2 id=&#34;性能优化&#34;&gt;性能优化&lt;/h2&gt;
+&lt;h3 id=&#34;filesystem-cache&#34;&gt;filesystem cache&lt;/h3&gt;
+&lt;p&gt;由上述写过程原理可知，ES的数据在filesystem cache中便可被搜索到，那么对应的，如果给予filesystem cache更多的机器内存，让它足以容纳下所有的index segment file，相应的查询效率将会获得长足的提高（内存与磁盘查询效率相差巨大）。同时，如果数据量非常之大，那么ES中应该尽量存储doc_id之类的字段，减少大文本存储（大文本存入分布式文件系统中）。&lt;/p&gt;
+&lt;h3 id=&#34;数据预热与冷热分离&#34;&gt;数据预热与冷热分离&lt;/h3&gt;
+&lt;p&gt;某些热点数据，可通过缓存预热系统进行提前查询，让其流入filesystem cache中；同时，对冷热数据进行隔离存储，确保热数据一直在filesystem cache。&lt;/p&gt;
+&lt;h3 id=&#34;合理的文档设计&#34;&gt;合理的文档设计&lt;/h3&gt;
+&lt;p&gt;不要出现复杂性的查询操作，尽量在设计阶段就做一定的冗余，让相关数据在同一个文档中。&lt;/p&gt;
+&lt;h3 id=&#34;避免深度分页&#34;&gt;避免深度分页&lt;/h3&gt;
+&lt;p&gt;就像读过程原理中所描述，过度的深分页查询，会占用大量的cpu，内存与带宽；如果有对应的需求，可通过scroll api进行查询。&lt;/p&gt;
+&lt;h2 id=&#34;节点发现与选举流程源码&#34;&gt;节点发现与选举流程源码&lt;/h2&gt;
+&lt;p&gt;节点启动时，便会开始加入集群；启动函数：org.elasticsearch.node.Node.start()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public Node start() throws NodeValidationException {
+    // start after transport service so the local disco is known
+    // start before cluster service so that it can set initial state on ClusterApplierService
+    discovery.start(); 
+    clusterService.start();
+    // 服务发现函数
+    discovery.startInitialJoin();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;查询mater节点；对应函数在discovery.startInitialJoin()中；&lt;br&gt;
+核心函数为：org.elasticsearch.discovery.zen.ZenDiscovery.findMaster()；此处选举id最小的节点是因为es沿用了bully算法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private DiscoveryNode findMaster() {
+    logger.trace(&amp;quot;starting to ping&amp;quot;);
+    // 开始ping操作，获取当前集群处于活跃状态的节点信息
+    // pingAndWait函数实际上调用了org.elasticsearch.discovery.zen.UnicastZenPing.ping()
+    // 它会主动从discovery.seed_hosts配置中读取信息（7.*之前的老版本配置为：discovery.zen.ping.unicast.hosts）
+    // 最终返回的节点信息中，包含有master信息
+    List&amp;lt;ZenPing.PingResponse&amp;gt; fullPingResponses = pingAndWait(pingTimeout).toList();
+
+    // 将本节点也加入 fullPingResponses 中
+    final DiscoveryNode localNode = transportService.getLocalNode();
+    assert fullPingResponses.stream().map(ZenPing.PingResponse::node).filter(n -&amp;gt; n.equals(localNode)).findAny().isPresent() == false;
+    fullPingResponses.add(new ZenPing.PingResponse(localNode, null, this.clusterState()));
+
+    // filter responses
+    // 如果配置了discovery.zen.master_election.ignore_non_master_ping（即：masterElectionIgnoreNonMasters）为true将会过滤出所有的主节点信息
+    // 默认为false
+    final List&amp;lt;ZenPing.PingResponse&amp;gt; pingResponses = filterPingResponses(fullPingResponses, masterElectionIgnoreNonMasters, logger);
+
+    // 遍历列表，将节点认为的主节点信息存入activeMasters
+    List&amp;lt;DiscoveryNode&amp;gt; activeMasters = new ArrayList&amp;lt;&amp;gt;();
+    for (ZenPing.PingResponse pingResponse : pingResponses) {
+        // We can&#39;t include the local node in pingMasters list, otherwise we may up electing ourselves without
+        // any check / verifications from other nodes in ZenDiscover#innerJoinCluster()
+        if (pingResponse.master() != null &amp;amp;&amp;amp; localNode.equals(pingResponse.master()) == false) {
+            activeMasters.add(pingResponse.master());
+        }
+    }
+
+    // 如果ping过程中发现了具备资格成为master的节点，将其存入masterCandidates 
+    List&amp;lt;ElectMasterService.MasterCandidate&amp;gt; masterCandidates = new ArrayList&amp;lt;&amp;gt;();
+    for (ZenPing.PingResponse pingResponse : pingResponses) {
+        if (pingResponse.node().isMasterNode()) {
+            masterCandidates.add(new ElectMasterService.MasterCandidate(pingResponse.node(), pingResponse.getClusterStateVersion()));
+        }
+    }
+
+    if (activeMasters.isEmpty()) {
+        // 判断是否有足够的候选者，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.hasEnoughMasterNodes()
+        if (electMaster.hasEnoughCandidates(masterCandidates)) {
+            // 从候选者中选举新的主节点，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.electMaster()
+            // 选举逻辑比较简单，直接按id排序，随后取出最小id的节点，即为主节点
+            final ElectMasterService.MasterCandidate winner = electMaster.electMaster(masterCandidates);
+            logger.trace(&amp;quot;candidate {} won election&amp;quot;, winner);
+            return winner.getNode();
+        } else {
+            // if we don&#39;t have enough master nodes, we bail, because there are not enough master to elect from
+            logger.warn(
+                    &amp;quot;not enough master nodes discovered during pinging (found [{}], but needed [{}]), pinging again&amp;quot;,
+                    masterCandidates,
+                    electMaster.minimumMasterNodes()
+            );
+            return null;
+        }
+    } else {
+        assert activeMasters.contains(localNode) == false
+                : &amp;quot;local node should never be elected as master when other nodes indicate an active master&amp;quot;;
+        // lets tie break between discovered nodes
+        // 按id进行二级排序，并返回最小id的主节点，对应函数为：org.elasticsearch.discovery.zen.ElectMasterService.tieBreakActiveMasters()
+        return electMaster.tieBreakActiveMasters(activeMasters);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;确认mater节点；对应函数在discovery.startInitialJoin()中；&lt;br&gt;
+核心函数为：org.elasticsearch.discovery.zen.ZenDiscovery.innerJoinCluster()&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 1.本节点是master
+if (transportService.getLocalNode().equals(masterNode)) {
+    // 等待足够多的节点加入本节点
+    final int requiredJoins = Math.max(0, electMaster.minimumMasterNodes() - 1); // we count as one
+    logger.debug(&amp;quot;elected as master, waiting for incoming joins ([{}] needed)&amp;quot;, requiredJoins);
+    // masterElectionWaitForJoinsTimeout默认超时时间为30秒，如果超时则直接return
+    // 对应函数：org.elasticsearch.discovery.zen.NodeJoinController.waitToBeElectedAsMaster()
+    nodeJoinController.waitToBeElectedAsMaster(
+        requiredJoins,
+        masterElectionWaitForJoinsTimeout,
+        new NodeJoinController.ElectionCallback() {
+            // 进行master选举
+            @Override
+            public void onElectedAsMaster(ClusterState state) {
+                synchronized (stateMutex) {
+                    joinThreadControl.markThreadAsDone(currentThread);
+                }
+            }
+
+            // 失败则重新发起加入集群流程
+            @Override
+            public void onFailure(Throwable t) {
+                logger.trace(&amp;quot;failed while waiting for nodes to join, rejoining&amp;quot;, t);
+                synchronized (stateMutex) {
+                    joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+                }
+            }
+        }
+
+    );
+}
+
+// NodeJoinController.waitToBeElectedAsMaster()
+public void waitToBeElectedAsMaster(int requiredMasterJoins, TimeValue timeValue, final ElectionCallback callback) {
+    try {
+        // check what we have so far..
+        // capture the context we add the callback to make sure we fail our own
+        // 检查是否已有requiredMasterJoins的节点数
+        synchronized (this) {
+            assert electionContext != null : &amp;quot;waitToBeElectedAsMaster is called we are not accumulating joins&amp;quot;;
+            myElectionContext = electionContext;
+            electionContext.onAttemptToBeElected(requiredMasterJoins, wrapperCallback);
+            // 如果节点数已达标，将该节点设置为master
+            checkPendingJoinsAndElectIfNeeded();
+        }
+
+        try {
+            // 超时直接return
+            if (done.await(timeValue.millis(), TimeUnit.MILLISECONDS)) {
+                // callback handles everything
+                return;
+            }
+        } catch (InterruptedException e) {
+
+        }
+    } catch (Exception e) {
+        logger.error(&amp;quot;unexpected failure while waiting for incoming joins&amp;quot;, e);
+        if (myElectionContext != null) {
+            failContextIfNeeded(myElectionContext, &amp;quot;unexpected failure while waiting for pending joins [&amp;quot; + e.getMessage() + &amp;quot;]&amp;quot;);
+        }
+    }
+}
+
+// NodeJoinController.checkPendingJoinsAndElectIfNeeded()
+private synchronized void checkPendingJoinsAndElectIfNeeded() {
+    // 发布clusterState
+    electionContext.closeAndBecomeMaster();
+}
+
+// NodeJoinController.closeAndBecomeMaster
+public synchronized void closeAndBecomeMaster() {
+    innerClose();
+
+    Map&amp;lt;JoinTaskExecutor.Task, ClusterStateTaskListener&amp;gt; tasks = getPendingAsTasks(&amp;quot;become master&amp;quot;);
+    final String source = &amp;quot;zen-disco-elected-as-master ([&amp;quot; + tasks.size() + &amp;quot;] nodes joined)&amp;quot;;
+
+    // noop listener, the election finished listener determines result
+    tasks.put(JoinTaskExecutor.newBecomeMasterTask(), (source1, e) -&amp;gt; {});
+    tasks.put(JoinTaskExecutor.newFinishElectionTask(), electionFinishedListener);
+    // 提交更新状态的任务
+    masterService.submitStateUpdateTasks(source, tasks, ClusterStateTaskConfig.build(Priority.URGENT), joinTaskExecutor);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 本节点不是master
+// process any incoming joins (they will fail because we are not the master)
+// 拒绝其他节点加入，因为本节点不是master
+nodeJoinController.stopElectionContext(masterNode + &amp;quot; elected&amp;quot;);
+
+// send join request
+// 发送加入master的请求
+final boolean success = joinElectedMaster(masterNode);
+
+synchronized (stateMutex) {
+    if (success) {
+        // currentMasterNode 为空，或者当选的master不是之前选择的节点，进行重试加入
+        DiscoveryNode currentMasterNode = this.clusterState().getNodes().getMasterNode();
+        if (currentMasterNode == null) {
+            // Post 1.3.0, the master should publish a new cluster state before acking our join request. we now should have
+            // a valid master.
+            logger.debug(&amp;quot;no master node is set, despite of join request completing. retrying pings.&amp;quot;);
+            joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+        } else if (currentMasterNode.equals(masterNode) == false) {
+            // update cluster state
+            joinThreadControl.stopRunningThreadAndRejoin(&amp;quot;master_switched_while_finalizing_join&amp;quot;);
+        }
+
+        joinThreadControl.markThreadAsDone(currentThread);
+    } else {
+        // failed to join. Try again...
+        // 失败则重新发起加入集群流程
+        joinThreadControl.markThreadAsDoneAndStartNew(currentThread);
+    }
+}
+
+private boolean joinElectedMaster(DiscoveryNode masterNode) {
+    try {
+        // first, make sure we can connect to the master
+        transportService.connectToNode(masterNode);
+    } catch (Exception e) {
+        logger.warn(() -&amp;gt; new ParameterizedMessage(&amp;quot;failed to connect to master [{}], retrying...&amp;quot;, masterNode), e);
+        return false;
+    }
+    int joinAttempt = 0; // we retry on illegal state if the master is not yet ready
+    while (true) {
+        try {
+            logger.trace(&amp;quot;joining master {}&amp;quot;, masterNode);
+            // joinTimeout 默认超时时间60s，org.elasticsearch.discovery.zen.MembershipAction.MembershipAction()
+            membership.sendJoinRequestBlocking(masterNode, transportService.getLocalNode(), joinTimeout);
+            return true;
+        } catch (Exception e) {
+            final Throwable unwrap = ExceptionsHelper.unwrapCause(e);
+            if (unwrap instanceof NotMasterException) {
+                // joinRetryAttempts 重试次数，默认3次
+                if (++joinAttempt == this.joinRetryAttempts) {
+                    logger.info(
+                        &amp;quot;failed to send join request to master [{}], reason [{}], tried [{}] times&amp;quot;,
+                        masterNode,
+                        ExceptionsHelper.detailedMessage(e),
+                        joinAttempt
+                    );
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        try {
+            Thread.sleep(this.joinRetryDelay.millis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;由上述步骤总结如下：&lt;/p&gt;
+&lt;p&gt;1、服务启动后，开始进行加入集群操作；&lt;/p&gt;
+&lt;p&gt;2、调用ping命令，最终获取一个包含节点基本信息及其所认为的master信息的列表（包括本节点）；&lt;/p&gt;
+&lt;p&gt;3、过滤结果列表，将master节点汇总到activeMasters，将master候选者节点汇总到masterCandidates；&lt;/p&gt;
+&lt;p&gt;4、判断如果activeMasters不为空，则从activeMasters中选择最小ID的一个节点；否则从candidateMasters中选择，先判断是否有足够的候选者，之后再排序选择ID最小的一个节点作为新的master；&lt;/p&gt;
+&lt;p&gt;5、投票阶段，每个节点都向自己认为的master进行joinRequest请求,对应的会产生如下两种情形：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;本节点是master：该节点统计发送过来的joinRequest个数，如果在指定的时间（默认30s，可配置）内达到requiredJoins个数，则发布集群信息，并回复joinRequest请求，最后完成选举，否则选举失败；&lt;/li&gt;
+&lt;li&gt;本节点不是master：首先，拒绝其他节点的joinRequest，其次向该节点认为的master发送joinRequest请求，并等待，如果在指定的时间（60s，可配置）未收到回复或异常重试3次都失败了则选举失败，之后将重新发起加入集群流程；否则如果收到的回复中没有master信息或者master信息不是之前选择的临时master节点则选举失败，同样会进行重新加入操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注意：es使用延迟选举解决了选举过程中不断出现master假死现象（即master由于负载过重而假死，随后第二小id的节点成为master，之后故障节点又恢复再次被选为master，接着又假死...如此循环）；同时，es增加了法定得票人数机制，解决了脑裂（split-brain）问题。&lt;/p&gt;
+&lt;p&gt;脑裂指的是集群中出现多个主节点，导致集群割裂的一种异常情况。&lt;/p&gt;
+&lt;p&gt;法定个数：有master资格的节点数（官方建议）：n/2 + 1；其中n为有资格成为主节点的节点数。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 7.*版本后，discovery.zen.minimum_master_node已不再提供配置，而是由内置的代码处理
+private void commonNodeConfig(ElasticsearchNode node, String nodeNames, ElasticsearchNode firstNode) {
+    if (node.getVersion().onOrAfter(&amp;quot;7.0.0&amp;quot;)) {
+        node.defaultConfig.keySet()
+            .stream()
+            .filter(name -&amp;gt; name.startsWith(&amp;quot;discovery.zen.&amp;quot;))
+            .collect(Collectors.toList())
+            .forEach(node.defaultConfig::remove);
+        if (nodeNames != null &amp;amp;&amp;amp; node.settings.getOrDefault(&amp;quot;discovery.type&amp;quot;, &amp;quot;anything&amp;quot;).equals(&amp;quot;single-node&amp;quot;) == false) {
+            node.defaultConfig.put(&amp;quot;cluster.initial_master_nodes&amp;quot;, &amp;quot;[&amp;quot; + nodeNames + &amp;quot;]&amp;quot;);
+        }
+        node.defaultConfig.put(&amp;quot;discovery.seed_providers&amp;quot;, &amp;quot;file&amp;quot;);
+        node.defaultConfig.put(&amp;quot;discovery.seed_hosts&amp;quot;, &amp;quot;[]&amp;quot;);
+    } else {
+        node.defaultConfig.put(&amp;quot;discovery.zen.master_election.wait_for_joins_timeout&amp;quot;, &amp;quot;5s&amp;quot;);
+        if (nodes.size() &amp;gt; 1) {
+            node.defaultConfig.put(&amp;quot;discovery.zen.minimum_master_nodes&amp;quot;, Integer.toString(nodes.size() / 2 + 1));
+        }
+        if (node.getVersion().onOrAfter(&amp;quot;6.5.0&amp;quot;)) {
+            node.defaultConfig.put(&amp;quot;discovery.zen.hosts_provider&amp;quot;, &amp;quot;file&amp;quot;);
+            node.defaultConfig.put(&amp;quot;discovery.zen.ping.unicast.hosts&amp;quot;, &amp;quot;[]&amp;quot;);
+        } else {
+            if (firstNode == null) {
+                node.defaultConfig.put(&amp;quot;discovery.zen.ping.unicast.hosts&amp;quot;, &amp;quot;[]&amp;quot;);
+            } else {
+                firstNode.waitForAllConditions();
+                node.defaultConfig.put(&amp;quot;discovery.zen.ping.unicast.hosts&amp;quot;, &amp;quot;[\&amp;quot;&amp;quot; + firstNode.getTransportPortURI() + &amp;quot;\&amp;quot;]&amp;quot;);
+            }
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">ES7架构原理及选举源码</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述elasticsearch基本结构，术语介绍以及路由算法，分片原理等。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/conifers-1850227_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;基本概念&#34;&gt;基本概念&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;ElasticSearch是一个基于Apach Lucene构建的搜索引擎，其天生便是分布式的，具备极强的可扩展性，除此之外，强大的实时分析特性以及分布式存储都是其不可忽视的优点。&lt;/p&gt;
+&lt;p&gt;ES的主旨在于随时可用以及按需扩容。垂直扩容（纵向扩容）：性能更强大的硬件机器；水平扩容（横向扩容）：数量更多的服务器。&lt;/p&gt;
+&lt;p&gt;由于硬件限制，现阶段的垂直扩容必然存在一个极限，所以对于ES而言，真正的扩容能力还是来自于水平扩容-为集群增加更多的机器（多节点负载与分布式容灾，同时可以进行PB级别的数据分析）。&lt;/p&gt;
+&lt;h3 id=&#34;名词解释&#34;&gt;名词解释&lt;/h3&gt;
+&lt;h4 id=&#34;索引存储索引&#34;&gt;索引（存储索引）&lt;/h4&gt;
+&lt;p&gt;索引（Index）是ElasticSearch存放数据的地方（为了区分搜索索引，暂且称其为存储索引）。以关系数据库类比的话，ES中的索引相当于数据库（es6之后等同于数据表，参见；1.2.2文档类型-重点注意）的概念。但是与关系数据库相比，ES可以更快速且高效的对索引中的数据进行全文检索。&lt;/p&gt;
+&lt;p&gt;究其根本是由于ES/Lucene使用的倒排索引相较于关系数据库中的b-tree，b+tree而言，多了一层内存索引概念（此处的索引指搜索索引，而非存储索引）。&lt;/p&gt;
+&lt;p&gt;内存索引是对磁盘索引的一层简化封装，例如：磁盘索引为Alex，Bob，Curl，Abnormal；那么内存索引则为：A，B，C，b，这些简化字段会组成一颗trie tree（前缀树，根据字典顺序升序排列），通过特定的压缩技术（Lucene Finite State Transducers &lt;a href=&#34;https://cs.nyu.edu/~mohri/pub/fla.pdf&#34;&gt;点击此处跳转文档页面&lt;/a&gt;）可以将其尺寸缩小数十倍，使得用内存缓存trie tree变成可能。&lt;/p&gt;
+&lt;p&gt;正是基于内存索引的优化，ES/Lucene才能比关系数据库更快的检索出结果；因为其在内存中已经找到了对应的磁盘索引，可以直接根据磁盘索引查询对应的磁盘数据，而关系数据库则需要遍历查找出对应的磁盘索引，之后再根据磁盘索引查询磁盘数据，这中间便多了磁盘的random access次数（一次磁盘random access大概耗时10ms，耗时会随着磁盘硬件的优劣而产生一定的浮动）。&lt;/p&gt;
+&lt;p&gt;关于多字段查询，ES/Lucene有两种合并方式：1.skip list实现联合索引的；对跳表中的数据进行快速与运算。2.bitset实现快速合并，进行按位与运算。两种方式的比较可参考：&lt;a href=&#34;https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps&#34;&gt;点击此处跳转页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;综上所述，整体效果图如下所示：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303015.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;文档类型&#34;&gt;文档类型&lt;/h4&gt;
+&lt;p&gt;ES中的索引可以存储许多不同用途的对象，如：学生对象，课程对象等，为了更轻松地区分这些对象，文档类型这个概念便应运而生（可类比于关系数据库中的表）；在实际操作中，为文档划分不同的类型，可以更方便的操作数据。&lt;/p&gt;
+&lt;p&gt;注意：划分文档类型时存在一定的限制条件，其中之一便是不同的文档类型对同一字段不能设置为不同的字段类型。例如：学生对象中的课程id是Integer类型，而课程对象中的id是String，这是不行的。详情可参考：&lt;a href=&#34;https://www.elastic.co/guide/cn/elasticsearch/guide/current/mapping.html&#34;&gt;点击此处跳转页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;重点注意：es6.0.0之前单个索引可以有多个文档类型，es6.0.0之后单个索引只能有一个文档类型，7.0.0之后文档类型字段已被设置为过期，8.0.0将会完全不支持文档类型字段。原因参见上述注意点。&lt;/p&gt;
+&lt;h4 id=&#34;文档及字段&#34;&gt;文档及字段&lt;/h4&gt;
+&lt;p&gt;文档（document）是ES中存储的主要实体（类比于关系数据库中的一行数据），而字段则是具体的一对KV组合（类比于关系数据库中的一列数据）。&lt;/p&gt;
+&lt;p&gt;需要额外注意的是：字段类型（字符串型，数值型，日期型）决定了ES该执行何种操作，如比较、排序等。&lt;/p&gt;
+&lt;p&gt;幸运的是ES可以自动确定字段类型，当然也可以通过模式映射（schema mapping）自定义文档结构。&lt;/p&gt;
+&lt;h2 id=&#34;集群概念&#34;&gt;集群概念&lt;/h2&gt;
+&lt;h3 id=&#34;节点与集群&#34;&gt;节点与集群&lt;/h3&gt;
+&lt;p&gt;ElasticSearch可以作为一个独立的搜索服务器工作。然而，为了能够处理大型数据集并实现高可用容灾功能，我们有必要在多台服务器上部署运行ES。&lt;/p&gt;
+&lt;p&gt;一个运行中的ES实例称为一个节点，而集群则是由一个或多个拥有相同cluster.name配置的节点组成，集群中的所有节点共享数据且分担负载。&lt;/p&gt;
+&lt;p&gt;一个集群存在一个主节点（选举生成），它负责管理集群范围内的所有变更，如节点的增删，索引的增删等（不涉及文档级别）。&lt;/p&gt;
+&lt;p&gt;查看集群健康状态：curl -X GET &amp;quot;localhost:9200/_cluster/health?pretty&amp;quot;&lt;/p&gt;
+&lt;p&gt;其中status字段展示了集群的健康状况：green：所有主/副本分片都是正常的；yellow：所有主分片都正常，但并不是所有副本分片都正常；red：所有主/副本分片都不正常。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303016.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;分片概述&#34;&gt;分片概述&lt;/h3&gt;
+&lt;p&gt;一个分片是一个底层的工作单元，它只存储了全部数据的一部分。前文所说的索引（存储数据的地方），实际上也是指向一个或多个物理分片的逻辑命名空间。&lt;/p&gt;
+&lt;p&gt;每个分片都是一个完整的搜索引擎，也即是一个Lucene实例。应用程序并不需要关注分片的存在，只需跟索引进行交互即可（ES透明处理了分片数据合并的过程）。&lt;/p&gt;
+&lt;p&gt;所有的分片都可以存储在集群中的任一节点中，而文档数据则存储在各个分片内，这便是ES集群管理数据的方式。&lt;/p&gt;
+&lt;p&gt;一个分片既可以是主分片，也可以是副本分片。索引中的任意文档都归属于一个主分片，所以主分片的数量决定了索引能够保存的最大数据量（Integer.MAX_VALUE-128，这是理论最大值，实际中还与硬件设备、文档大小、文档复杂度，索引和查询文档的方式以及期待的响应时长有关）。&lt;/p&gt;
+&lt;p&gt;副本分片主要用于高可用容灾与备份，是对主分片数据的一个拷贝，同时提供搜索和返回文档等读操作。&lt;/p&gt;
+&lt;p&gt;注意：扩容时，我们可以通过增加副本分片来提高搜索性能，但如果节点不变的情况下，我们增大副本分片仅仅只能带来容灾备份；这是因为每个分片从节点上获取的资源会变少，所以想增加吞吐量唯有扩展机器资源了。&lt;/p&gt;
+&lt;p&gt;设置三个主分片以及一个副本分片（每个主分片都拥有一个副本分片）：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303017.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;修改一个副本分片为两个副本分片：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303018.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;路由算法&#34;&gt;路由算法&lt;/h3&gt;
+&lt;p&gt;分布式存储少不了路由算法，在ES中是通过hash算法来确定数据该存储到哪一个节点/分片中的。&lt;/p&gt;
+&lt;p&gt;公式：shard = hash(routeKey) % number_of_primary_shards&lt;/p&gt;
+&lt;p&gt;其中routeKey是一个随机数，一般情况下默认是文档id，不过也可以直接指定对应的值。&lt;/p&gt;
+&lt;p&gt;该公式也表明了主分片数为何只能在创建索引的时候设置，并且不允许被修改（如果被更改，那么之前的数据将无法被查询到，因为路由值已经不同）。&lt;/p&gt;
+&lt;h3 id=&#34;集群交互&#34;&gt;集群交互&lt;/h3&gt;
+&lt;p&gt;以三节点集群为例，其中包含一个blogs的索引，它对应的设置为：主分片数：2，副本数：2。一般相同分片的副本不会存放在同一节点，如下图：&lt;/p&gt;
+&lt;p&gt;注意：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;ES中的每个节点都有能力处理任意操作请求。&lt;/li&gt;
+&lt;li&gt;如果某个节点被指定为接受请求的节点，那么该节点被称为协调节点（coordinating  node）&lt;/li&gt;
+&lt;li&gt;为了后续更好的扩展负载，一般使用轮询机制遍历集群中的所有节点。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303019.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;新建删除文档&#34;&gt;新建/删除文档&lt;/h4&gt;
+&lt;p&gt;新建与删除操作需要在主节点操作结束后，才能同步至副本分片中，如下所示：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303020.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;操作步骤如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;客户端向NODE1发送新建，删除请求。&lt;/li&gt;
+&lt;li&gt;NODE1通过路由算法得到文档所属的分片P0，于是请求被转发至NODE3（因为P0分片位于NODE3节点上）。&lt;/li&gt;
+&lt;li&gt;NODE3上的请求执行成功后，它会将请求并行地转发至NODE1与NODE2上的副本分片。当所有副本分片都返回执行成功时，NODE3节点将向协调节点（NODE1）回执成功，协调节点（NODE1）随后将成功回执给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;额外参数补充：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;consistency：一致性。此参数默认配置下进行写操作时，主分片会要求集群中的大部分（规定数量（quorum））分片副本处于活跃可用状态，否则将不会进行写操作。如此设置的目的是为了防止出现网络分区故障时，写操作出现数据不一致的现象。&lt;/li&gt;
+&lt;li&gt;规定数量公式：int((primary + number_of_replicas)/2) + 1；其中number_of_replicas指的是设置索引时对应的副本分片数，且只有该值大于1时，规定数量设置才会生效（因为单节点默认配置会影响写操作）。&lt;/li&gt;
+&lt;li&gt;consistency参数值：one 表示主分片状态ok即可执行写操作；all 表示主分片及所有副本分片都ok才能进行写操作；quorum 默认设置，表示副本分片达到规定数量即可执行写操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;更新文档&#34;&gt;更新文档&lt;/h4&gt;
+&lt;p&gt;更新操作相较于新建/删除多了一个额外的冲突重试步骤，如下图所示；&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303021.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;操作步骤如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;客户端向NODE1发送更新请求。&lt;/li&gt;
+&lt;li&gt;NODE1通过路由算法得到文档所属的分片P0，于是请求被转发至NODE3（因为P0分片位于NODE3节点上）。&lt;/li&gt;
+&lt;li&gt;NODE3从主分片搜索对应的文档数据，修改_source中的内容，并重新存储至主分片上。如果此过程中，文档被另一个进程修改，那么步骤3将会重复执行，直到retry_on_conflict次后放弃。&lt;/li&gt;
+&lt;li&gt;NODE3上的请求执行成功后，它会将新版本的文档并行地转发至NODE1与NODE2上的副本分片，重新建立索引。当所有副本分片都返回执行成功时，NODE3节点将向协调节点（NODE1）回执成功，协调节点（NODE1）随后将成功回执给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意：主分片并不会将更改请求转发至副本分片，而是将新版本的文档完整的转发过去，且不保证顺序。如果ES转发更改请求，那么由于顺序的不一致，可能导致文档更新有误，从而使错误的数据存储下来。&lt;/p&gt;
+&lt;h4 id=&#34;检索文档&#34;&gt;检索文档&lt;/h4&gt;
+&lt;p&gt;ES可以从主分片或者副本分片中得到需要搜素的文档，如下图所示：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303022.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;操作步骤如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;客户端向NODE1发送更新请求。&lt;/li&gt;
+&lt;li&gt;NODE1通过路由算法得到文档所属的分片P0，分片P0的副本分片存在所有节点上，在这种情况下（轮询机制），它将请求转发至NODE2。&lt;/li&gt;
+&lt;li&gt;NODE2将文档返回给NODE1，NODE1再将文档返回给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意：在处理读请求时，协调节点在每次请求时都会通过轮询机制遍历所有节点来达到负载均衡。这也是步骤2会从NODE2获取数据的原因。&lt;/p&gt;
+&lt;p&gt;在文档被检索时，已经被索引的文档可能已经存在于主分片上但是还没有复制到副本分片。在这种情况下，副本分片可能会报告文档不存在，但是主分片可能成功返回文档。 一旦索引请求成功返回给用户，文档在主分片和副本分片都是可用的。&lt;/p&gt;
+&lt;h4 id=&#34;批量操作文档&#34;&gt;批量操作文档&lt;/h4&gt;
+&lt;p&gt;ES批量操作与单文档操作基本一致。区别在于协调节点会将整个文档分解为每个分片的多文档请求，并将这些请求转发至每个参与节点。&lt;/p&gt;
+&lt;p&gt;使用单个 mget 请求取回多个文档所需的步骤顺序：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;客户端向 Node 1 发送 mget 请求。&lt;/li&gt;
+&lt;li&gt;Node 1 为每个分片构建多文档获取请求，然后并行转发这些请求到托管在每个所需的主分片或者副本分片的节点上。一旦收到所有答复， Node 1 构建响应并将其返回给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;10&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303023.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;bulk API 操作步骤：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;客户端向 Node 1 发送 bulk 请求。&lt;/li&gt;
+&lt;li&gt;Node 1 为每个节点创建一个批量请求，并将这些请求并行转发到每个包含主分片的节点主机。&lt;/li&gt;
+&lt;li&gt;主分片一个接一个按顺序执行每个操作。当每个操作成功时，主分片并行转发新文档（或删除）到副本分片，然后执行下一个操作。 一旦所有的副本分片报告所有操作成功，该节点将向协调节点报告成功，协调节点将这些响应收集整理并返回给客户端。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;11&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303024.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+">ES基本概念与集群</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/cpu-biao-sheng-wen-ti-pai-cha/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述运行中的Java程序导致的CPU飙升问题排查过程和方法。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/hot-air-balloon-1756150_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;cpu飙升问题排查&#34;&gt;CPU飙升问题排查&lt;/h2&gt;
+&lt;h3 id=&#34;问题描述&#34;&gt;问题描述&lt;/h3&gt;
+&lt;p&gt;线上系统突然运行缓慢，CPU飙升，甚至到100%，以及Full GC次数过多，接着就是各种报警：例如接口超时报警等。此时急需快速线上排查问题。&lt;/p&gt;
+&lt;h3 id=&#34;问题排查&#34;&gt;问题排查&lt;/h3&gt;
+&lt;p&gt;不管什么问题，既然是CPU飙升，肯定是查一下耗CPU的线程，然后看看GC。&lt;/p&gt;
+&lt;h4 id=&#34;排查步骤&#34;&gt;排查步骤&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;执行“top”命令：查看所有进程占系统CPU的排序。极大可能排第一个的就是咱们的java进程（COMMAND列，也可以直接使用top -p &lt;code&gt;pgrep -d,java&lt;/code&gt;查看系统中JAVA进程的CPU占用情况）。PID那一列就是进程号。&lt;/li&gt;
+&lt;li&gt;执行“top -Hp 进程号”命令：查看java进程下的所有线程占CPU的情况。&lt;/li&gt;
+&lt;li&gt;执行“printf &amp;quot;%x\n 10&amp;quot;命令 ：后续查看线程堆栈信息展示的都是十六进制，为了找到咱们的线程堆栈信息，咱们需要把线程号转成16进制。例如,printf &amp;quot;%x\n 10-》打印：a，那么在jstack中线程号就是0xa.&lt;/li&gt;
+&lt;li&gt;执行 “jstack 进程号 | grep 线程ID” 查找某进程下-》线程ID（jstack堆栈信息中的nid）=0xa的线程堆栈信息。如果“&amp;quot;VM Thread&amp;quot; os_prio=0 tid=0x00007f871806e000 nid=0xa runnable”，第一个双引号圈起来的就是线程名，如果是“VM Thread”这就是虚拟机GC回收线程了&lt;/li&gt;
+&lt;li&gt;执行“jstat -gcutil 进程号 统计间隔毫秒 统计次数（缺省代表一次统计）”，查看某进程GC持续变化情况，如果发现返回中FGC很大且一直增大-》确认Full GC! 也可以使用“jmap -heap 进程ID”查看一下进程的堆内存是不是要溢出了，特别是老年代内存使用情况，一般是达到阈值(具体看垃圾回收器和启动时配置的阈值)进程就会Full GC。&lt;/li&gt;
+&lt;li&gt;执行“jmap -dump:format=b,file=filename 进程ID”，导出某进程下内存heap输出到文件中。可以通过jvisualvm查看（直接双击打开jvisualvm.exe，点击文件-&amp;gt;装入，在文件类型那一栏选择堆，选择要分析的dump文件，打开）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意：jmap会导致JVM的停止（您的应用程序已停止。获得准确的堆转储的唯一实用方法是在创建转储时停止所有应用程序活动。这是“简短”暂停还是“长时间”暂停取决于要转储多少。如果使用“ -dump”，则将转储整个堆，包括不可达的对象。如果使用“-dump：live”，则只会转储可访问的对象……但这（至少）需要标记堆以找出可访问的对象。但是，如果要转储千兆字节大小的堆，则期望暂停时间以分钟而不是秒为单位。）。&lt;/p&gt;
+&lt;h4 id=&#34;原因分析&#34;&gt;原因分析&lt;/h4&gt;
+&lt;h5 id=&#34;内存消耗过大导致full-gc次数过多&#34;&gt;内存消耗过大，导致Full GC次数过多&lt;/h5&gt;
+&lt;p&gt;执行步骤1-5：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;多个线程的CPU都超过了100%，通过jstack命令可以看到这些线程主要是垃圾回收线程-》上一节步骤2&lt;/li&gt;
+&lt;li&gt;通过jstat命令监控GC情况，可以看到Full GC次数非常多，并且次数在不断增加。--》上一节步骤5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;确定是Full GC,接下来找到具体原因：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;生成大量的对象，导致内存溢出-》执行步骤6，查看具体内存对象占用情况。&lt;/li&gt;
+&lt;li&gt;内存占用不高，但是Full GC次数还是比较多，此时可能是代码中手动调用 System.gc()导致GC次数过多，这可以通过添加 -XX:+DisableExplicitGC来禁用JVM对显示GC的响应。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h5 id=&#34;代码中有大量消耗cpu的操作导致cpu过高系统运行缓慢&#34;&gt;代码中有大量消耗CPU的操作，导致CPU过高，系统运行缓慢；&lt;/h5&gt;
+&lt;p&gt;执行步骤1-4：在步骤4jstack，可直接定位到代码行。例如某些复杂算法，甚至算法BUG，无限循环递归等等。&lt;/p&gt;
+&lt;h5 id=&#34;由于锁使用不当导致死锁&#34;&gt;由于锁使用不当，导致死锁。&lt;/h5&gt;
+&lt;p&gt;执行步骤1-4： 如果有死锁，会直接提示。关键字：deadlock.步骤四，会打印出业务死锁的位置。&lt;/p&gt;
+&lt;p&gt;造成死锁的原因：最典型的就是2个线程互相等待对方持有的锁。&lt;/p&gt;
+&lt;h5 id=&#34;随机出现大量线程访问接口缓慢&#34;&gt;随机出现大量线程访问接口缓慢。&lt;/h5&gt;
+&lt;p&gt;代码某个位置有阻塞性的操作，导致该功能调用整体比较耗时，但出现是比较随机的；平时消耗的CPU不多，而且占用的内存也不高。&lt;/p&gt;
+&lt;p&gt;思路：首先找到该接口，通过压测工具不断加大访问力度，大量线程将阻塞于该阻塞点。&lt;/p&gt;
+&lt;p&gt;执行步骤1-4，如下，找到业务代码阻塞点，这里业务代码使用了TimeUnit.sleep()方法，使线程进入了TIMED_WAITING(期限等待)状态。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;quot;http-nio-8080-exec-4&amp;quot; #31 daemon prio=5 os_prio=31 tid=0x00007fd08d0fa000 nid=0x6403 waiting on condition [0x00007000033db000]
+ java.lang.Thread.State: TIMED_WAITING (sleeping)-》期限等待
+ at java.lang.Thread.sleep(Native Method)
+ at java.lang.Thread.sleep(Thread.java:340)
+ at java.util.concurrent.TimeUnit.sleep(TimeUnit.java:386)
+ at com.*.user.controller.UserController.detail(UserController.java:18)-》业务代码阻塞点
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h5 id=&#34;某个线程由于某种原因而进入waiting状态此时该功能整体不可用但是无法复现&#34;&gt;某个线程由于某种原因而进入WAITING状态，此时该功能整体不可用，但是无法复现；&lt;/h5&gt;
+&lt;p&gt;执行步骤1-4：jstack多查询几次，每次间隔30秒，对比一直停留在parking 导致的WAITING状态的线程。例如CountDownLatch倒计时器，使得相关线程等待-&amp;gt;AQS-&amp;gt;LockSupport.park()。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;quot;Thread-0&amp;quot; #11 prio=5 os_prio=31 tid=0x00007f9de08c7000 nid=0x5603 waiting on condition [0x0000700001f89000]
+java.lang.Thread.State: WAITING (parking) -&amp;gt;无期限等待
+at sun.misc.Unsafe.park(Native Method)
+at java.util.concurrent.locks.LockSupport.park(LockSupport.java:304)
+at com.*.SyncTask.lambda$main$0(SyncTask.java:8)-》业务代码阻塞点
+at com.*.SyncTask$$Lambda$1/1791741888.run(Unknown Source)
+at java.lang.Thread.run(Thread.java:748)
+&lt;/code&gt;&lt;/pre&gt;
+">CPU飙升问题排查</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/zabbix54-cai-ji-ri-zhi-jin-xing-ding-ding-gao-jing/"" data-c="
