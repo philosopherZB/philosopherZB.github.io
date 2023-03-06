@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>ES基本概念与集群 | Philosopher</title>
+<title>MySQL日志系统 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678093148871">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="ES基本概念与集群" />
-  <meta name="keywords" content="elasticsearch" />
+  <meta name="description" content="MySQL日志系统" />
+  <meta name="keywords" content="mysql" />
 </head>
 
 <body>
@@ -255,29 +255,32 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">基本概念</a>
+<li><a href="#%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9F">日志系统</a>
 <ul>
-<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
-<li><a href="#%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A">名词解释</a>
+<li><a href="#%E6%A6%82%E8%A6%81">概要</a></li>
+<li><a href="#%E9%94%99%E8%AF%AF%E6%97%A5%E5%BF%97">错误日志</a></li>
+<li><a href="#%E6%9F%A5%E8%AF%A2%E6%97%A5%E5%BF%97">查询日志</a></li>
+<li><a href="#%E6%85%A2%E6%9F%A5%E8%AF%A2%E6%97%A5%E5%BF%97">慢查询日志</a></li>
+<li><a href="#%E4%B8%AD%E7%BB%A7%E6%97%A5%E5%BF%97">中继日志</a></li>
+<li><a href="#%E5%85%83%E6%95%B0%E6%8D%AE%E6%97%A5%E5%BF%97">元数据日志</a></li>
+<li><a href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97">二进制日志</a>
 <ul>
-<li><a href="#%E7%B4%A2%E5%BC%95%E5%AD%98%E5%82%A8%E7%B4%A2%E5%BC%95">索引（存储索引）</a></li>
-<li><a href="#%E6%96%87%E6%A1%A3%E7%B1%BB%E5%9E%8B">文档类型</a></li>
-<li><a href="#%E6%96%87%E6%A1%A3%E5%8F%8A%E5%AD%97%E6%AE%B5">文档及字段</a></li>
+<li><a href="#%E4%BD%9C%E7%94%A8">作用</a></li>
+<li><a href="#%E9%85%8D%E7%BD%AE">配置</a></li>
+<li><a href="#%E6%A0%BC%E5%BC%8F">格式</a></li>
 </ul>
 </li>
+<li><a href="#%E5%BC%95%E6%93%8E%E6%97%A5%E5%BF%97">引擎日志</a>
+<ul>
+<li><a href="#redo-log">redo log</a>
+<ul>
+<li><a href="#redo-log%E8%AE%B0%E5%BD%95%E5%BD%A2%E5%BC%8F">redo log记录形式</a></li>
+<li><a href="#redo-log%E5%88%B7%E7%A3%81%E7%9B%98">redo log刷磁盘</a></li>
+<li><a href="#redo-log%E4%B8%8Ebinlog">redo log与binlog</a></li>
 </ul>
 </li>
-<li><a href="#%E9%9B%86%E7%BE%A4%E6%A6%82%E5%BF%B5">集群概念</a>
-<ul>
-<li><a href="#%E8%8A%82%E7%82%B9%E4%B8%8E%E9%9B%86%E7%BE%A4">节点与集群</a></li>
-<li><a href="#%E5%88%86%E7%89%87%E6%A6%82%E8%BF%B0">分片概述</a></li>
-<li><a href="#%E8%B7%AF%E7%94%B1%E7%AE%97%E6%B3%95">路由算法</a></li>
-<li><a href="#%E9%9B%86%E7%BE%A4%E4%BA%A4%E4%BA%92">集群交互</a>
-<ul>
-<li><a href="#%E6%96%B0%E5%BB%BA%E5%88%A0%E9%99%A4%E6%96%87%E6%A1%A3">新建/删除文档</a></li>
-<li><a href="#%E6%9B%B4%E6%96%B0%E6%96%87%E6%A1%A3">更新文档</a></li>
-<li><a href="#%E6%A3%80%E7%B4%A2%E6%96%87%E6%A1%A3">检索文档</a></li>
-<li><a href="#%E6%89%B9%E9%87%8F%E6%93%8D%E4%BD%9C%E6%96%87%E6%A1%A3">批量操作文档</a></li>
+<li><a href="#undo-log">undo log</a></li>
+<li><a href="#innodb%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D">InnoDB故障恢复</a></li>
 </ul>
 </li>
 </ul>
@@ -549,8 +552,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/">
-      ES基本概念与集群
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/">
+      MySQL日志系统
     </a>
   </h1>
   <div class="post-meta">
@@ -558,7 +561,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-02-19 14:27:12">2022-02-19</span>
+      <span class="publish-time" data-t="2022-03-19 16:07:47">2022-03-19</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -567,8 +570,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/zrErJ2St2/">
-        <span>elasticsearch</span>
+      <a href="https://philosopherzb.github.io/tag/GTQmawK6y/">
+        <span>mysql</span>
       </a>
       
       
@@ -577,17 +580,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>12<span class="language" data-lan="minute">分钟</span></span>
+      <span>14<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>3447<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>3818<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/es-ji-ben-gai-nian-yu-ji-qun/" data-flag-title="ES基本概念与集群" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/mysql-ri-zhi-xi-tong/" data-flag-title="MySQL日志系统" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -597,115 +600,224 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述elasticsearch基本结构，术语介绍以及路由算法，分片原理等。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/conifers-1850227_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="基本概念">基本概念</h2>
-<h3 id="简介">简介</h3>
-<p>ElasticSearch是一个基于Apach Lucene构建的搜索引擎，其天生便是分布式的，具备极强的可扩展性，除此之外，强大的实时分析特性以及分布式存储都是其不可忽视的优点。</p>
-<p>ES的主旨在于随时可用以及按需扩容。垂直扩容（纵向扩容）：性能更强大的硬件机器；水平扩容（横向扩容）：数量更多的服务器。</p>
-<p>由于硬件限制，现阶段的垂直扩容必然存在一个极限，所以对于ES而言，真正的扩容能力还是来自于水平扩容-为集群增加更多的机器（多节点负载与分布式容灾，同时可以进行PB级别的数据分析）。</p>
-<h3 id="名词解释">名词解释</h3>
-<h4 id="索引存储索引">索引（存储索引）</h4>
-<p>索引（Index）是ElasticSearch存放数据的地方（为了区分搜索索引，暂且称其为存储索引）。以关系数据库类比的话，ES中的索引相当于数据库（es6之后等同于数据表，参见；1.2.2文档类型-重点注意）的概念。但是与关系数据库相比，ES可以更快速且高效的对索引中的数据进行全文检索。</p>
-<p>究其根本是由于ES/Lucene使用的倒排索引相较于关系数据库中的b-tree，b+tree而言，多了一层内存索引概念（此处的索引指搜索索引，而非存储索引）。</p>
-<p>内存索引是对磁盘索引的一层简化封装，例如：磁盘索引为Alex，Bob，Curl，Abnormal；那么内存索引则为：A，B，C，b，这些简化字段会组成一颗trie tree（前缀树，根据字典顺序升序排列），通过特定的压缩技术（Lucene Finite State Transducers <a href="https://cs.nyu.edu/~mohri/pub/fla.pdf">点击此处跳转文档页面</a>）可以将其尺寸缩小数十倍，使得用内存缓存trie tree变成可能。</p>
-<p>正是基于内存索引的优化，ES/Lucene才能比关系数据库更快的检索出结果；因为其在内存中已经找到了对应的磁盘索引，可以直接根据磁盘索引查询对应的磁盘数据，而关系数据库则需要遍历查找出对应的磁盘索引，之后再根据磁盘索引查询磁盘数据，这中间便多了磁盘的random access次数（一次磁盘random access大概耗时10ms，耗时会随着磁盘硬件的优劣而产生一定的浮动）。</p>
-<p>关于多字段查询，ES/Lucene有两种合并方式：1.skip list实现联合索引的；对跳表中的数据进行快速与运算。2.bitset实现快速合并，进行按位与运算。两种方式的比较可参考：<a href="https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps">点击此处跳转页面</a></p>
-<p>综上所述，整体效果图如下所示：</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303015.png" alt="img" loading="lazy"></figure>
-<h4 id="文档类型">文档类型</h4>
-<p>ES中的索引可以存储许多不同用途的对象，如：学生对象，课程对象等，为了更轻松地区分这些对象，文档类型这个概念便应运而生（可类比于关系数据库中的表）；在实际操作中，为文档划分不同的类型，可以更方便的操作数据。</p>
-<p>注意：划分文档类型时存在一定的限制条件，其中之一便是不同的文档类型对同一字段不能设置为不同的字段类型。例如：学生对象中的课程id是Integer类型，而课程对象中的id是String，这是不行的。详情可参考：<a href="https://www.elastic.co/guide/cn/elasticsearch/guide/current/mapping.html">点击此处跳转页面</a></p>
-<p>重点注意：es6.0.0之前单个索引可以有多个文档类型，es6.0.0之后单个索引只能有一个文档类型，7.0.0之后文档类型字段已被设置为过期，8.0.0将会完全不支持文档类型字段。原因参见上述注意点。</p>
-<h4 id="文档及字段">文档及字段</h4>
-<p>文档（document）是ES中存储的主要实体（类比于关系数据库中的一行数据），而字段则是具体的一对KV组合（类比于关系数据库中的一列数据）。</p>
-<p>需要额外注意的是：字段类型（字符串型，数值型，日期型）决定了ES该执行何种操作，如比较、排序等。</p>
-<p>幸运的是ES可以自动确定字段类型，当然也可以通过模式映射（schema mapping）自定义文档结构。</p>
-<h2 id="集群概念">集群概念</h2>
-<h3 id="节点与集群">节点与集群</h3>
-<p>ElasticSearch可以作为一个独立的搜索服务器工作。然而，为了能够处理大型数据集并实现高可用容灾功能，我们有必要在多台服务器上部署运行ES。</p>
-<p>一个运行中的ES实例称为一个节点，而集群则是由一个或多个拥有相同cluster.name配置的节点组成，集群中的所有节点共享数据且分担负载。</p>
-<p>一个集群存在一个主节点（选举生成），它负责管理集群范围内的所有变更，如节点的增删，索引的增删等（不涉及文档级别）。</p>
-<p>查看集群健康状态：curl -X GET &quot;localhost:9200/_cluster/health?pretty&quot;</p>
-<p>其中status字段展示了集群的健康状况：green：所有主/副本分片都是正常的；yellow：所有主分片都正常，但并不是所有副本分片都正常；red：所有主/副本分片都不正常。</p>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303016.png" alt="img" loading="lazy"></figure>
-<h3 id="分片概述">分片概述</h3>
-<p>一个分片是一个底层的工作单元，它只存储了全部数据的一部分。前文所说的索引（存储数据的地方），实际上也是指向一个或多个物理分片的逻辑命名空间。</p>
-<p>每个分片都是一个完整的搜索引擎，也即是一个Lucene实例。应用程序并不需要关注分片的存在，只需跟索引进行交互即可（ES透明处理了分片数据合并的过程）。</p>
-<p>所有的分片都可以存储在集群中的任一节点中，而文档数据则存储在各个分片内，这便是ES集群管理数据的方式。</p>
-<p>一个分片既可以是主分片，也可以是副本分片。索引中的任意文档都归属于一个主分片，所以主分片的数量决定了索引能够保存的最大数据量（Integer.MAX_VALUE-128，这是理论最大值，实际中还与硬件设备、文档大小、文档复杂度，索引和查询文档的方式以及期待的响应时长有关）。</p>
-<p>副本分片主要用于高可用容灾与备份，是对主分片数据的一个拷贝，同时提供搜索和返回文档等读操作。</p>
-<p>注意：扩容时，我们可以通过增加副本分片来提高搜索性能，但如果节点不变的情况下，我们增大副本分片仅仅只能带来容灾备份；这是因为每个分片从节点上获取的资源会变少，所以想增加吞吐量唯有扩展机器资源了。</p>
-<p>设置三个主分片以及一个副本分片（每个主分片都拥有一个副本分片）：</p>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303017.png" alt="" loading="lazy"></figure>
-<p>修改一个副本分片为两个副本分片：</p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303018.png" alt="img" loading="lazy"></figure>
-<h3 id="路由算法">路由算法</h3>
-<p>分布式存储少不了路由算法，在ES中是通过hash算法来确定数据该存储到哪一个节点/分片中的。</p>
-<p>公式：shard = hash(routeKey) % number_of_primary_shards</p>
-<p>其中routeKey是一个随机数，一般情况下默认是文档id，不过也可以直接指定对应的值。</p>
-<p>该公式也表明了主分片数为何只能在创建索引的时候设置，并且不允许被修改（如果被更改，那么之前的数据将无法被查询到，因为路由值已经不同）。</p>
-<h3 id="集群交互">集群交互</h3>
-<p>以三节点集群为例，其中包含一个blogs的索引，它对应的设置为：主分片数：2，副本数：2。一般相同分片的副本不会存放在同一节点，如下图：</p>
-<p>注意：</p>
-<ol>
-<li>ES中的每个节点都有能力处理任意操作请求。</li>
-<li>如果某个节点被指定为接受请求的节点，那么该节点被称为协调节点（coordinating  node）</li>
-<li>为了后续更好的扩展负载，一般使用轮询机制遍历集群中的所有节点。</li>
-</ol>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303019.png" alt="img" loading="lazy"></figure>
-<h4 id="新建删除文档">新建/删除文档</h4>
-<p>新建与删除操作需要在主节点操作结束后，才能同步至副本分片中，如下所示：</p>
-<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303020.png" alt="img" loading="lazy"></figure>
-<p>操作步骤如下：</p>
-<ol>
-<li>客户端向NODE1发送新建，删除请求。</li>
-<li>NODE1通过路由算法得到文档所属的分片P0，于是请求被转发至NODE3（因为P0分片位于NODE3节点上）。</li>
-<li>NODE3上的请求执行成功后，它会将请求并行地转发至NODE1与NODE2上的副本分片。当所有副本分片都返回执行成功时，NODE3节点将向协调节点（NODE1）回执成功，协调节点（NODE1）随后将成功回执给客户端。</li>
-</ol>
-<p>额外参数补充：</p>
+<p>本章主要简述MySQL日志系统，包括InnoDB引擎日志。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/hd-wallpaper-2836301_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="日志系统">日志系统</h2>
+<h3 id="概要">概要</h3>
+<p>日志是mysql数据库的重要组成部分，记录着数据库运行期间的各种信息；其中包括错误日志，查询日志，慢查询日志，二进制日志等。</p>
+<table>
+<thead>
+<tr>
+<th>日志类型</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Error log</td>
+<td>mysql启动、运行、停止期间发生的问题记录</td>
+</tr>
+<tr>
+<td>General query log</td>
+<td>客户端建立连接以及期间发生的所有sql操作</td>
+</tr>
+<tr>
+<td>Slow query log</td>
+<td>记录执行时间过长或没有使用索引的查询语句</td>
+</tr>
+<tr>
+<td>Binary log</td>
+<td>记录数据库的变动操作，如insert，create，alert等语句，所以该日志也可用于主从复制。</td>
+</tr>
+<tr>
+<td>Relay log</td>
+<td>中继日志一般用于接受复制源的数据变动（主从复制时会用到）</td>
+</tr>
+<tr>
+<td>DDL log (metadata log)</td>
+<td>记录了执行DDL语句的元数据操作</td>
+</tr>
+<tr>
+<td>Engine log</td>
+<td>引擎会有自己的额外日志</td>
+</tr>
+</tbody>
+</table>
+<h3 id="错误日志">错误日志</h3>
+<p>错误日志包含了数据库启动和宕机时的记录；除此之外，它还包含服务启动、运行、宕机时的一些诊断性日志如errors,warnings和notes等。</p>
+<p>一般情况下，错误日志有助于检查数据库运行状态，查看日志文件语句如下：</p>
+<pre><code>show variables like '%log_error%';
+
+</code></pre>
+<h3 id="查询日志">查询日志</h3>
+<p>查询日志记录了mysql服务实例的所有操作，如select,delete,insert等；一般情况，该日志不会被打开，避免造成mysql性能下降。查看该日志文件的语句如下：</p>
+<pre><code>show variables like '%general_log%';
+</code></pre>
+<h3 id="慢查询日志">慢查询日志</h3>
+<p>慢查询日志由执行时间超过long_query_time的sql语句组成，且必须有至少min_examined_row_limit行数据被检查过。</p>
+<p>慢查询日志可以有效的跟踪执行时间过长或者没有使用索引的查询语句。查看语句如下：</p>
+<pre><code>-- 查看日志文件
+show variables like '%slow_query_log%';
+-- 查看参数值
+show variables like '%long_query_time%';
+show variables like '%min_examined_row_limit%';
+
+-- log_quries_not_using_indexes 是否将不使用索引的查询语句记录到慢查询日志中，无论查询速度有多快。
+SET GLOBAL log_queries_not_using_indexes=ON;
+show variables like 'log_queries_not_using_indexes';
+
+-- 如果log_quries_not_using_indexes处于开启状态，那么mysql还提供了log_throttle_queries_not_using_indexes 用来控制每分钟写入多少条数据
+show variables like 'log_throttle_queries_not_using_indexes';
+
+-- 日志的输出格式，FILE或者table
+show variables like 'log_output';
+
+</code></pre>
+<h3 id="中继日志">中继日志</h3>
+<p>中继日志一般用于主从复制，基本结构与binlog一致。</p>
+<h3 id="元数据日志">元数据日志</h3>
+<p>元数据日志记录了通过数据库定义的能够影响表分区的语句操作，例如： ALTER TABLE t3 DROP PARTITION p2；mysql必须确保分区被完全移除，且该分区位于table t3的分区列表中的定义也被移除。为了防止在移除分区操作时机器宕机导致的移除失败，元数据日志便诞生了，因为其记录了具体的语句操作，mysql完全可以根据这些语句重新进行移除操作。</p>
+<h3 id="二进制日志">二进制日志</h3>
+<p>二进制日志记录了对mysql数据库执行更新的所有操作，需要注意的是不包括查询类操作，如select，show等；同时，某些操作本身可能并未对数据库进行修改，但这些操作仍然会被写入二进制日志，如update一条不存在的数据（update t set a=1 where a=2）。</p>
+<pre><code>-- 查看二进制日志是否开启，默认情况下是关闭的
+show variables like '%log_bin%';
+
+</code></pre>
+<h4 id="作用">作用</h4>
+<p>二进制日志的具体用途如下：</p>
 <ul>
-<li>consistency：一致性。此参数默认配置下进行写操作时，主分片会要求集群中的大部分（规定数量（quorum））分片副本处于活跃可用状态，否则将不会进行写操作。如此设置的目的是为了防止出现网络分区故障时，写操作出现数据不一致的现象。</li>
-<li>规定数量公式：int((primary + number_of_replicas)/2) + 1；其中number_of_replicas指的是设置索引时对应的副本分片数，且只有该值大于1时，规定数量设置才会生效（因为单节点默认配置会影响写操作）。</li>
-<li>consistency参数值：one 表示主分片状态ok即可执行写操作；all 表示主分片及所有副本分片都ok才能进行写操作；quorum 默认设置，表示副本分片达到规定数量即可执行写操作。</li>
+<li>恢复(recovery)：二进制日志包含数据所有的更新操作，一旦数据库宕机，完全可以根据二进制日志进行备份恢复。如，在一个数据库全备文件恢复后，用户可以通过二进制日志进行point-in-time的恢复。</li>
+<li>复制(replication)：一般与relay log配合使用，进行主从复制操作。</li>
+<li>审计(audit)：可以检查该日志来判断是否有注入攻击。</li>
 </ul>
-<h4 id="更新文档">更新文档</h4>
-<p>更新操作相较于新建/删除多了一个额外的冲突重试步骤，如下图所示；</p>
-<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303021.png" alt="img" loading="lazy"></figure>
-<p>操作步骤如下：</p>
+<h4 id="配置">配置</h4>
+<p>二进制日志默认是关闭状态，需要手动配置才能开启。mysql配置文件为/etc/my.cnf，使用vim编辑该文件，键入如下内容：</p>
+<pre><code># binlog
+# 指明存储文件位置
+log-bin=/temp/mysql-bin.log
+# 设置binlog清理时间
+expire-logs-days=14
+# 每个文件的大小
+max-binlog-size=512M
+# mysql集群的服务id
+server-id=1
+
+</code></pre>
+<pre><code># 参数说明
+log_bin：设置此参数表示启用binlog功能，并指定路径名称
+
+log_bin_index：设置此参数是指定二进制索引文件的路径与名称
+
+expire-logs-days：设置binlog清理时间（手动清理：purge master logs before '2010-02-16 00:00:00';）
+
+binlog_do_db：此参数表示只记录指定数据库的二进制日志
+
+binlog_ignore_db：此参数表示不记录指定的数据库的二进制日志
+
+max_binlog_cache_size：此参数表示binlog使用的内存最大的尺寸
+
+binlog_cache_size：此参数表示binlog使用的内存大小，可以通过状态变量binlog_cache_use和binlog_cache_disk_use来帮助测试。
+binlog_cache_use：使用二进制日志缓存的事务数量
+binlog_cache_disk_use:使用二进制日志缓存但超过binlog_cache_size值并使用临时文件来保存事务中的语句的事务数量
+
+max_binlog_size：Binlog最大值，最大和默认值是1GB，该设置并不能严格控制Binlog的大小，尤其是Binlog比较靠近最大值而又遇到一个比较大事务时，
+为了保证事务的完整性，不可能做切换日志的动作，只能将该事务的所有SQL都记录进当前日志，直到事务结束
+
+</code></pre>
+<pre><code># binlog刷盘策略参数配置
+sync_binlog：这个参数直接影响mysql的性能和完整性
+sync_binlog=0：当事务提交后，Mysql仅仅是将binlog_cache中的数据写入Binlog文件，但不执行fsync操作，而是让Filesystem自行决定什么时候来做同步。此模式相对来说性能最高，但不安全，宕机时容易丢失数据。
+sync_binlog=1：每次事务提交时，都将binlog刷入磁盘。此模式最安全，但性能相对偏低。
+sync_binlog=n：在进行n次事务提交以后，Mysql将执行一次fsync之类的磁盘同步指令，通知文件系统将Binlog文件缓存刷新到磁盘。如果容许出现数据丢失，可以适当的提高此设置值来获取更好的性能。
+
+</code></pre>
+<h4 id="格式">格式</h4>
+<p>mysql5.1版本开始引入了额外的binlog格式参数，分别为：STATEMENT，ROW，MIXED。</p>
+<pre><code>-- 查看binlog格式
+show variables like '%binlog_format%';
+</code></pre>
+<ul>
+<li>STATEMENT：记录的是逻辑SQL语句，即所有的数据库更新操作。该模式下日志量相对ROW会更少，节省了IO及存储资源，性能相对有所提高。注意：在RC(Read committed，读已提交)隔离级别下，此模式会导致主从复制数据不一致问题（例如：一条删除语句与一条新增语句在两个session中提交，最终master可能是先删除后新增，但slave库复制时可是先新增后删除，导致数据不一致）。解决方案便是RC选择ROW模式，RR（可重复读有间隙锁防止session执行顺序错乱）选择STATEMENT模式。</li>
+<li>ROW：记录表行数据的变更情况，而非单纯的逻辑sql语句。如果binlog格式设置为ROW，那么隔离级别可以设置为RC，以提高并发度；当然随之而来的便是IO及存储资源的增加。</li>
+<li>MIXED：默认依旧使用STATEMENT格式，只在某些情况下使用ROW格式；如：NDB引擎，insert delay语句，临时表，自定义函数等。</li>
+</ul>
+<h3 id="引擎日志">引擎日志</h3>
+<p>事务一般都有ACID四个特性，其中隔离性可以通过锁来实现；原子性，一致性，持久性则需要通过日志系统进行保障。以InnoDB为例，redo log保证了持久性，undo log则保证了原子性。</p>
+<p>InnoDB架构官网链接：<a href="https://dev.mysql.com/doc/refman/5.7/en/innodb-architecture.html">点击此处跳转官网页面</a></p>
+<h4 id="redo-log">redo log</h4>
+<p>在mysql中，持久性作为事务四大特性之一，需要确保对数据的修改能够永久地保存下来；如果在每次更新数据时都简单地采用直接刷入磁盘的操作，将会导致整个服务性能变得低下。以InnoDB引擎为例，原因如下：</p>
+<ul>
+<li>InnoDB引擎与磁盘进行交互的基本单位是数据页，一次事务操作可能只修改了几个字节，这个时候将整个数据页刷入磁盘，将会浪费大量的资源。</li>
+<li>一个事务操作可能涉及多个不同的数据页，且当这些数据页在磁盘上不连续时，写入性能也将变得很差（随机IO多了寻址(seek)步骤）</li>
+</ul>
+<p>于是，InnoDB引擎设计了redo log专门记录着事务操作引起的数据变化，确切地说是记录了事务操作对数据页做了哪些修改。</p>
+<p>这个日志与磁盘配合的整个过程，在MySQL中被称之为WAL(Write-Ahead Logging，预写式技术)；WAL会先将记录写入日志，然后在系统空闲的时候或者按照设定的更新策略进行刷磁盘操作(刷脏页，fsync)。</p>
+<h5 id="redo-log记录形式">redo log记录形式</h5>
+<p>redo log本身只记录数据页的变更，且采用了大小固定，循环写入的实现方案进行log记录。为了实现循环写入，redo log中设置了两个标志位：checkpoint 和 write pos。</p>
+<ul>
+<li>write pos 表示redo log当前记录的LSN(log sequence number,日志序列号：日志空间中每条日志的结束点，用字节偏移量表示)，即记录写入位置。</li>
+<li>checkpoint 表示脏页（缓存中的数据页被称为脏页）刷盘后对应的redo log所处的LSN，即记录擦除位置。</li>
+</ul>
+<p>在进行log记录时，如果write pos追上了checkpoint，那么就表示redo log已经写满了；此时需要停止写入，并运行checkpoint规则进行刷磁盘操作（先更新内存，再将buffer中的脏数据（缓存中的数据被称为脏数据）fsync到磁盘）。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306004.png" alt="img" loading="lazy"></figure>
+<h5 id="redo-log刷磁盘">redo log刷磁盘</h5>
+<p>redo log包含两个核心部分，分别是内存中的日志缓冲(redo log buffer)以及磁盘上的日志文件(redo log file)。当执行一条更新sql时，数据会先写入redo log buffer，之后再写入redo log file。</p>
+<p>在计算机操作系统中，用户空间(user space)下的缓存区数据是无法直接写入磁盘的，一般都需要经过内核空间(kernel space)的缓存区(OS Buffer)，之后才能真正写入磁盘。具体流程图如下所示：</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306005.png" alt="" loading="lazy"></figure>
+<p>在InnoDB中有一个配置参数可以用来控制日志的刷新频率：innodb_flush_log_at_trx_commit。</p>
+<table>
+<thead>
+<tr>
+<th>参数值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0（延时写）</td>
+<td>事务提交之后，日志只记录到 log buffer 中，之后每秒写一次日志到缓存（OS Buffer）并刷新（fsync）到磁盘，尚未刷新的日志可能会丢失。</td>
+</tr>
+<tr>
+<td>1（实时写，实时刷）</td>
+<td>事务每次提交都会将log buffer中的日志写入os buffer并调用fsync()刷到log file中。这种方式即使系统崩溃也不会丢失任何数据，但是因为每次提交都写入磁盘，IO的性能较差。</td>
+</tr>
+<tr>
+<td>2（实时写，延时刷）</td>
+<td>每次事务提交之后，日志写到 OS Buffer，每秒刷一次到磁盘，尚未刷新的日志可能会丢失。</td>
+</tr>
+</tbody>
+</table>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306007.png" alt="img" loading="lazy"></figure>
+<h5 id="redo-log与binlog">redo log与binlog</h5>
+<p>binlog是mysql服务共有的日志文件，而redo log则是InnoDB独有的日志文件。同时，redo log是基于crash recovery，保证MySQL宕机后的数据恢复（crash-safe）；而binlog是基于point-in-time recovery，保证服务器可以基于时间点对数据进行恢复，或者对数据进行备份。</p>
+<p>注意：单纯的binlog日志系统是不具备crash-safe功能的，因为binlog一般只能提供归档功能（记录了对mysql数据库执行更新的所有操作）。</p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306008.png" alt="img" loading="lazy"></figure>
+<p>以InnoDB引擎对update table set b = 2 where a = 1语句操作为例，其中都会涉及redo log日志和binlog日志，具体流程如下：</p>
 <ol>
-<li>客户端向NODE1发送更新请求。</li>
-<li>NODE1通过路由算法得到文档所属的分片P0，于是请求被转发至NODE3（因为P0分片位于NODE3节点上）。</li>
-<li>NODE3从主分片搜索对应的文档数据，修改_source中的内容，并重新存储至主分片上。如果此过程中，文档被另一个进程修改，那么步骤3将会重复执行，直到retry_on_conflict次后放弃。</li>
-<li>NODE3上的请求执行成功后，它会将新版本的文档并行地转发至NODE1与NODE2上的副本分片，重新建立索引。当所有副本分片都返回执行成功时，NODE3节点将向协调节点（NODE1）回执成功，协调节点（NODE1）随后将成功回执给客户端。</li>
+<li>查询 a=1 这一行。如果 a=1 这一行所在的数据页本来就在内存中，便直接返回；否则，需要先从磁盘读入内存，然后再返回。</li>
+<li>修改 a=1 这行的b为2，并写入新行。</li>
+<li>引擎将这行新数据更新到内存（InnoDB Buffer Pool）中，同时将这个更新操作记录到 redo log 里面，此时 redo log 处于 prepare 状态。</li>
+<li>sql语句写入 binlog，并把 binlog 刷入磁盘（依据配置的刷盘机制）。</li>
+<li>执行器调用引擎的提交事务接口，引擎把刚刚写入的 redo log 改成提交（commit）状态，更新完成。</li>
 </ol>
-<p>注意：主分片并不会将更改请求转发至副本分片，而是将新版本的文档完整的转发过去，且不保证顺序。如果ES转发更改请求，那么由于顺序的不一致，可能导致文档更新有误，从而使错误的数据存储下来。</p>
-<h4 id="检索文档">检索文档</h4>
-<p>ES可以从主分片或者副本分片中得到需要搜素的文档，如下图所示：</p>
-<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303022.png" alt="img" loading="lazy"></figure>
-<p>操作步骤如下：</p>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306009.png" alt="img" loading="lazy"></figure>
+<h4 id="undo-log">undo log</h4>
+<p>回滚日志主要是为了保证数据库事务的原子性，当一个事务对数据库进行修改时，InnoDB引擎不仅会记录redo log，还会生成对应的undo log日志；当事务执行失败或者调用rollback时，便可以利用undo log将数据回滚到修改之前的样子。</p>
+<p>关于 undo Log 的存储：InnoDB 中有回滚段(rollback segment)，每个回滚段记录 1024 个 undo log segment，在每个 undo log segment 段中进行申请 undo 页。系统表空间偏移量为 5 的页记录了所有的 rollback segment header 所在的页。</p>
+<p>undo log有两个作用：一是提供回滚，二是实现MVCC；两种格式：insert undo log（记录插入对应的回滚日志） 和 update undo log（记录更新和删除对应的回滚日志）。</p>
+<p>undo log详解可参考：<a href="http://mysql.taobao.org/monthly/2021/10/01/">点击此处跳转页面</a></p>
+<h4 id="innodb故障恢复">InnoDB故障恢复</h4>
+<p>由上小节可知，InnoDB事务处理采用的是二阶段提交，因此故障恢复也将依据二阶段进行。</p>
+<p>注意1：binlog的完整性依据不同的日志格式而不同，STATEMENT格式为COMMIT，而ROW格式最后一行会有一个XID event，且5.6.2版本后，mysql还新增了binlog-checknum用于验证binlog的完整性。</p>
+<p>注意2：redo log与binlog有一个共同的数据字段：XID。</p>
 <ol>
-<li>客户端向NODE1发送更新请求。</li>
-<li>NODE1通过路由算法得到文档所属的分片P0，分片P0的副本分片存在所有节点上，在这种情况下（轮询机制），它将请求转发至NODE2。</li>
-<li>NODE2将文档返回给NODE1，NODE1再将文档返回给客户端。</li>
+<li>数据库启动后，InnoDB引擎会根据redo log寻找最近的一次checkpoint位置，随后根据checkpoint对应的LSN(log sequence number,日志序列号)获取需要重做的日志。</li>
+<li>根据redo log回滚未prepared和commit的事务，但对于已经prepared，但未commit的事务，暂时挂起，将其保存到一个链表中。</li>
+<li>mysql读取最后一个binlog文件。binlog文件通常是以固定的文件名加一组连续的编号来命名的，并且将其记录到一个binlog索引文件中，因此索引文件中的最后一个binlog文件即是MySQL将要读取的最后一个binlog文件。</li>
+<li>如果binlog中记录了上次mysql为异常关闭（文件头是否存在标记LOG_EVENT_BINLOG_IN_USE_F），则依次读取binlog中所有的log event，并将所有已提交事务的xid取出归总到一个列表；同时，定位出最后一个完整事务的位置。</li>
+<li>遍历第二步中的列表，判断其是否在第四步中的提交事务列表中，如果是，则提交此事务；否则回滚。</li>
+<li>将最后一个完整事务位置之后的binlog清除，到此故障恢复便已全部完成。</li>
 </ol>
-<p>注意：在处理读请求时，协调节点在每次请求时都会通过轮询机制遍历所有节点来达到负载均衡。这也是步骤2会从NODE2获取数据的原因。</p>
-<p>在文档被检索时，已经被索引的文档可能已经存在于主分片上但是还没有复制到副本分片。在这种情况下，副本分片可能会报告文档不存在，但是主分片可能成功返回文档。 一旦索引请求成功返回给用户，文档在主分片和副本分片都是可用的。</p>
-<h4 id="批量操作文档">批量操作文档</h4>
-<p>ES批量操作与单文档操作基本一致。区别在于协调节点会将整个文档分解为每个分片的多文档请求，并将这些请求转发至每个参与节点。</p>
-<p>使用单个 mget 请求取回多个文档所需的步骤顺序：</p>
-<ol>
-<li>客户端向 Node 1 发送 mget 请求。</li>
-<li>Node 1 为每个分片构建多文档获取请求，然后并行转发这些请求到托管在每个所需的主分片或者副本分片的节点上。一旦收到所有答复， Node 1 构建响应并将其返回给客户端。</li>
-</ol>
-<figure data-type="image" tabindex="10"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303023.png" alt="img" loading="lazy"></figure>
-<p>bulk API 操作步骤：</p>
-<ol>
-<li>客户端向 Node 1 发送 bulk 请求。</li>
-<li>Node 1 为每个节点创建一个批量请求，并将这些请求并行转发到每个包含主分片的节点主机。</li>
-<li>主分片一个接一个按顺序执行每个操作。当每个操作成功时，主分片并行转发新文档（或删除）到副本分片，然后执行下一个操作。 一旦所有的副本分片报告所有操作成功，该节点将向协调节点报告成功，协调节点将这些响应收集整理并返回给客户端。</li>
-</ol>
-<figure data-type="image" tabindex="11"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230303024.png" alt="" loading="lazy"></figure>
 
             </div>
             
@@ -718,7 +830,7 @@
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/" title="ES基本概念与集群">https://philosopherzb.github.io/post/es-ji-ben-gai-nian-yu-ji-qun/</a>
+      <a href="https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/" title="MySQL日志系统">https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -727,21 +839,17 @@
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/zrErJ2St2/"># elasticsearch</a>
+      <a href="https://philosopherzb.github.io/tag/GTQmawK6y/"># mysql</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
-        <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="ES7架构原理及选举源码" href="https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/">ES7架构原理及选举源码</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="ES7架构原理及选举源码" href="https://philosopherzb.github.io/post/es7-jia-gou-yuan-li-ji-xuan-ju-yuan-ma/">上一篇</a>
-      
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="CPU飙升问题排查" href="https://philosopherzb.github.io/post/cpu-biao-sheng-wen-ti-pai-cha/">CPU飙升问题排查</a>
-        <a class="nav-mobile-next" title="CPU飙升问题排查" href="https://philosopherzb.github.io/post/cpu-biao-sheng-wen-ti-pai-cha/">下一篇</a>
+        <a class="nav-pc-next" title="MySQL架构与EXPLAIN与锁" href="https://philosopherzb.github.io/post/mysql-jia-gou-yu-explain-yu-suo/">MySQL架构与EXPLAIN与锁</a>
+        <a class="nav-mobile-next" title="MySQL架构与EXPLAIN与锁" href="https://philosopherzb.github.io/post/mysql-jia-gou-yu-explain-yu-suo/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
