@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Philosopher</title>
+<title>Lua基本知识 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678267308901">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,6 +41,8 @@
 
 
 
+  <meta name="description" content="Lua基本知识" />
+  <meta name="keywords" content="脚本,lua" />
 </head>
 
 <body>
@@ -76,7 +78,7 @@
             
               
             
-            <li class="nav-item nav-item-active">
+            <li class="nav-item ">
               
               
                 <a href="/" target="_self">
@@ -175,8 +177,24 @@
     <div
       class="section-layout pisces ">
       <div class="section-layout-wrapper">
-        <div id="sidebarMeta" class="sidebar">
-    
+        
+
+<div class="sidebar">
+  
+    <div class="sidebar-box box-shadow-wrapper bg-color right-motion" id="sidebar">
+      
+        <div class="post-list-sidebar">
+          <div class="sidebar-title">
+            <span id="tocSideBar" class="sidebar-title-item sidebar-title-active language" data-lan="index">文章目录</span>
+            <span id="metaSideBar" class="sidebar-title-item language" data-lan="preview">站点概览</span>
+          </div>
+        </div>
+      
+      <div class="sidebar-body pisces" id="sidebar_body">
+        
+          
+            <div class="post-side-meta" id="post_side_meta">
+              
 <div class="sidebar-wrapper box-shadow-wrapper bg-color">
   <div class="sidebar-item">
     <img class="site-author-image right-motion" src="/images/avatar.png"/>
@@ -228,960 +246,765 @@
 
 
 </div>
+            </div>
+            <div class="post-toc sidebar-body-active" id="post_toc" style="opacity: 1;">
+              <div class="toc-box right-motion">
+  <div class="toc-wrapper auto-number auto"
+    id="toc_wrapper">
+    <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
+<li><a href="#%E7%AE%80%E4%BB%8B%E4%B8%8E%E5%AE%89%E8%A3%85">简介与安装</a>
+<ul>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85">安装</a></li>
+</ul>
+</li>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">基本概念</a>
+<ul>
+<li><a href="#%E5%80%BC%E4%B8%8E%E7%B1%BB%E5%9E%8B">值与类型</a></li>
+<li><a href="#%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86">错误处理</a></li>
+<li><a href="#%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86">垃圾收集</a></li>
+<li><a href="#%E5%8D%8F%E7%A8%8Bcoroutine">协程（coroutine）</a></li>
+</ul>
+</li>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95">基本语法</a>
+<ul>
+<li><a href="#%E5%8F%98%E9%87%8F">变量</a></li>
+<li><a href="#%E8%A1%A8%E8%BE%BE%E5%BC%8F">表达式</a></li>
+<li><a href="#%E6%8E%A7%E5%88%B6%E6%B5%81">控制流</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
 </div>
+
 <script>
-  let sidebarMeta = document.querySelector('#sidebarMeta');
-  let scheme = 'pisces';
-  let sidebarWrapper = document.querySelector('.sidebar-wrapper');
-  if (sidebarMeta && (scheme === 'pisces' || scheme === 'gemini')) {
-    document.addEventListener('scroll', function(e) {
-      if (document.scrollingElement.scrollTop > parseInt(sidebarMeta.style.marginTop) + 10) {
-        sidebarWrapper.classList.add('home-sidebar-fixed')
-      } else {
-        sidebarWrapper.classList.remove('home-sidebar-fixed')
+
+  let lastTop = 0, lList = [], hList = [], postBody, lastIndex = -1;
+  let active = 'active-show', activeClass = 'active-current';
+  let tocWrapper = document.querySelector('#toc_wrapper');
+  let tocContent = tocWrapper.children[0];
+  let autoNumber = tocWrapper && tocWrapper.classList.contains('auto-number');
+
+  function addTocNumber(elem, deep) {
+    if (!elem) {
+      return;
+    }
+    let prop = elem.__proto__;
+
+    if (prop === HTMLUListElement.prototype) {
+      for (let i = 0; i < elem.children.length; i++) {
+        addTocNumber(elem.children[i], deep + (i + 1) + '.');
       }
+    } else if (prop === HTMLLIElement.prototype) {
+      // 保存li元素
+      if (elem.children[0] && elem.children[0].__proto__ === HTMLAnchorElement.prototype) {
+        lList.push(elem);
+      }
+      for (let i = 0; i < elem.children.length; i++) {
+        let cur = elem.children[i];
+        if (cur.__proto__ === HTMLAnchorElement.prototype) {
+          if (autoNumber) {
+            cur.text = deep + ' ' + cur.text;
+          }
+        } else if (cur.__proto__ === HTMLUListElement.prototype) {
+          addTocNumber(cur, deep);
+        }
+      }
+    }
+  }
+
+  function removeParentActiveClass() {
+    let parents = tocContent.querySelectorAll('.' + active)
+    parents.forEach(function (elem) {
+      elem.classList.remove(active);
     });
   }
-  </script>
-        <div class="section-box pisces">
-          <section class="section bg-color posts-expand slide-down-in">
-            
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/wsl2-and-docker-and-zabbix/">
-      WSL2 &amp; Docker &amp; Zabbix
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-01-08 15:31:21">2022-01-08</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/4bT5-_JSs/">
-        <span>docker</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/Gnw8doRpT/">
-        <span>wsl2</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/QR1bu-Q1N/">
-        <span>zabbix</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>8<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>1603<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述如何安装wsl2，docker以及zabbix。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/forest-1072828_1280.jpg" alt="" loading="lazy"></figure>
 
-                
-              <p>
-            
+  function addActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.add(activeClass);
+    }
+  }
+
+  function removeActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.remove(activeClass);
+    }
+  }
+
+  function addActiveLiElemment(elem, parent) {
+    if (!elem || elem === parent) {
+      return;
+    } else {
+      if (elem.__proto__ === HTMLLIElement.prototype) {
+        elem.classList.add(active);
+      }
+      addActiveLiElemment(elem.parentElement, parent);
+    }
+  }
+
+  function showToc() {
+    if (tocWrapper) {
+      postBody = document.querySelector('#post_body');
+      for (let i = 0; i < postBody.children.length; i++) {
+        if (postBody.children[i].__proto__ === HTMLHeadingElement.prototype) {
+          hList.push(postBody.children[i]);
+        }
+      }
+      if (tocWrapper.classList.contains('compress')) {
+        tocContent.classList.add('closed');
+      } else if (tocWrapper.classList.contains('no_compress')) {
+        tocContent.classList.add('expanded');
+      } else {
+        if (hList.length > 10) {
+          active = 'active-hidden'
+          tocContent.classList.add('closed');
+        } else {
+          tocContent.classList.add('expanded');
+        }
+      }
+    }
+  }
+
+  (function () {
+    // 处理不是从#一级标题开始目录
+    if (tocContent.children.length === 1 && tocContent.children[0].__proto__ === HTMLLIElement.prototype) {
+      let con = tocContent.children[0].children[0];
+      tocContent.innerHTML = con.innerHTML;
+    }
+    let markdownItTOC = document.querySelector('.markdownIt-TOC');
+    let innerHeight = window.innerHeight;
+    markdownItTOC.style = `max-height: ${innerHeight - 80 > 0 ? innerHeight - 80 : innerHeight}px`
+    addTocNumber(tocContent, '');
+  })();
+
+  document.addEventListener('scroll', function (e) {
+    if (lList.length <= 0) {
+      return;
+    }
+    let scrollTop = document.scrollingElement.scrollTop + 10;
+    let dir;
+
+    if (lastTop - scrollTop > 0) {
+      dir = 'up';
+    } else {
+      dir = 'down';
+    }
+
+    lastTop = scrollTop;
+    if (scrollTop <= 0) {
+      if (lastIndex >= 0 && lastIndex < hList.length) {
+        lList[lastIndex].classList.remove(activeClass);
+      }
+      return;
+    }
+
+    let current = 0, hasFind = false;
+    for (let i = 0; i < hList.length; i++) {
+      if (hList[i].offsetTop > scrollTop) {
+        current = i;
+        hasFind = true;
+        break;
+      }
+    }
+    if (!hasFind && scrollTop > lList[lList.length - 1].offsetTop) {
+      current = hList.length - 1;
+    } else {
+      current--;
+    }
+    if (dir === 'down') {
+      if (current > lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex)
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    } else {
+      if (current < lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex);
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    }
+  });
+
+
+  window.addEventListener('load', function () {
+    showToc();
+    document.querySelector('#sidebar').style = 'display: block;';
+    tocWrapper.classList.add('toc-active');
+    setTimeout(function () {
+      if ("createEvent" in document) {
+        let evt = document.createEvent("HTMLEvents");
+        evt.initEvent("scroll", false, true);
+        document.dispatchEvent(evt);
+      }
+      else {
+        document.fireEvent("scroll");
+      }
+    }, 500)
+  })
+
+</script>
+            </div>
           
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/wsl2-and-docker-and-zabbix/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
         
       </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
     </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/linux-chang-yong-ming-ling/">
-      Linux常用命令
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-12-18 11:25:34">2021-12-18</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/rpkr6ZUqd/">
-        <span>linux</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>4<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>823<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Linux中常用的一些操作命令。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-440520_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/linux-chang-yong-ming-ling/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/">
-      Centos7基本知识
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-12-04 11:18:08">2021-12-04</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/rpkr6ZUqd/">
-        <span>linux</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>17<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>4447<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Centos7系统相关的操作及命令介绍。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-1802337_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/">
-      IDEA属性及插件配置
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-04-10 19:34:42">2021-04-10</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/D_CL_2ugM/">
-        <span>工具</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>5<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>1226<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述IDEA常用的一些配置以及相关插件，搭配使用或可提升编码效率。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/valley-90388_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhong-de-chang-yong-pai-xu-suan-fa/">
-      Java中的常用排序算法
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-03-13 10:46:59">2021-03-13</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/cRhWx5aNF/">
-        <span>算法</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>25<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>5600<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述java中常用的一些排序算法极其实现代码，如二分查找，快速排序，堆排，归并排序，冒泡排序等。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-192979_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/java-zhong-de-chang-yong-pai-xu-suan-fa/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">
-      java中引用&amp;IO&amp;类加载&amp;对象创建过程
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-03-06 16:10:21">2021-03-06</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>19<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>4740<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Java中的四种引用类型，JavaIO类型（BIO，NIO，AIO），Java类加载机制以及Hotspot JVM虚拟机对象的探究。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/boat-1014711_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/jvm-xiang-jie/">
-      JVM详解
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-02-27 15:44:30">2021-02-27</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/qo1G6Y6MB/">
-        <span>jvm</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>17<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>4720<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述JVM，包括jvm线程，jvm运行时区域，jvm垃圾回收机制--回收算法以及垃圾回收器</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-139012_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/jvm-xiang-jie/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/">
-      Java8新特性Stream&amp;CompletableFuture
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-02-17 15:16:32">2021-02-17</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>13<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>2585<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Java8新特性，主要是Stream和CompletableFuture的常用例子</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-477832_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/arraylist-yuan-ma-jie-xi-jdk8/">
-      ArrayList源码解析(JDK8)
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-02-06 14:58:04">2021-02-06</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>21<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>4484<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Java中的ArrayList的源码以及其中如何进行扩容的逻辑分析（jdk8）</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/road-1072821_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/arraylist-yuan-ma-jie-xi-jdk8/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
-
-  <article class="post-list-box  post box-shadow-wrapper">
-    <div class="article-wrapper bg-color">
-      <section class="post-header">
-  <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhong-de-suo/">
-      Java中的锁
-    </a>
-  </h1>
-  <div class="post-meta">
-    
-    <span class="meta-item pc-show">
-      <i class="fa fa-calendar-o"></i>
-      <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-01-16 11:27:32">2021-01-16</span>
-      <span class="post-meta-divider pc-show">|</span>
-    </span>
-    
-    <span class="meta-item">
-      <i class="fa fa-folder-o"></i>
-      <span class="pc-show language" data-lan="category-in">分类于</span>
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
-      </a>
-      
-      
-    </span>
-    <span class="post-meta-divider">|</span>
-    
-    <span class="meta-item">
-      <i class="fa fa-clock-o"></i>
-      <span>19<span class="language" data-lan="minute">分钟</span></span>
-    </span>
-    <span class="meta-item">
-      <span class="post-meta-divider">|</span>
-      <i class="fa fa-file-word-o"></i>
-      <span>5205<span class="pc-show language" data-lan="words">字数</span></span>
-    </span>
-    
-  </div>
-</section>
-      <div class="post-body">
-        
-        
-          
-            <!-- 没有手动摘要切开启了自动摘要,则根据配置筛除摘要内容 -->
-            
-            
-              
-              
-              
-            
-              
-              
-              
-            
-              
-              
-              
-            
-            
-              <p><h2 id="前言">前言</h2>
-<p>本章主要简述Java中的锁，包括锁类型，锁升级，锁优化等细节内容。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/railroad-g16c0f522b_1280.jpg" alt="" loading="lazy"></figure>
-
-                
-              <p>
-            
-          
-        
-        
-        <div class="post-button text-center">
-          <a class="btn language" data-lan="read-more" href="https://philosopherzb.github.io/post/java-zhong-de-suo/" rel="contents">
-            阅读全文 »
-          </a>
-        </div>
-        
-      </div>
-      
-        <footer class="post-footer">
-          <div class="post-eof"></div>
-        </footer>
-      
-    </div>
-  </article>
   
-            
-            
-<div class="page bg-color">
-  <ul class="pagination-ul">
-    
-      <li class="pagination-dir">
-        <a href="https://philosopherzb.github.io/">
-          <i class="fa fa-angle-left"></i>
-        </a>
-      </li>
-    
-    
-      
-        <li class="pagination-li ">
-            <a href="/page/../">
-              1
-            </a>
-        </li>
-      
-        <li class="pagination-li pagination-active">
-            <a href="/page/2">
-              2
-            </a>
-        </li>
-      
-        <li class="pagination-li ">
-            <a href="/page/3">
-              3
-            </a>
-        </li>
-      
-    
-    
-      <li class="pagination-dir">
-        <a href="/page/3">
-          <i class="fa fa-angle-right"></i>
-        </a>
-      </li>
-    
-  </ul>
 </div>
-          </section>
+<script>
+  const SIDEBAR_TITLE_ACTIVE = 'sidebar-title-active';
+  const SIDEBAR_BODY_ACTIVE = 'sidebar-body-active';
+  const SLIDE_UP_IN = 'slide-up-in';
+
+  let sidebar = document.querySelector('#sidebar'),
+  tocSideBar = document.querySelector('#tocSideBar'),
+  metaSideBar = document.querySelector('#metaSideBar'),
+  postToc = document.querySelector('#post_toc'),
+  postSiteMeta = document.querySelector('#post_side_meta'),
+  sidebarTitle = document.querySelector('.sidebar-title'),
+  sidebarBody = document.querySelector('#sidebar_body');
+
+  tocSideBar && tocSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  metaSideBar && metaSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  function toggleSidebar(e) {
+    let currentTitle = document.querySelector("."+SIDEBAR_TITLE_ACTIVE);
+    if (currentTitle == e.srcElement) {
+      return ;
+    }
+    let current, showElement, hideElement;
+    if (e.srcElement == metaSideBar) {
+      showElement = postSiteMeta;
+      hideElement = postToc;
+    } else if (e.srcElement == tocSideBar){
+      showElement = postToc;
+      hideElement = postSiteMeta;
+    }
+    currentTitle.classList.remove(SIDEBAR_TITLE_ACTIVE);
+    e.srcElement.classList.add(SIDEBAR_TITLE_ACTIVE);
+
+    window.Velocity(hideElement, 'stop');
+    window.Velocity(hideElement, 'transition.slideUpOut', {
+      display: 'none',
+      duration: 200,
+      complete: function () {
+        window.Velocity(showElement, 'transition.slideDownIn', {
+          duration: 200
+        });
+      }
+    })
+    hideElement.classList.remove(SIDEBAR_BODY_ACTIVE);
+    showElement.classList.add(SIDEBAR_BODY_ACTIVE);
+  }
+
+  postToc && postToc.addEventListener('transitionend', function() {
+    this.classList.remove(SLIDE_UP_IN);
+  });
+
+  if (sidebarBody) {
+    if (sidebarBody.classList.contains('pisces') || sidebarBody.classList.contains('gemini')) {
+      let hasFix = false;
+      let scrollEl = document.querySelector('.main-continer');
+      let limitTop = document.querySelector('#nav_ul').children.length * 42 + 162;
+      window.addEventListener('scroll', function(e) {
+        if (document.scrollingElement.scrollTop >= limitTop) {
+          if (!hasFix) {
+            sidebar.classList.add('sidebar-fixed');
+            hasFix = true;
+          }
+        } else {
+          if (hasFix) {
+            sidebar.classList.remove('sidebar-fixed');
+            hasFix = false;
+          }
+        }
+      });
+    }
+  }
+  
+</script>
+        <div class="section-box box-shadow-wrapper">
+          <div class="section bg-color post post-page">
+            <section class="post-header">
+  <h1 class="post-title">
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">
+      Lua基本知识
+    </a>
+  </h1>
+  <div class="post-meta">
+    
+    <span class="meta-item pc-show">
+      <i class="fa fa-calendar-o"></i>
+      <span class="language" data-lan="publish">发布于</span>
+      <span class="publish-time" data-t="2022-04-02 17:10:47">2022-04-02</span>
+      <span class="post-meta-divider pc-show">|</span>
+    </span>
+    
+    <span class="meta-item">
+      <i class="fa fa-folder-o"></i>
+      <span class="pc-show language" data-lan="category-in">分类于</span>
+      
+      
+      <a href="https://philosopherzb.github.io/tag/f97QyUxa8/">
+        <span>脚本</span>
+      </a>、
+      
+      
+      
+      <a href="https://philosopherzb.github.io/tag/ozm4KdARF/">
+        <span>lua</span>
+      </a>
+      
+      
+    </span>
+    <span class="post-meta-divider">|</span>
+    
+    <span class="meta-item">
+      <i class="fa fa-clock-o"></i>
+      <span>15<span class="language" data-lan="minute">分钟</span></span>
+    </span>
+    <span class="meta-item">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-file-word-o"></i>
+      <span>3627<span class="pc-show language" data-lan="words">字数</span></span>
+    </span>
+    
+    
+    
+    <span id="/post/lua-ji-ben-zhi-shi/" data-flag-title="Lua基本知识" class="meta-item pc-show leancloud_visitors">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-eye"></i>
+      <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
+    </span>
+    
+  </div>
+</section>
+            <div class="post-body next-md-body" id="post_body">
+              <h2 id="前言">前言</h2>
+<p>本章主要简述Lua脚本知识。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/tianjin-2185510_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="简介与安装">简介与安装</h2>
+<h3 id="简介">简介</h3>
+<p>Lua是一个强大，高效且轻量化的嵌入式脚本语言，由 clean C（标准 C 和 C++ 间共通的子集）实现成一个库，支持过程编程，面向对象编程，函数编程以及数据驱动编程，以此来供任何需要的程序使用。</p>
+<p>同时，作为一门扩展式语言，Lua 没有 &quot;main&quot; 程序的概念：它只能 嵌入 一个宿主程序中工作，该宿主程序被称为 被嵌入程序 或者简称 宿主 。 宿主程序可以调用函数执行一小段 Lua 代码，可以读写 Lua 变量，可以注册 C 函数让 Lua 代码调用。依靠 C 函数，Lua 可以共享相同的语法框架来定制编程语言，从而适用不同的领域。</p>
+<p>这也是其设计目的：为了给应用程序提供灵活的可扩展及定制化功能。</p>
+<h3 id="安装">安装</h3>
+<p>linux/mac安装lua，命令如下，第四行根据系统自行选择，可在<a href="http://www.lua.org/ftp">官网地址</a>中获取最新的lua下载信息。</p>
+<pre><code>curl -R -O http://www.lua.org/ftp/lua-5.*.*.tar.gz
+tar zxf lua-5.*.*.tar.gz
+cd lua-5.*.*
+make linux/macosx test
+make install
+
+</code></pre>
+<p>windows下载LuaForWindows（双击安装即可）：</p>
+<ul>
+<li>Github下载地址：<a href="https://github.com/rjpcomputing/luaforwindows/releases">点击此处跳转下载页面</a></li>
+<li>Google下载地址 : <a href="https://code.google.com/p/luaforwindows/downloads/list">点击此处跳转下载页面</a></li>
+</ul>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306010.png" alt="img" loading="lazy"></figure>
+<h2 id="基本概念">基本概念</h2>
+<h3 id="值与类型">值与类型</h3>
+<p>Lua 是一门动态类型语言，这意味着变量没有类型，只有值才有类型；值可以存储在变量中，作为参数传递或者返回。</p>
+<p>Lua 中有八种基本类型：nil、boolean、number、string、function、userdata、thread 和 table</p>
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nil</td>
+<td>NIL是值nil的类型，用于与其他值区分；通常用来表示一个有意义的值不存在时的状态。如果用于条件判断，其等同于boolean中的false。</td>
+</tr>
+<tr>
+<td>boolean</td>
+<td>包含两个值：true和false</td>
+</tr>
+<tr>
+<td>number</td>
+<td>整数及实数(浮点数)：标准Lua使用64位整数及双精度(64位)浮点数；小型机器和嵌入式系统可以使用32位整数及单精度(32位)浮点数。</td>
+</tr>
+<tr>
+<td>string</td>
+<td>不可变的字节序列(字符串)，可以使用双引号(&quot;&quot;)，单引号('')，双中括号([[]])表示</td>
+</tr>
+<tr>
+<td>function</td>
+<td>由C或者Lua编写的函数</td>
+</tr>
+<tr>
+<td>userdata</td>
+<td>存储在变量中的C语言数据，用户数据类型的值是一个内存块，分为：完全用户数据：指一块由Lua管理的内存对应的对象；轻量用户数据：一个简单的C指针。Lua可使用元表(metatable)对userdata进行操作;如若需要修改用户数据中的值，只能通过C API进行处理，这保证了数据仅被宿主机所控制。</td>
+</tr>
+<tr>
+<td>thread</td>
+<td>一个独立的执行序列，主要用于实现协程(coroutine)。注意：Lua中的线程与操作系统没有任何关系，因此，它可以为那些不支持原生线程的系统提供协程支持。线程跟协程的区别：线程可以同时多个运行，而协程任意时刻只能运行一个，并且处于运行状态的协程只有被挂起（suspend）时才会暂停。</td>
+</tr>
+<tr>
+<td>table</td>
+<td>一个关联数组，是Lua中唯一的数据结构。它可被用于表示普通数组、序列、符号表、集合、记录、图、树等等。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="错误处理">错误处理</h3>
+<p>由于 Lua 是一门嵌入式扩展语言，其所有行为均源于宿主程序中代码对某个 Lua 库函数的调用（如果是单独使用 Lua 时，那么Lua 程序就是宿主程序）。因此，在编译或运行 Lua 代码块的过程中，无论何时发生错误，控制权都返回给宿主，由宿主负责采取恰当的措施（比如打印错误消息）。</p>
+<p>在Lua中的可以通过asset函数或者error函数处理错误。</p>
+<p>asset函数首先会检查第一个参数，如果没有问题则不做任何事情，否则输出第二个参数作为错误信息。使用样例：</p>
+<pre><code>-- 错误处理
+local function add(i, j)
+    assert(type(i) == &quot;number&quot;, &quot;i 不是一个数字&quot;)
+	assert(type(j) == &quot;number&quot;, &quot;j 不是一个数字&quot;)
+	return i + j
+end
+print(add(rd, 1))
+-- 输出
+lua: demo.lua:3: i 不是一个数字
+stack traceback:
+	[C]: in function 'assert'
+	demo.lua:3: in function 'add'
+	demo.lua:7: in main chunk
+	[C]: ?
+
+</code></pre>
+<p>error函数：error (message [, level])，显式地抛出一个错误，内容为参数message，</p>
+<p>Level参数指示获得错误的位置: Level=1[默认]：为调用error位置(文件+行号)；Level=2：指出哪个调用error的函数的函数；Level=0:不添加错误位置信息。</p>
+<pre><code>error('error msg..')
+--输出
+lua: demo.lua:1: error msg..
+stack traceback:
+	[C]: in function 'error'
+	demo.lua:1: in main chunk
+	[C]: ?
+
+</code></pre>
+<p>如果需要在 Lua 中捕获这些错误，可以使用 <a href="https://www.bookstack.cn/read/lua-5.3/2.md#pdf-pcall">pcall</a> 或<a href="https://www.bookstack.cn/read/lua-5.3/2.md#pdf-xpcall">xpcall</a>在 保护模式 下调用一个函数。</p>
+<p>使用xpcall或pcall时，需要提供一个 消息处理函数 用于错误抛出时调用。该函数需接收原始的错误消息，并返回一个新的错误消息。</p>
+<p>它在错误发生后栈尚未展开时调用，因此可以利用栈来收集更多的信息，比如通过探知栈来创建一组栈回溯信息。同时，该处理函数也处于保护模式下，所以该函数内发生的错误会再次触发它（递归）。如果递归太深，Lua 会终止调用并返回一个合适的消息。</p>
+<h3 id="垃圾收集">垃圾收集</h3>
+<p>Lua采用了自动内存管理（类似于Java）。这意味着使用者不用操心新创建的对象需要的内存如何分配出来，也不用考虑在对象不再被使用后怎样释放它们所占用的内存。</p>
+<p>Lua 运行了一个 垃圾收集器 来收集所有 死对象（即在 Lua 中不可能再访问到的对象）来完成自动内存管理的工作。</p>
+<p>Lua 中所有用到的内存，如：字符串、表、用户数据、函数、线程、内部结构等，都服从自动管理。</p>
+<p>Lua 实现了一个增量标记-扫描收集器。它使用这两个数字来控制垃圾收集循环：垃圾收集器间歇率 和 垃圾收集器步进倍率。这两个数字都使用百分数为单位（例如：值 100 在内部表示 1 ）。</p>
+<p>垃圾收集器间歇率控制着收集器需要在开启新的循环前要等待多久。增大这个值会减少收集器的积极性。当这个值比 100 小的时候，收集器在开启新的循环前不会有等待。设置这个值为 200 就会让收集器等到总内存使用量达到之前的两倍时才开始新的循环。</p>
+<p>垃圾收集器步进倍率控制着收集器运作速度相对于内存分配速度的倍率。增大这个值不仅会让收集器更加积极，还会增加每个增量步骤的长度。不要把这个值设得小于 100 ，那样的话收集器就工作的太慢了以至于永远都干不完一个循环。默认值是 200 ，这表示收集器以内存分配的“两倍”速工作。</p>
+<p>如果将步进倍率设为一个非常大的数字（比程序可能用到的字节数还大 10% ），收集器的行为就像一个 stop-the-world 收集器。接着若把间歇率设为 200 ，收集器的行为就和过去的 Lua 版本一样了：每次 Lua 使用的内存翻倍时，就做一次完整的收集。</p>
+<p>通过在 C 中调用 lua_gc或在 Lua 中调用collectgarbage ([opt [, arg]])来控制自动内存管理。通过参数 opt 它提供了一组不同的功能：</p>
+<ul>
+<li>collectgarbage(&quot;collect&quot;): 做一次完整的垃圾收集循环。</li>
+<li>collectgarbage(&quot;count&quot;): 以 K 字节数为单位返回 Lua 使用的总内存数。 这个值有小数部分，所以只需要乘上 1024 就能得到 Lua 使用的准确字节数（除非溢出）。</li>
+<li>collectgarbage(&quot;restart&quot;): 重启垃圾收集器的自动运行。</li>
+<li>collectgarbage(&quot;setpause&quot;): 将 arg 设为收集器的 间歇率。 返回 间歇率 的前一个值。</li>
+<li>collectgarbage(&quot;setstepmul&quot;): 返回 步进倍率 的前一个值。</li>
+<li>collectgarbage(&quot;step&quot;): 单步运行垃圾收集器。 步长&quot;大小&quot;由 arg 控制。 传入 0 时，收集器步进（不可分割的）一步。 传入非 0 值， 收集器收集相当于 Lua 分配这些多（K 字节）内存的工作。 如果收集器结束一个循环将返回 true 。</li>
+<li>collectgarbage(&quot;stop&quot;): 停止垃圾收集器的运行。 在调用重启前，收集器只会因显式的调用运行。</li>
+<li>collectgarbage(&quot;isrunning&quot;): 返回表示收集器是否工作的布尔值。</li>
+</ul>
+<pre><code>demoTable = {&quot;LUa&quot;, &quot;shell&quot;, &quot;python&quot;, &quot;Java&quot;, &quot;ruby&quot;}
+print(collectgarbage(&quot;count&quot;))
+demoTable = nil
+
+print(collectgarbage(&quot;count&quot;))
+print(collectgarbage(&quot;collect&quot;))
+print(collectgarbage(&quot;count&quot;))
+-- 输出
+21.0859375
+21.1123046875
+0
+19.498046875
+
+</code></pre>
+<h3 id="协程coroutine">协程（coroutine）</h3>
+<p>Lua中的协程也被称作协同式多线程，代表了一段独立执行的线程。它与线程非常的类似：拥有独立的堆栈、局部变量、指令指针，同时又与其他协程共享全局变量。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coroutine.create()</td>
+<td>创建一个协程。其唯一的参数是该协程的主函数。create 函数只负责新建一个协程并返回其句柄（一个 thread 类型的对象）；而不会启动该协程。</td>
+</tr>
+<tr>
+<td>coroutine.resume()</td>
+<td>执行一个协程。第一次调用coroutine.resume时，第一个参数应传入coroutine.create返回的线程对象，然后协程从其主函数的第一行开始执行。传递给coroutine.resume的其他参数将作为协程主函数的参数传入。协程启动之后，将一直运行到它终止或调用coroutine.yield。</td>
+</tr>
+<tr>
+<td>coroutine.yield()</td>
+<td>挂起协程，让出执行权。一般与resume配合使用。协程挂起时，对应的最近coroutine.resume函数会立刻返回，即使该挂起操作发生在内嵌函数调用中（即不在主函数，但在主函数直接或间接调用的函数内部）。在协程挂起的情况下，coroutine.resume也会返回 true，并加上传给coroutine.yield的参数。当下次重启同一个协程时，协程会接着从挂起点继续执行。此时，此前挂起点处对coroutine.yield的调用会返回，返回值为传给coroutine.resume的第一个参数之外的其他参数。</td>
+</tr>
+<tr>
+<td>coroutine.status()</td>
+<td>查看线程状态：dead，suspended，running</td>
+</tr>
+<tr>
+<td>coroutine.warp()</td>
+<td>与create类似，也是创建一个协程。不同之处在于，它不返回协程本身，而是返回一个函数。调用这个函数将启动该协程。传递给该函数的任何参数均当作coroutine.resume的额外参数。</td>
+</tr>
+<tr>
+<td>coroutine.running()</td>
+<td>返回一个running协程的协程号。</td>
+</tr>
+</tbody>
+</table>
+<p>协程样例及步骤解释：</p>
+<p>1、函数foo加载，协程co创建。</p>
+<p>2、第15行print执行，由coroutine.resume触发执行co协程。</p>
+<p>2.1、接着打印第7行数据，对应输出结果第28行。</p>
+<p>2.2、随后第8行调用函数foo，开始执行第2行，打印结果为第29行</p>
+<p>2.3、最后第3行执行，协程被挂起，打印结果对应第30行。</p>
+<p>注意：yield调用后的返回值为下次resume同一协程时的输入参数。对应第8行的r。</p>
+<p>3、第16行执行，打印协程状态，为suspended（挂起）。</p>
+<p>4、第18行执行，resume同一协程，输入参数“r”对应第8行的local r，也即第3行yield挂起后的返回值。</p>
+<p>4.1、第9行打印，对应结果为第32行。</p>
+<p>4.2、第10行执行，协程挂起，返回r，s两个值，作为下次resume时可输入的值。</p>
+<p>5、第21行执行，resume同一协程，输入参数“x”，“y”，对应第10行的local r，s。</p>
+<p>5.1、第11行执行，打印协程内容，对接结果为第35行。</p>
+<p>5.2、协程结束，打印结果为第36行。</p>
+<p>6、第22执行，显示协程已dead（死亡），对应结果为第37行。</p>
+<p>7、第24行执行，resume协程，开始提示，协程已经dead，对应结果为第38行。</p>
+<pre><code>function foo (a)
+  print(&quot;foo&quot;, a)
+  return coroutine.yield(2*a)
+end
+
+co = coroutine.create(function (a,b)
+      print(&quot;co-body&quot;, a, b)
+      local r = foo(a+1)
+      print(&quot;co-body&quot;, r)
+      local r, s = coroutine.yield(a+b, a-b)
+      print(&quot;co-body&quot;, r, s)
+      return b, &quot;end&quot;
+end)
+
+print(&quot;main&quot;, coroutine.resume(co, 1, 10))
+print(coroutine.status(co))
+
+print(&quot;main&quot;, coroutine.resume(co, &quot;r&quot;))
+print(coroutine.status(co))
+
+print(&quot;main&quot;, coroutine.resume(co, &quot;x&quot;, &quot;y&quot;))
+print(coroutine.status(co))
+
+print(&quot;main&quot;, coroutine.resume(co, &quot;x&quot;, &quot;y&quot;))
+print(coroutine.status(co))
+
+-- 输出
+co-body	1	10
+foo	2
+main	true	4
+suspended
+co-body	r
+main	true	11	-9
+suspended
+co-body	x	y
+main	true	10	end
+dead
+main	false	cannot resume dead coroutine
+dead
+
+</code></pre>
+<h2 id="基本语法">基本语法</h2>
+<h3 id="变量">变量</h3>
+<p>在Lua中的进行赋值操作，是不需要指定类型的。如下：</p>
+<pre><code>-- 简单赋值
+z = 1
+print(z)
+-- 多重赋值，同时也支持多重返回值
+a,b = 3,4
+print(a)
+print(b)
+return a,b
+
+-- 本地（局部）变量赋值
+local x,y=5,6
+print(x)
+print(y)
+-- 交换数据
+x,y = y,x
+print(x)
+print(y)
+
+-- 代码块
+do
+    local str = &quot;world&quot;
+	print(str)
+end
+
+</code></pre>
+<h3 id="表达式">表达式</h3>
+<p>在Lua中的表达式基本与高级语言相差无几，如下：</p>
+<p>操作符</p>
+<ol>
+<li>算术运算符：+ - * / ^ (加减乘除幂)</li>
+<li>关系运算符：&lt; &gt; &lt;= &gt;= == ~=</li>
+<li>逻辑运算符：and or not</li>
+<li>连接运算符：..</li>
+</ol>
+<p>有几个操作符需要注意：</p>
+<ul>
+<li>a ~= b 即 a 不等于 b</li>
+<li>a ^ b 即 a 的 b 次方</li>
+<li>a .. b 将 a 和 b 作为字符串连接</li>
+</ul>
+<p>优先级：</p>
+<ol>
+<li>^</li>
+<li>not -(负号)</li>
+<li>*/</li>
+<li>+-</li>
+<li>..</li>
+<li>&lt; &gt; &lt;= &gt;= ~= ==</li>
+<li>and</li>
+<li>or</li>
+</ol>
+<h3 id="控制流">控制流</h3>
+<p>Lua以if for while等来进行流程控制，具体如下所示：</p>
+<pre><code>-- if语句
+local num = &quot;21&quot;
+if (tonumber(num)~=nil) then
+    print(&quot;tonumber result: &quot;..tonumber(num))
+else
+    print(&quot;tonumber result is not number&quot;)
+end
+
+-- for语句
+-- 三个数字分别表示初始值，终止值，步长
+for i = 2, 10, 2 do
+    print(i)
+end
+-- i，v分别表示数组对应的索引及值，注意：Lua中的数组是从1开始排序
+demoTable = {&quot;LUa&quot;, &quot;shell&quot;, &quot;python&quot;, &quot;Java&quot;, &quot;ruby&quot;}
+for i,v in ipairs(demoTable) do
+    print(i)
+    print(v)
+end
+
+-- while语句
+local i = 0
+while i &lt; 2 do
+    print(i)
+	i = i + 1
+	if (i == 1) then break end
+end
+
+</code></pre>
+
+            </div>
+            
+            
+              <div class="post-footer">
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong class="language" data-lan="author">本文作者：</strong>
+      Philosopher
+    </li>
+    <li class="post-copyright-link">
+      <strong class="language" data-lan="link">本文链接：</strong>
+      <a href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/" title="Lua基本知识">https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong class="language" data-lan="copyright">版权声明： </strong>
+      本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i> BY-NC-SA</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+  <div class="tags">
+    
+      <a href="https://philosopherzb.github.io/tag/f97QyUxa8/"># 脚本</a>
+    
+      <a href="https://philosopherzb.github.io/tag/ozm4KdARF/"># lua</a>
+    
+  </div>
+  <div class="nav">
+    <div class="nav-prev">
+      
+        <i class="fa fa-chevron-left"></i>
+        <a class="nav-pc-next" title="python3基本知识" href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/">python3基本知识</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="python3基本知识" href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/">上一篇</a>
+      
+    </div>
+    <div class="nav-next">
+      
+        <a class="nav-pc-next" title="MySQL日志系统" href="https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/">MySQL日志系统</a>
+        <a class="nav-mobile-next" title="MySQL日志系统" href="https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/">下一篇</a>
+        <i class="fa fa-chevron-right"></i>
+      
+    </div>
+  </div>
+</div>
+            
+            
+  <script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<div id="vcomments" style="padding: 10px 0px 0px 0px"></div>
+
+<style>
+  .v .veditor {
+    min-height: 10rem;
+    background-image: url('');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right;
+    background-color: rgba(255, 255, 255, 0);
+    resize: none;
+  }
+
+  .v .vwrap {
+    border: 1px solid #000 !important;
+  }
+
+  .v .vbtn {
+    padding: .4rem 1.2rem !important;
+    border-color: #fff !important;
+    background-color: #49b1f5 !important;
+    color: #fff !important;
+    font-size: .7rem !important;
+  }
+
+  .v .vcards .vcard .vh .vmeta .vat {
+    padding: 0 .8rem !important;
+    border: 1px solid #00c4b6 !important;
+    border-radius: 5px !important;
+    color: #00c4b6 !important;
+  }
+</style>
+<script>
+  new Valine({
+    el: '#vcomments',
+    appId: 'vTL9neewLgXcivf073tLdmIO-gzGzoHsz',
+    appKey: '6EMsHOzs5kmg8TqCyk0OI7qU',
+    avatar: 'mp',
+    placeholder: 'Comments welcome',
+    pageSize: '10',
+    lang: 'zh-cn',
+    enableQQ: 'true' === 'false',
+    visitor: 'true' === 'true',
+    highlight: 'true' === 'true',
+    avatarForce: 'true' === 'false',
+  });
+</script>
+
+          </div>
         </div>
       </div>
     </div>
@@ -1396,6 +1219,223 @@
     aelem.appendChild(image);
     parent.insertBefore(aelem, next);
   })
+</script>
+
+    <div class="reward-mask" style="display: none;">
+  <div class="reward-relative">
+    <span class="close" aria-hidden="true">x</span>
+    <div class="reward-body">
+      <h2>感谢您的支持，我会继续努力的!</h2>
+      <div class="reward-img-box">
+        <div style="position: relative; width: 140px; height: 140px;">
+          
+          
+          
+        </div>
+      </div>
+      <p class="reward-word">扫码打赏，你说多少就多少</p>
+      <p class="reward-tip">打开微信扫一扫，即可进行扫码打赏哦</p>
+    </div>
+    <div class="bottom">
+      
+      
+    </div>
+  </div>
+</div>
+<style>
+  .reward-mask {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #00000054;
+  }
+
+  .reward-relative {
+    position: relative;
+    width: 480px;
+    text-align: center;
+    margin: 0 auto;
+    border-radius: 5px;
+    background-color: #fff;
+    top: 50%;
+    margin-top: -205px;
+  }
+
+  .reward-relative .close {
+    position: absolute;
+    right: 10px;
+    font-weight: normal;
+    font-size: 16px;
+    color: #929292;
+  }
+
+  .reward-body {
+    padding: 40px 20px 20px;
+  }
+
+  .bottom {
+    display: flex;
+  }
+
+  .reward-btn {
+    text-align: center;
+  }
+
+  .reward-btn-text {
+    display: inline-block;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    border-radius: 50%;
+    background-color: #ff9734;
+    color: #FFF;
+    margin-top: 20px;
+  }
+
+  .pay-text {
+    margin-top: 10px;
+    padding: 10px;
+    flex: 1;
+    transition: all .2s linear;
+  }
+
+  .pay-text:hover {
+    background-color: #a5a5a536;
+  }
+
+  .reward-body h2 {
+    padding-top: 10px;
+    text-align: center;
+    color: #a3a3a3;
+    font-size: 16px;
+    font-weight: normal;
+    margin: 0 0 20px;
+  }
+
+  .reward-body h2:after,
+  .reward-body h2:before {
+    font-family: Arial, Helvetica, sans-serif;
+    background: 0 0;
+    width: 0;
+    height: 0;
+    font-style: normal;
+    color: #eee;
+    font-size: 80px;
+    position: absolute;
+    top: 20px;
+  }
+
+  .reward-body h2:before {
+    content: '\201c';
+    left: 50px;
+  }
+
+  .reward-body h2:after {
+    content: '\201d';
+    right: 80px;
+  }
+
+  .reward-img-box {
+    display: inline-block;
+    padding: 10px;
+    border: 6px solid #ea5f00;
+    margin: 0 auto;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .reward-img {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .reward-relative {
+      height: 100%;
+      top: 0px;
+      margin-top: 0;
+      width: auto;
+    }
+
+    .reward-relative .bottom {
+      flex-direction: column;
+    }
+
+    .reward-relative .pay-text {
+      width: 80%;
+      margin: 5px auto;
+      border: 1px solid silver;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    .reward-body h2:after {
+      right: 40px;
+    }
+
+    .reward-body h2:after,
+    .reward-body h2:before {
+      font-size: 60px;
+    }
+
+    .reward-body h2:before {
+      left: 20px;
+    }
+  }
+</style>
+<script>
+  !function () {
+    var mask = document.querySelector('.reward-mask');
+    let close = document.querySelector('.reward-relative .close');
+    let rewardBtn = document.querySelector('.reward-btn');
+
+    let zfb = document.querySelector('#zfb'),
+      wx = document.querySelector('#wx'),
+      zfbBtn = document.querySelector('#zfbBtn'),
+      wxBtn = document.querySelector('#wxBtn');
+
+    if (zfbBtn && wxBtn) {
+      zfbBtn.addEventListener('click', () => {
+        window.Velocity(zfb, 'transition.slideLeftIn', {
+          duration: 400
+        });
+        window.Velocity(wx, 'transition.slideRightOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+
+      wxBtn.addEventListener('click', () => {
+        window.Velocity(wx, 'transition.slideRightIn', {
+          duration: 400
+        });
+        window.Velocity(zfb, 'transition.slideLeftOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+    }
+
+    rewardBtn.addEventListener('click', (e) => {
+      window.Velocity(mask, 'transition.slideDownIn', {
+        duration: 400
+      })
+    });
+
+    close.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.Velocity(mask, 'transition.slideUpOut', {
+        duration: 400
+      })
+    })
+  }()
 </script>
 
   </div>
@@ -8565,7 +8605,6 @@ gridea doc: &lt;a href=&#34;https://gridea.dev/gridea-start/&#34;&gt;https://gri
     speed: 200
   });
 </script>
-
 
 
 

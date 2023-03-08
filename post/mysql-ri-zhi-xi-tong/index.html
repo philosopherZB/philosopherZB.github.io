@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>MySQL日志系统 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1678093148871">
+<link rel="shortcut icon" href="/favicon.ico?v=1678267308901">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">21</span>
+        <span class="site-item-stat-count">25</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">12</span>
+        <span class="site-item-stat-count">16</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">12</span>
+        <span class="site-item-stat-count">16</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -845,6 +845,10 @@ show variables like '%binlog_format%';
   <div class="nav">
     <div class="nav-prev">
       
+        <i class="fa fa-chevron-left"></i>
+        <a class="nav-pc-next" title="Lua基本知识" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">Lua基本知识</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="Lua基本知识" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">上一篇</a>
+      
     </div>
     <div class="nav-next">
       
@@ -1357,6 +1361,1628 @@ show variables like '%binlog_format%';
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/bash-tiao-jian-pan-duan-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述bash条件判断规则语法。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/rocks-1757593_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;条件判断&#34;&gt;条件判断&lt;/h2&gt;
+&lt;h3 id=&#34;if结构&#34;&gt;if结构&lt;/h3&gt;
+&lt;p&gt;if是最常用的条件判断结构，只有符合给定条件时，才会执行指定的命令。它的语法如下。&lt;/p&gt;
+&lt;p&gt;注意：如果写在同一行，关键字之间需要使用分号隔离。分号是 Bash 的命令分隔符&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;if commands; then
+  commands
+[elif commands; then
+  commands...]
+[else
+  commands]
+fi
+
+# 例子 判断环境变量$USER是否等于root
+if test $USER = &amp;quot;root&amp;quot;; then
+  echo &amp;quot;Hello root.&amp;quot;
+else
+  echo &amp;quot;You are not root.&amp;quot;
+fi
+
+# 单行书写例子
+if true; then echo &#39;hello world&#39;; fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;if后面可以跟任意数量的命令。这时，所有命令都会执行，但是判断真伪只看最后一个命令，即使前面所有命令都失败，只要最后一个命令返回0，就会执行then的部分。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;if false; i=3; true; then echo &#39;hello world&#39;; fi
+echo ${i}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;test命令&#34;&gt;test命令&lt;/h3&gt;
+&lt;p&gt;if结构的判断条件，一般使用test命令，有三种形式。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 写法一
+test expression
+# 写法二
+[ expression ]
+# 写法三
+[[ expression ]]
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;三种形式是等价的，但是第三种形式还支持正则判断，前两种不支持。&lt;/p&gt;
+&lt;p&gt;expression是一个表达式。这个表达式为真，test命令执行成功（返回值为0）；表达式为伪，test命令执行失败（返回值为1）。&lt;/p&gt;
+&lt;p&gt;注意：第二种和第三种写法，[ ]与内部的表达式之间必须有空格。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;read i
+# 写法一
+if test ${i} == 1 ; then
+  echo &amp;quot;input param: ${i}&amp;quot;
+fi
+# 写法二
+if [ ${i} == 1 ] ; then
+   echo &amp;quot;input param: ${i}&amp;quot;
+fi
+# 写法三
+if [[ ${i} == 1 ]] ; then
+   echo &amp;quot;input param: ${i}&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;判断表达式&#34;&gt;判断表达式&lt;/h2&gt;
+&lt;p&gt;[[ ]]使用在条件判断中，能够防止脚本中的许多逻辑错误。比如，&amp;amp;&amp;amp;、||、&amp;lt; 和 &amp;gt; 操作符能够正常存在于 [[ ]] 条件判断结构中，但是如果出现在 [ ] 结构中的话，会报错。&lt;/p&gt;
+&lt;p&gt;执行的时候，需要用bash test.sh；因为[[]]是bash脚本中的命令（bash是sh的增强版本）。&lt;/p&gt;
+&lt;p&gt;注意：[[  ]]中操作符与变量之间需要有空格，否则会被当做一个变量处理。&lt;/p&gt;
+&lt;h3 id=&#34;文件判断&#34;&gt;文件判断&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;[ -a file ]：如果 file 存在，则为true。&lt;/li&gt;
+&lt;li&gt;[ -b file ]：如果 file 存在并且是一个块（设备）文件，则为true。&lt;/li&gt;
+&lt;li&gt;[ -c file ]：如果 file 存在并且是一个字符（设备）文件，则为true。&lt;/li&gt;
+&lt;li&gt;[ -d file ]：如果 file 存在并且是一个目录，则为true。&lt;/li&gt;
+&lt;li&gt;[ -e file ]：如果 file 存在，则为true。&lt;/li&gt;
+&lt;li&gt;[ -f file ]：如果 file 存在并且是一个普通文件，则为true。&lt;/li&gt;
+&lt;li&gt;[ -g file ]：如果 file 存在并且设置了组 ID，则为true。&lt;/li&gt;
+&lt;li&gt;[ -G file ]：如果 file 存在并且属于有效的组 ID，则为true。&lt;/li&gt;
+&lt;li&gt;[ -h file ]：如果 file 存在并且是符号链接，则为true。&lt;/li&gt;
+&lt;li&gt;[ -k file ]：如果 file 存在并且设置了它的“sticky bit”，则为true。&lt;/li&gt;
+&lt;li&gt;[ -L file ]：如果 file 存在并且是一个符号链接，则为true。&lt;/li&gt;
+&lt;li&gt;[ -N file ]：如果 file 存在并且自上次读取后已被修改，则为true。&lt;/li&gt;
+&lt;li&gt;[ -O file ]：如果 file 存在并且属于有效的用户 ID，则为true。&lt;/li&gt;
+&lt;li&gt;[ -p file ]：如果 file 存在并且是一个命名管道，则为true。&lt;/li&gt;
+&lt;li&gt;[ -r file ]：如果 file 存在并且可读（当前用户有可读权限），则为true。&lt;/li&gt;
+&lt;li&gt;[ -s file ]：如果 file 存在且其长度大于零，则为true。&lt;/li&gt;
+&lt;li&gt;[ -S file ]：如果 file 存在且是一个网络 socket，则为true。&lt;/li&gt;
+&lt;li&gt;[ -t fd ]：如果 fd 是一个文件描述符，并且重定向到终端，则为true。 这可以用来判断是否重定向了标准输入／输出错误。&lt;/li&gt;
+&lt;li&gt;[ -u file ]：如果 file 存在并且设置了 setuid 位，则为true。&lt;/li&gt;
+&lt;li&gt;[ -w file ]：如果 file 存在并且可写（当前用户拥有可写权限），则为true。&lt;/li&gt;
+&lt;li&gt;[ -x file ]：如果 file 存在并且可执行（有效用户有执行／搜索权限），则为true。&lt;/li&gt;
+&lt;li&gt;[ file1 -nt file2 ]：如果 FILE1 比 FILE2 的更新时间最近，或者 FILE1 存在而 FILE2 不存在，则为true。&lt;/li&gt;
+&lt;li&gt;[ file1 -ot file2 ]：如果 FILE1 比 FILE2 的更新时间更旧，或者 FILE2 存在而 FILE1 不存在，则为true。&lt;/li&gt;
+&lt;li&gt;[ FILE1 -ef FILE2 ]：如果 FILE1 和 FILE2 引用相同的设备和 inode 编号，则为true。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;file=/opt/shellScriptDir/test1.sh
+if [[ -e ${file} &amp;amp;&amp;amp; -a ${file} ]]; then
+    echo &amp;quot;${file} exist&amp;quot;
+    if [[ -f ${file} ]]; then
+        echo &amp;quot;${file} is normal file&amp;quot;
+    fi
+    if [[ -d ${file} ]]; then
+        echo &amp;quot;${file} is directory&amp;quot;
+    fi
+    if [[ -r ${file} ]]; then
+        echo &amp;quot;${file} is readable&amp;quot;
+    fi
+    if [[ -w ${file} ]]; then
+        echo &amp;quot;${file} is writable&amp;quot;
+    fi
+    if [[ -x ${file} ]]; then
+        echo &amp;quot;${file} is executable/searchable&amp;quot;
+    fi
+else
+    echo &amp;quot;${file} not exist&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;注意：上述判断中，如果使用的是单个中括号[]时，$file需要用双引号括起来，否则判断将会失误。因为当$file为空时，-e会判断为真，如果放在双引号中，返回的是空字符串，[ -e &amp;quot;&amp;quot; ]会判断为伪。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 下面的例子会输出 not exist
+file=
+if [ -e &amp;quot;${file}&amp;quot; ]; then
+    echo &amp;quot;${file} exist&amp;quot;
+else
+    echo &amp;quot;${file} not exist&amp;quot;
+fi
+
+# 下面的例子会输出 exist
+file=
+if [ -e ${file} ]; then
+    echo &amp;quot;${file} exist&amp;quot;
+else
+    echo &amp;quot;${file} not exist&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;字符串判断&#34;&gt;字符串判断&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;[ string ]：如果string不为空（长度大于0），则判断为真。&lt;/li&gt;
+&lt;li&gt;[ -n string ]：如果字符串string的长度大于零，则判断为真。&lt;/li&gt;
+&lt;li&gt;[ -z string ]：如果字符串string的长度为零，则判断为真。&lt;/li&gt;
+&lt;li&gt;[ string1 = string2 ]：如果string1和string2相同，则判断为真。&lt;/li&gt;
+&lt;li&gt;[ string1 == string2 ] 等同于[ string1 = string2 ]。&lt;/li&gt;
+&lt;li&gt;[ string1 != string2 ]：如果string1和string2不相同，则判断为真。&lt;/li&gt;
+&lt;li&gt;[ string1 &#39;&amp;gt;&#39; string2 ]：如果按照字典顺序string1排列在string2之后，则判断为真。&lt;/li&gt;
+&lt;li&gt;[ string1 &#39;&amp;lt;&#39; string2 ]：如果按照字典顺序string1排列在string2之前，则判断为真。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注意，test命令内部的&amp;gt;和&amp;lt;，必须用引号引起来（或者是用反斜杠转义，或者使用双中括号）。否则，它们会被 shell 解释为重定向操作符。&lt;/p&gt;
+&lt;p&gt;字符串判断时，变量要放在双引号之中，比如[ -n &amp;quot;$COUNT&amp;quot; ]，否则变量替换成字符串以后，test命令可能会报错，提示参数过多。另外，如果不放在双引号之中，变量为空时，命令会变成[ -n ]，这时会判断为真。如果放在双引号之中，[ -n &amp;quot;&amp;quot; ]就判断为伪。&lt;/p&gt;
+&lt;p&gt;如果不想使用双引号，也可以使用双括号。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;str=fwfw
+if [[ -z ${str} ]]; then
+    echo &amp;quot;${str} length =0&amp;quot;
+elif [[ -n ${str} ]]; then
+    echo &amp;quot;${str} length &amp;gt;0&amp;quot;
+    if [[ ${str} = &amp;quot;fwfw&amp;quot; ]]; then
+        echo &amp;quot;${str} exist&amp;quot;
+    fi
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;整数判断&#34;&gt;整数判断&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;[ integer1 -eq integer2 ]：如果integer1等于integer2，则为true。&lt;/li&gt;
+&lt;li&gt;[ integer1 -ne integer2 ]：如果integer1不等于integer2，则为true。&lt;/li&gt;
+&lt;li&gt;[ integer1 -le integer2 ]：如果integer1小于或等于integer2，则为true。&lt;/li&gt;
+&lt;li&gt;[ integer1 -lt integer2 ]：如果integer1小于integer2，则为true。&lt;/li&gt;
+&lt;li&gt;[ integer1 -ge integer2 ]：如果integer1大于或等于integer2，则为true。&lt;/li&gt;
+&lt;li&gt;[ integer1 -gt integer2 ]：如果integer1大于integer2，则为true。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;a=10
+b=20
+if [ ${a} -lt ${b} ]
+then
+    echo &amp;quot;${a} &amp;lt; ${b}&amp;quot;
+else
+    echo &amp;quot;${a} &amp;gt;= ${b}&amp;quot;
+fi
+
+# 使用双中括号，效果一致
+if [[ ${a} &amp;lt; ${b} ]]
+then
+    echo &amp;quot;${a} &amp;lt; ${b}&amp;quot;
+else
+    echo &amp;quot;${a} &amp;gt;= ${b}&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;正则判断&#34;&gt;正则判断&lt;/h3&gt;
+&lt;p&gt;[[ expression ]]这种判断形式，支持正则表达式。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# regex是一个正则表示式，=~是正则比较运算符。
+[[ string =~ regex ]]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;read input
+if [[ ${input} =~ [0-9] ]]; then
+    echo &amp;quot;match num value = ${input}&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;逻辑运算&#34;&gt;逻辑运算&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;AND运算：符号&amp;amp;&amp;amp;，也可使用参数-a。&lt;/li&gt;
+&lt;li&gt;OR运算：符号||，也可使用参数-o。&lt;/li&gt;
+&lt;li&gt;NOT运算：符号!。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;## 使用双中括号，可以直接在命令内容拼接逻辑运算符
+read input
+if [[ ${input} =~ [0-9] &amp;amp;&amp;amp; ${input} == 3 ]]; then
+    echo &amp;quot;match num value = ${input}&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&amp;amp;&amp;amp; 和 || 也被称作命令控制操作符，可以用来聚合多个逻辑运算命令。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;file=/opt/shellScriptDir/temp
+[[ -d  ${file} ]] || echo &amp;quot;${file} not exist&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;算术判断&#34;&gt;算术判断&lt;/h3&gt;
+&lt;p&gt;bash提供了(( ... ))作为算术条件，用于进行算术运算的判断。&lt;/p&gt;
+&lt;p&gt;注意，算术判断不需要使用test命令，而是直接使用((...))结构。这个结构的返回值，决定了判断的真伪。&lt;/p&gt;
+&lt;p&gt;如果算术计算的结果是非零值，则表示判断成立。这一点跟命令的返回值正好相反，需要小心。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 输出match num value true
+if [[ 0 ]]; then
+    echo &amp;quot;match num value true&amp;quot;
+else
+    echo &amp;quot;value false&amp;quot;
+fi
+
+# 输出value false
+if (( 0 )); then
+    echo &amp;quot;match num value true&amp;quot;
+else
+    echo &amp;quot;value false&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;(( ... ))可以用作变量赋值，赋值完成后将会返回变量的值。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 输出match num value: 1
+if (( var=1 )); then
+    echo &amp;quot;match num value: ${var}&amp;quot;
+else
+    echo &amp;quot;value false&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;case结构判断&#34;&gt;case结构判断&lt;/h3&gt;
+&lt;p&gt;case结构用于多值判断，可以为每个值指定对应的命令，跟包含多个elif的if结构等价，但是语义更好。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 语法格式
+# expression是一个表达式，pattern是表达式的值或者一个模式，可以有多条，
+# 用来匹配多个值，每条以两个分号（;）结尾。
+case expression in
+  pattern )
+    commands ;;
+  pattern )
+    commands ;;
+  ...
+esac
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 简单实例
+echo &amp;quot;input value[1-3]: &amp;quot;
+read input
+case ${input} in
+    1) echo &amp;quot;read value is 1&amp;quot;;;
+    2) echo &amp;quot;read value is 2&amp;quot;;;
+    3) echo &amp;quot;read value is 3&amp;quot;;;
+    *) echo &amp;quot;read value is not match: ${input}&amp;quot;;;
+esac
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;case的匹配模式可以使用各种通配符，类似于下方所示：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;a)：匹配a。&lt;/li&gt;
+&lt;li&gt;a|b)：匹配a或b。&lt;/li&gt;
+&lt;li&gt;[[:alpha:]])：匹配单个字母。&lt;/li&gt;
+&lt;li&gt;???)：匹配3个字符的单词。&lt;/li&gt;
+&lt;li&gt;*.txt)：匹配.txt结尾。&lt;/li&gt;
+&lt;li&gt;*)：匹配任意输入，通过作为case结构的最后一个模式。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# 匹配数值，单个字符，两个字符
+echo &amp;quot;input value[number or character]: &amp;quot;
+read input
+case ${input} in
+    [0-9]) echo &amp;quot;read number value is: ${input}&amp;quot;;;
+    [[:lower:]] | [[:upper:]]) echo &amp;quot;read character value is: ${input}&amp;quot;;;
+    ??) echo &amp;quot;read double input value is: ${input}&amp;quot;;;
+    *) echo &amp;quot;read value is not match: ${input}&amp;quot;;;
+esac
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Bash 4.0之前，case结构只能匹配一个条件，然后就会退出case结构。Bash 4.0之后，允许匹配多个条件，这时可以用;;&amp;amp;终止每个条件块。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;echo &amp;quot;input character value: &amp;quot;
+read input
+case ${input} in
+  [[:upper:]])    echo &amp;quot;&#39;${input}&#39; is upper case.&amp;quot; ;;&amp;amp;
+  [[:lower:]])    echo &amp;quot;&#39;${input}&#39; is lower case.&amp;quot; ;;&amp;amp;
+  [[:alpha:]])    echo &amp;quot;&#39;${input}&#39; is alphabetic.&amp;quot; ;;&amp;amp;
+  [[:digit:]])    echo &amp;quot;&#39;${input}&#39; is a digit.&amp;quot; ;;&amp;amp;
+  [[:graph:]])    echo &amp;quot;&#39;${input}&#39; is a visible character.&amp;quot; ;;&amp;amp;
+  [[:punct:]])    echo &amp;quot;&#39;${input}&#39; is a punctuation symbol.&amp;quot; ;;&amp;amp;
+  [[:space:]])    echo &amp;quot;&#39;${input}&#39; is a whitespace character.&amp;quot; ;;&amp;amp;
+  [[:xdigit:]])   echo &amp;quot;&#39;${input}&#39; is a hexadecimal digit.&amp;quot; ;;&amp;amp;
+esac
+
+&lt;/code&gt;&lt;/pre&gt;
+">Bash条件判断详解</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/shell-ji-ben-zhi-shi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述shell基本知识。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/nature-2147400_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;简介&#34;&gt;简介&lt;/h2&gt;
+&lt;h3 id=&#34;简介-2&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Shell 是一个用 C 语言编写的程序，它是用户使用 Linux 的桥梁。Shell 既是一种命令语言，又是一种程序设计语言。&lt;/p&gt;
+&lt;p&gt;Shell 是指一种应用程序，这个应用程序提供了一个界面，用户通过这个界面访问操作系统内核的服务。&lt;/p&gt;
+&lt;p&gt;Shell 脚本（shell script），是一种为 shell 编写的脚本程序。业界所说的 shell 通常都是指 shell 脚本（故此处也沿用该说明），需要注意的是：shell 和 shell script 是两个不同的概念。&lt;/p&gt;
+&lt;p&gt;查看安装的shell信息，两种查看方式任选一种键入回车即可得到相关信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;ls -l /bin/*sh
+cat /etc/shells
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230307001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;基本语法bash&#34;&gt;基本语法（Bash）&lt;/h2&gt;
+&lt;h3 id=&#34;变量&#34;&gt;变量&lt;/h3&gt;
+&lt;h4 id=&#34;基础变量&#34;&gt;基础变量&lt;/h4&gt;
+&lt;p&gt;创建变量时，需遵循如下规则：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;命名只能使用英文字母，数字和下划线，首个字符不能以数字开头。&lt;/li&gt;
+&lt;li&gt;不允许出现空格及标点符号。&lt;/li&gt;
+&lt;li&gt;不能使用bash里的关键字（可用help命令查看保留关键字）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;变量声明的语法如下（注意：等号两边不能存在空格，读取时使用$符）：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;variable=vlaue
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 简单例子
+# 变量 a 赋值为字符串 hello
+a=hello
+# $a 等效于 ${a}，加花括号是为了帮助解释器识别变量的边界
+# 如：echo $a_world 将不会输出内容，因为变量a_world不存在
+# 但是可以使用echo ${a}_world，将会输出hello_world
+echo ${a}
+
+# 变量值包含空格，就必须放在引号里面        
+b=&amp;quot;world shell&amp;quot;
+echo ${b}
+
+# 变量值可以引用其他变量的值
+c=&amp;quot;${a} ${b} !&amp;quot;
+echo ${c}
+
+# 变量值可以使用转义字符
+d=&amp;quot;\t content \n&amp;quot;
+echo ${d}
+
+# 变量值可以是命令的执行结果
+e=$(ls -l /bin/*sh)
+echo ${e}
+
+# 变量值可以是数学运算的结果
+f=$((4 * 5))
+echo ${f}
+
+# 变量重复赋值，后面的赋值将会覆盖前面的赋值
+foo=1
+foo=2
+echo ${foo}
+
+# 变量的值是变量，如果需要输出，可以使用${!varname}愈发
+myvar=USER
+echo ${!myvar}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;特殊变量&#34;&gt;特殊变量&lt;/h4&gt;
+&lt;p&gt;Bash（是shell的一个增强版本）提供了一些特殊变量，特殊变量的值由shell预定义，用户不用进行赋值。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$?: 表示上一个命令的退出码，用来判断上一个命令是否执行成功，0表示成功，非0表示失败。&lt;/li&gt;
+&lt;li&gt;$$: 表示当前shell的进程id，也可以用来命名临时文件&lt;/li&gt;
+&lt;li&gt;$_: 表示上个命令的最后一个参数&lt;/li&gt;
+&lt;li&gt;$!: 表示最近一个后台执行的异步命令的进程id&lt;/li&gt;
+&lt;li&gt;$0: 表示当前shell的名称（在命令直接执行时）或者脚本名（在脚本中执行时）&lt;/li&gt;
+&lt;li&gt;$-: 表示当前shell的启动参数&lt;/li&gt;
+&lt;li&gt;$@ $#: 表示脚本中的参数数量（两者不同之处：在双引号中体现出来。假设在脚本运行时写了三个参数 1、2、3，，则 &amp;quot; * &amp;quot; 等价于 &amp;quot;1 2 3&amp;quot;（传递了一个参数），而 &amp;quot;@&amp;quot; 等价于 &amp;quot;1&amp;quot; &amp;quot;2&amp;quot; &amp;quot;3&amp;quot;（传递了三个参数）。）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# $? 例子
+ls -l /bin/bash
+echo $?
+ls -l notexistfile
+echo $?
+# 输出结果
+-rwxr-xr-x 1 root root 1183448 Jun 18  2020 /bin/bash
+0
+ls: cannot access &#39;notexistfile&#39;: No such file or directory
+2
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;变量默认值&#34;&gt;变量默认值&lt;/h4&gt;
+&lt;p&gt;Bash 提供四个特殊语法，跟变量的默认值有关，目的是保证变量不为空。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;${varname:-word} 语法含义：如果变量varname存在且不为空，则返回它的值，否则返回word。它的目的是返回一个默认值，比如${count:-0}表示变量count不存在时返回0。&lt;/li&gt;
+&lt;li&gt;${varname:=word} 语法含义：如果变量varname存在且不为空，则返回它的值，否则将它设为word，并且返回word。它的目的是设置变量的默认值，比如${count:=0}表示变量count不存在时返回0，且将count设为0。&lt;/li&gt;
+&lt;li&gt;${varname:+word} 语法含义：如果变量名存在且不为空，则返回word，否则返回空值。它的目的是测试变量是否存在，比如${count:+1}表示变量count存在时返回1（表示true），否则返回空值。&lt;/li&gt;
+&lt;li&gt;${varname:?message} 语法含义：如果变量varname存在且不为空，则返回它的值，否则打印出varname: message，并中断脚本的执行。如果省略了message，则输出默认的信息“parameter null or not set.”。它的目的是防止变量未定义，比如${count:?&amp;quot;undefined!&amp;quot;}表示变量count未定义时就中断执行，抛出错误，返回给定的报错信息undefined!。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;echo ${a:-0}
+echo ${a:=word}
+echo ${a:+1}
+echo ${b:?&amp;quot;undefined!&amp;quot;}
+# 输出结果
+0
+word
+1
+./test1.sh: line 5: b: undefined!
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;变量命令&#34;&gt;变量命令&lt;/h4&gt;
+&lt;p&gt;declare命令可以声明一些特殊类型的变量，为变量设置一些限制，比如声明只读类型的变量和整数类型的变量。&lt;/p&gt;
+&lt;p&gt;declare语法格式：declare OPTION VARIABLE=value，命令的主要参数（OPTION）如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;-a：声明数组变量。&lt;/li&gt;
+&lt;li&gt;-f：输出所有函数定义。&lt;/li&gt;
+&lt;li&gt;-F：输出所有函数名。&lt;/li&gt;
+&lt;li&gt;-i：声明整数变量。&lt;/li&gt;
+&lt;li&gt;-l：声明变量为小写字母。&lt;/li&gt;
+&lt;li&gt;-p：查看变量信息。&lt;/li&gt;
+&lt;li&gt;-r：声明只读变量。&lt;/li&gt;
+&lt;li&gt;-u：声明变量为大写字母。&lt;/li&gt;
+&lt;li&gt;-x：该变量输出为环境变量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;readonly命令等同于declare -r，用来声明只读变量，不能改变变量值，也不能unset变量。&lt;/p&gt;
+&lt;p&gt;let命令声明变量时，可以直接执行算术表达式。&lt;/p&gt;
+&lt;h4 id=&#34;数组变量&#34;&gt;数组变量&lt;/h4&gt;
+&lt;p&gt;数组中可以存放多个值。Bash Shell 只支持一维数组（不支持多维数组），初始化时不需要定义数组大小。&lt;/p&gt;
+&lt;p&gt;与大部分编程语言类似，数组元素的下标由 0 开始。&lt;/p&gt;
+&lt;p&gt;Shell 数组用括号来表示，元素用&amp;quot;空格&amp;quot;符号分割开，语法格式如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;array_name=(value1 value2 ... valuen)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 数组例子
+array_test=(&amp;quot;hello&amp;quot; &amp;quot;world&amp;quot; &amp;quot;shell&amp;quot;)
+echo ${array_test[2]}
+# 获取所有元素
+echo ${array_test[@]}
+echo ${array_test[*]}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;字符串变量进阶例子&#34;&gt;字符串变量&amp;lt;进阶例子&amp;gt;&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;var=&amp;quot;opt/temp/test.sh&amp;quot;
+# 字符串长度
+echo ${#var}
+
+# 截取字符串 ${varname:offset:length}: 从位置offset开始（从0开始计算），长度为length
+echo ${var:0:3}
+# 如果省略length，则从位置offset开始，一直返回到字符串的结尾。
+echo ${var:0}
+# 如果offset为负值，表示从字符串的末尾开始算起。
+# 注意，负数前面必须有一个空格（如果不想写空格，可以填0），以防止与${variable:-word}的变量的设置默认值语法混淆。
+# 这时，如果还指定length，则length不能小于零。
+echo ${var: -16:3}
+echo ${var: -13}
+echo ${var:0-16:3}
+echo ${var:0-13}
+
+# 输出大写
+echo ${var^^}
+# 输出小写
+echo ${var,,}
+
+# 匹配删除字符串
+# 匹配模式pattern可以使用*、?、[]等通配符。
+
+# ${variable#pattern}
+# 如果 pattern 匹配变量 variable 的开头，删除最短匹配（非贪婪匹配）的部分，返回剩余部分
+# #*/ 表示从左边开始删除第一个 / 号及左边的所有字符，即删除opt/，结果为：temp/test.sh
+echo ${var#*/}
+
+# ${variable##pattern}
+# 如果 pattern 匹配变量 variable 的开头，删除最长匹配（贪婪匹配）的部分，返回剩余部分
+# ##*/ 表示从左边开始删除最后（最右边）一个 / 号及左边的所有字符，即删除opt/temp/，结果为：test.sh
+echo ${var##*/}
+
+# ${variable%pattern}
+# 如果 pattern 匹配变量 variable 的结尾，删除最短匹配（非贪婪匹配）的部分，返回剩余部分
+# %/* 表示从右边开始，删除第一个 / 号及右边的字符，即删除/test.sh，结果：opt/temp
+echo ${var%/*}
+
+# ${variable%%pattern}
+# 如果 pattern 匹配变量 variable 的结尾，删除最长匹配（贪婪匹配）的部分，返回剩余部分
+# %%/* 表示从右边开始，删除最后（最左边）一个 / 号及右边的字符，即删除/temp/test.sh，结果：opt
+echo ${var%%/*}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;算术运算符&#34;&gt;算术运算符&lt;/h3&gt;
+&lt;h4 id=&#34;算术表达式&#34;&gt;算术表达式&lt;/h4&gt;
+&lt;p&gt;((...))语法可以进行整数的算术运算。该表达式可以忽略内部的空格，在其内部可以使用()改变运算顺序。输出结果时，需要在前面加上$符。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a=2
+echo $(( ${a} + 2 ))
+# 可以不使用$或者${}（花括号是为了确定边界）引用变量
+echo $(( + 2))
+
+# 赋值
+i=$((a + 2))
+echo &amp;quot;i= ${i}&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;expr命令同样支持算是运算，其可以使用变量替换。&lt;/p&gt;
+&lt;p&gt;注意：表达式与运算符之间需要有空格，否则会被当做字符串输出。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a=2
+expr ${a} + 2
+
+# 赋值，两种方式都可进行赋值，``符号位于esc键下方，并非单引号
+b=$(expr ${a} + 2)
+c=`expr ${a} + 2`
+echo &amp;quot;b= ${b}&amp;quot;
+echo &amp;quot;c= ${c}&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;((...))语法支持的算术运算符如下。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;+：加法&lt;/li&gt;
+&lt;li&gt;-：减法&lt;/li&gt;
+&lt;li&gt;*：乘法&lt;/li&gt;
+&lt;li&gt;/：除法（整除）&lt;/li&gt;
+&lt;li&gt;%：余数&lt;/li&gt;
+&lt;li&gt;**：指数&lt;/li&gt;
+&lt;li&gt;++：自增运算（作为前缀是先运算后返回值，作为后缀是先返回值后运算）&lt;/li&gt;
+&lt;li&gt;--：自减运算（作为前缀是先运算后返回值，作为后缀是先返回值后运算）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;进制数值&#34;&gt;进制数值&lt;/h4&gt;
+&lt;p&gt;Bash 的数值默认都是十进制，但是在算术表达式中，也可以使用其他进制。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;number：没有任何特殊表示法的数字是十进制数（以10为底）。&lt;/li&gt;
+&lt;li&gt;0number：八进制数。&lt;/li&gt;
+&lt;li&gt;0xnumber：十六进制数。&lt;/li&gt;
+&lt;li&gt;base#number：base进制的数。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;echo $((016))
+echo $((0xee))
+echo $((2#00000011))
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;位运算&#34;&gt;位运算&lt;/h4&gt;
+&lt;p&gt;Bash 支持二进制位运算符&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&amp;lt;&amp;lt;：位左移运算，把一个数字的所有位向左移动指定的位。&lt;/li&gt;
+&lt;li&gt;&amp;gt;&amp;gt;：位右移运算，把一个数字的所有位向右移动指定的位。&lt;/li&gt;
+&lt;li&gt;&amp;amp;：位的“与”运算，对两个数字的所有位执行一个AND操作。&lt;/li&gt;
+&lt;li&gt;|：位的“或”运算，对两个数字的所有位执行一个OR操作。&lt;/li&gt;
+&lt;li&gt;~：位的“否”运算，对一个数字的所有位取反。&lt;/li&gt;
+&lt;li&gt;!：逻辑“否”运算&lt;/li&gt;
+&lt;li&gt;^：位的异或运算（exclusive or），对两个数字的所有位执行一个异或操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;逻辑运算&#34;&gt;逻辑运算&lt;/h4&gt;
+&lt;p&gt;Bash 支持逻辑运算符&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&amp;lt;/-lt：小于&lt;/li&gt;
+&lt;li&gt;&amp;gt;/-gt：大于&lt;/li&gt;
+&lt;li&gt;&amp;lt;=/-le：小于或相等&lt;/li&gt;
+&lt;li&gt;&amp;gt;=/ge：大于或相等&lt;/li&gt;
+&lt;li&gt;==/-eq：相等&lt;/li&gt;
+&lt;li&gt;!=/-ne：不相等&lt;/li&gt;
+&lt;li&gt;&amp;amp;&amp;amp;：逻辑与&lt;/li&gt;
+&lt;li&gt;||：逻辑或&lt;/li&gt;
+&lt;li&gt;expr1?expr2:expr3：三元条件运算符。若表达式expr1的计算结果为非零值（算术真），则执行表达式expr2，否则执行表达式expr3。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;赋值与求值运算&#34;&gt;赋值与求值运算&lt;/h4&gt;
+&lt;p&gt;逗号,在$((...))内部是求值运算符，执行前后两个表达式，并返回后一个表达式的值。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;echo $((foo = 1 + 2, 3 * 4))
+echo ${foo}
+# 输出
+12
+3
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;赋值运算如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;parameter = value：简单赋值。&lt;/li&gt;
+&lt;li&gt;parameter += value：等价于parameter = parameter + value。&lt;/li&gt;
+&lt;li&gt;parameter -= value：等价于parameter = parameter – value。&lt;/li&gt;
+&lt;li&gt;parameter *= value：等价于parameter = parameter * value。&lt;/li&gt;
+&lt;li&gt;parameter /= value：等价于parameter = parameter / value。&lt;/li&gt;
+&lt;li&gt;parameter %= value：等价于parameter = parameter % value。&lt;/li&gt;
+&lt;li&gt;parameter &amp;lt;&amp;lt;= value：等价于parameter = parameter &amp;lt;&amp;lt; value。&lt;/li&gt;
+&lt;li&gt;parameter &amp;gt;&amp;gt;= value：等价于parameter = parameter &amp;gt;&amp;gt; value。&lt;/li&gt;
+&lt;li&gt;parameter &amp;amp;= value：等价于parameter = parameter &amp;amp; value。&lt;/li&gt;
+&lt;li&gt;parameter |= value：等价于parameter = parameter | value。&lt;/li&gt;
+&lt;li&gt;parameter ^= value：等价于parameter = parameter ^ value。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;echo $((foo = 3))
+echo $((foo *= 2))
+# 输出
+3
+6
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;流程控制&#34;&gt;流程控制&lt;/h2&gt;
+&lt;h3 id=&#34;条件判断&#34;&gt;条件判断&lt;/h3&gt;
+&lt;p&gt;1、简单if语句&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 简单if语句
+if condition
+then
+    command
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;2、if else语句&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# if else语句
+if condition
+then
+    command
+else
+    command
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;3、if else-if else语句&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# if else-if else语句
+if condition1
+then
+    command1
+elif condition2 
+then 
+    command2
+else
+    commandN
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 例子
+a=10
+b=20
+# [[ ]]使用在条件判断中，能够防止脚本中的许多逻辑错误。比如，&amp;amp;&amp;amp;、||、&amp;lt; 和 &amp;gt; 操作符能够正常存在于 [[ ]] 条件判断结构中，但是如果出现在 [ ] 结构中的话，会报错。
+# 执行的时候，需要用bash test.sh；因为[[]]是bash脚本中的命令（bash是sh的增强版本）。
+if [[ ${a} &amp;lt; ${b} ]]
+then
+    echo &amp;quot;a &amp;lt; b&amp;quot;
+else
+    echo &amp;quot;a &amp;gt;= b&amp;quot;
+fi
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;循环语句&#34;&gt;循环语句&lt;/h3&gt;
+&lt;p&gt;Bash 提供三种循环语法for、while和until。&lt;/p&gt;
+&lt;p&gt;while循环有一个判断条件，只要符合条件，就不断循环执行指定的语句。关键字do可以跟while不在同一行，这时两者之间不需要使用分号分隔。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;while condition; do
+  commands
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;until循环与while循环恰好相反，只要不符合判断条件（判断条件失败），就不断循环执行指定的语句。一旦符合判断条件，就退出循环。关键字do可以与until不写在同一行，这时两者之间不需要分号分隔。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;until condition; do
+  commands
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;for...in循环用于遍历列表中的每一项。关键词do可以跟for写在同一行，两者使用分号分隔。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;for variable in list
+do
+  commands
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;for循环支持C语言的循环语法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# expression1用来初始化循环条件，expression2用来决定循环结束的条件，
+# expression3在每次循环迭代的末尾执行，用于更新值。
+# 注意，循环条件放在双重圆括号之中。另外，圆括号之中使用变量，不必加上美元符号$。
+for (( expression1; expression2; expression3 )); do
+  commands
+done
+
+# 等同于下述表达式
+(( expression1 ))
+while (( expression2 )); do
+  commands
+  (( expression3 ))
+done
+
+# 例子
+for (( i=0; i&amp;lt;5; i=i+1 )); do
+  echo $i
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Bash 提供了两个内部命令break和continue，用来在循环内部跳出循环。&lt;/p&gt;
+&lt;p&gt;break命令立即终止循环，程序继续执行循环块之后的语句，即不再执行剩下的循环。&lt;/p&gt;
+&lt;p&gt;continue命令立即终止本轮循环，开始执行下一轮循环。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# break
+a=(first second third)
+for i in ${a[*]}; do
+    echo ${i}
+    if [[ ${i} == &amp;quot;first&amp;quot; ]]; then break; fi
+done
+
+# continue
+a=(first second third)
+for i in ${a[*]}; do
+    if [[ ${i} == &amp;quot;second&amp;quot; ]]; then continue; fi
+    echo ${i}
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;函数&#34;&gt;函数&lt;/h2&gt;
+&lt;p&gt;函数（function）是可以重复使用的代码片段，有利于代码的复用。它与别名（alias）的区别是，别名只适合封装简单的单个命令，函数则可以封装复杂的多行命令。&lt;/p&gt;
+&lt;p&gt;函数总是在当前 Shell 执行，这是跟脚本的一个重大区别，Bash 会新建一个子 Shell 执行脚本。如果函数与脚本同名，函数会优先执行。但是，函数的优先级不如别名，即如果函数与别名同名，那么别名优先执行。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 第一种
+fn() {
+  # codes
+}
+# 第二种
+function fn() {
+  # codes
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;$1~$9：函数的第一个到第9个的参数。如果函数的参数多于9个，那么第10个参数可以用${10}的形式引用，以此类推&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;printParam(){
+    echo &amp;quot;first param is $1&amp;quot;
+}
+printParam wqrwq
+
+function log_msg(){
+    echo &amp;quot;[$(date &#39;+%F %T&#39;)]: $@&amp;quot;
+}
+log_msg this is sample log message
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;函数体内支持局部变量的声明。同时，也支持修改全局变量。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;function fn(){
+    local str=paramValue
+    echo &amp;quot;local: str=${str}&amp;quot;
+}
+fn
+echo &amp;quot;global: str=${str}&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;
+">Shell基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述python3脚本知识。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-209956_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;简介&#34;&gt;简介&lt;/h2&gt;
+&lt;h3 id=&#34;简介-2&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Python 是一个高层次的结合了解释性、编译性、互动性和面向对象的脚本语言（计算机编程语言）。&lt;/p&gt;
+&lt;p&gt;Python 的设计具有很强的可读性，相比其他语言经常使用英文关键字，其他语言的一些标点符号，它具有比其他语言更有特色的语法结构。&lt;/p&gt;
+&lt;p&gt;注意：python3与python2具备较大的差别，他们之间并不完全兼容。&lt;/p&gt;
+&lt;p&gt;Python的优点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;简单和明确，做一件事只有一种方法。&lt;/li&gt;
+&lt;li&gt;学习曲线低，跟其他很多语言相比，Python更容易上手。&lt;/li&gt;
+&lt;li&gt;开放源代码，拥有强大的社区和生态圈。&lt;/li&gt;
+&lt;li&gt;解释型语言，天生具有平台可移植性。&lt;/li&gt;
+&lt;li&gt;支持两种主流的编程范式（面向对象编程和函数式编程）都提供了支持。&lt;/li&gt;
+&lt;li&gt;可扩展性和可嵌入性，可以调用C/C++代码，也可以在C/C++中调用Python。&lt;/li&gt;
+&lt;li&gt;代码规范程度高，可读性强，适合有代码洁癖和强迫症的人群。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Python的缺点主要集中在以下几点。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;执行效率稍低，因此计算密集型任务可以由C/C++编写。&lt;/li&gt;
+&lt;li&gt;代码无法加密，但是现在很多公司都不销售卖软件而是销售服务，这个问题会被淡化。&lt;/li&gt;
+&lt;li&gt;在开发时可以选择的框架太多（如Web框架就有100多个），有选择的地方就有错误。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;基本语法&#34;&gt;基本语法&lt;/h2&gt;
+&lt;h3 id=&#34;变量&#34;&gt;变量&lt;/h3&gt;
+&lt;h4 id=&#34;基础变量&#34;&gt;基础变量&lt;/h4&gt;
+&lt;p&gt;创建变量时，需遵循以下规则：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一个字符必须是字母表中字母或下划线 _ 。&lt;/li&gt;
+&lt;li&gt;标识符的其他的部分由字母、数字和下划线组成。&lt;/li&gt;
+&lt;li&gt;标识符对大小写敏感。&lt;/li&gt;
+&lt;li&gt;不能使用python保留字。&lt;/li&gt;
+&lt;li&gt;python3支持中文作为变量名，非 ASCII 标识符也是允许的。（不建议使用中文作为变量名）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# 查看关键字
+import keyword
+var = keyword.kwlist
+print(var)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;注释与编码&#34;&gt;注释与编码&lt;/h4&gt;
+&lt;p&gt;单行注释使用#号，多行注释可以使用&#39;&#39;&#39;或者&amp;quot;&amp;quot;&amp;quot;，python3编码默认为utf-8（可以修改）。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 单行注释信息
+&amp;quot;&amp;quot;&amp;quot;
+多行注释
+&amp;quot;&amp;quot;&amp;quot;
+
+# 修改编码
+# -*- coding: GBK -*-
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;语法结构&#34;&gt;语法结构&lt;/h4&gt;
+&lt;p&gt;python对于代码块需要使用缩进来表示，缩进的空格数是可变的，但是同一个代码块中的缩进需要保持一致，一般使用4个空格。&lt;/p&gt;
+&lt;p&gt;为了方便后期维护，在代码之间可以适当的使用空行进行代码功能隔离。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a = &amp;quot;12&amp;quot;
+if n := len(a) &amp;gt; 1:
+    print(&amp;quot;True&amp;quot;)
+else:
+    print(&amp;quot;False&amp;quot;)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;python中关于一条语句过长需要换行的写法如下（使用反斜杠\）：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;var = &amp;quot;var1&amp;quot; \
+    &amp;quot;var2&amp;quot; \
+    &amp;quot;var3&amp;quot;
+print(var)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;python支持多行语句并做一行处理&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import sys; x = &#39;runoob&#39;; sys.stdout.write(x + &#39;\n&#39;)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;基本数据类型&#34;&gt;基本数据类型&lt;/h2&gt;
+&lt;p&gt;Python3有六个标准的数据类型：Number，String，List，Tuple，Set，Dictionary。&lt;/p&gt;
+&lt;p&gt;其中不可变数据：Number，String，Tuple&lt;/p&gt;
+&lt;p&gt;可变数据：List，Set，Dictionary&lt;/p&gt;
+&lt;h3 id=&#34;number数字&#34;&gt;Number（数字）&lt;/h3&gt;
+&lt;p&gt;python3支持int(长整型，相当于python2的Long)，float，bool(python2没有布尔值；1等于True，0等于False，可用于算术运算)，complex(复数)。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 可以使用type或者isinstance函数判断变量类型。
+# type()不会认为子类是一种父类类型。即type事先不知道变量类型。
+# isinstance()会认为子类是一种父类类型。即isinstance事先知道变量类型。
+a, b, c, d = 1, 2.2, False, 4+1j
+print(type(a), type(b), type(c), type(d))
+print(isinstance(a, int))
+
+# bool 算术运算
+a = True
+b, c, d = a + 1, a - 1, a * 10
+print(a, b, c, d)
+
+# 强制转换
+a = &amp;quot;1&amp;quot;
+print(a, int(a), bool(a), float(a))
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;string字符串&#34;&gt;String（字符串）&lt;/h3&gt;
+&lt;p&gt;python3使用&#39;&#39;或者&amp;quot;&amp;quot;定义字符串，使用反斜杠\转义特殊字符，也可以使用r让反斜杠不转义；连接字符串用+号，重复字符串用*号。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a = &amp;quot;test\ncontent&amp;quot;
+b = r&amp;quot;test\ncontent&amp;quot;
+print(a)
+print(b)
+print(b + b)
+print(b*3)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;字符串的截取语法：variable[头下标:尾下标]，规则为左闭右开区间；&lt;/p&gt;
+&lt;p&gt;从左往右，头下标从0开始（0可省略）；从右往左，尾下标从-1开始（注意：由于左闭右开原则，-1并不会取到最后一位字符，如需取最后一位字符，需将尾下标置空）。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;a = &amp;quot;test content&amp;quot;
+print(a[:5])
+print(a[0:5])
+print(a[-12:-1])
+print(a[-12:])
+
+# 判断字符是否在目标字符串中
+print(&amp;quot;te&amp;quot; in a)
+print(&amp;quot;t&amp;quot; not in a)
+
+# 字符串格式化
+a = &amp;quot;%s, %d&amp;quot; % (&amp;quot;weq&amp;quot;, 2)
+print(a)
+
+# 使用f-string进行格式化，可以不用%s之类的转换符（python版本需要3.6及以上）
+a = &amp;quot;content&amp;quot;
+b = f&amp;quot;test {a}&amp;quot;
+print(b)
+print(f&amp;quot;{1+2=}&amp;quot;)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;tuple元组&#34;&gt;Tuple（元组）&lt;/h3&gt;
+&lt;p&gt;元组使用()进行赋值，使用逗号分隔不同元素；()中可以存在不同类型的元素，如数字，字符串，嵌套元组等。&lt;/p&gt;
+&lt;p&gt;元组的索引与截取规则与字符串一致，可参考3.2节内容。&lt;/p&gt;
+&lt;p&gt;注意：元组中的元素是不能被修改的；只包含一个元素时，需要在元素后面添加逗号，否则括号会被当作运算符使用&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;tup = (&amp;quot;www&amp;quot;, 12306, 99.99, 1, 2, 3)
+tup2 = (&amp;quot;test&amp;quot;,)
+print(tup)
+print(tup[:2])
+print(tup[-1:])
+print(tup + tup2)
+print(tup * 2)
+print(&amp;quot;www&amp;quot; in tup)
+
+# 元组截取时，支持第三个参数：步长
+print(tup[0:6:2])
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;list列表&#34;&gt;List（列表）&lt;/h3&gt;
+&lt;p&gt;列表与元组规则基本一致，不过列表使用[]进行赋值，且其中的元素是可以被修改的。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;list1 = [&amp;quot;www&amp;quot;, 12306, 99.99, 1, 2, 3]
+list2 = [&amp;quot;test&amp;quot;]
+print(list1)
+print(list1[:2])
+print(list1[-1:])
+print(list1 + list2)
+print(list1 * 2)
+print(&amp;quot;www&amp;quot; in list1)
+
+# 截取时，支持第三个参数：步长
+print(list1[0:6:2])
+
+# 修改列表元素
+list2[0] = &amp;quot;update&amp;quot;
+print(list2)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;借助内置函数，列表也可以被当做堆栈（后进先出）或者队列（先进先出）使用。&lt;/p&gt;
+&lt;p&gt;注意：列表用作队列时相对比较低效。因为在列表的末尾添加和弹出元素非常快，但是在列表的开头插入或弹出元素却很慢 (因为所有的其他元素都必须移动一位)。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 列表作为堆栈，利用append函数添加一个元素到堆栈的顶端，利用pop函数从堆栈顶部取出一个元素
+stack = [1, 2, 3]
+stack.append(4)
+stack.append(5)
+print(stack)
+stack.pop()
+print(stack)
+
+# 列表作为队列，需要借助collections.deque操作列表两端
+from collections import deque
+
+queue = deque([1, 2, 3])
+queue.append(4)
+queue.append(5)
+print(queue)
+queue.popleft()
+print(queue)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;python中的列表推导式：列表推导式提供了一个更简单的创建列表的方法。常见的用法是把某种操作应用于序列或可迭代对象的每个元素上，然后使用其结果来创建列表，或者通过满足某些特定条件元素来创建子序列。&lt;/p&gt;
+&lt;p&gt;列表推导式的结构是由一对方括号所包含的以下内容组成：一个表达式，后面跟一个 for 子句，然后是零个或多个 for 或 if 子句。 其结果将是一个新列表，由对表达式依据后面的 for 和 if 子句的内容进行求值计算而得出。&lt;/p&gt;
+&lt;p&gt;注意：如果表达式是一个元组，那么其必须加上括号。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 简单列表推导式
+t = [x * 2 for x in range(3)]
+print(t)
+
+list_x = [1, 3, 5]
+list_y = [2, 4, 6]
+print([x * y for x in list_x for y in list_y])
+
+fresh_str = [&#39;  f   &#39;, &#39;  r&#39;, &#39;w   &#39;]
+print([x.strip() for x in fresh_str])
+
+# 组合两个列表中的不同元素，将返回一个列表，列表中的元素类型是元组
+t = [(x, y) for x in [1, 2, 3] for y in [2, 1, 3] if x != y]
+print(t)
+
+# 嵌套列表推导式
+list_1 = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
+t = [[row[i] for row in list_1] for i in range(4)]
+print(t)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;set集合&#34;&gt;Set（集合）&lt;/h3&gt;
+&lt;p&gt;集合是由不重复元素组成的无序的集。它的基本用法包括成员检测和消除重复元素。集合对象也支持像 联合，交集，差集，对称差分等数学运算。&lt;/p&gt;
+&lt;p&gt;使用{}花括号或&lt;a href=&#34;https://docs.python.org/zh-cn/3.9/library/stdtypes.html#set&#34;&gt;set()&lt;/a&gt; 函数可以用来创建集合。注意：要创建一个空集合只能用 set() 而不能用 {}，因为后者是创建一个空字典。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 去重
+sites = {&amp;quot;www&amp;quot;, &amp;quot;12306&amp;quot;, &amp;quot;com&amp;quot;, &amp;quot;www&amp;quot;}
+print(sites)
+print(&amp;quot;www&amp;quot; in sites)
+
+# 运算
+a = set(&amp;quot;abcd&amp;quot;)
+b = set(&amp;quot;defg&amp;quot;)
+print(a &amp;amp; b)
+print(a | b)
+print(a ^ b)
+# a集合包含的元素而b集合不包含
+print(a - b)
+
+# 集合支持推导式
+a = {x for x in &#39;abcdefg&#39; if x not in &#39;abc&#39;}
+print(a)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;dictionary字典&#34;&gt;Dictionary（字典）&lt;/h3&gt;
+&lt;p&gt;字典（dictionary）是Python中另一个非常有用的内置数据类型。&lt;/p&gt;
+&lt;p&gt;列表是有序的对象集合，字典是无序的对象集合。两者之间的区别在于：字典当中的元素是通过键来存取的，而不是通过偏移存取。&lt;/p&gt;
+&lt;p&gt;字典是一种映射类型，字典用 { } 标识，它是一个无序的 键(key) : 值(value) 的集合。&lt;/p&gt;
+&lt;p&gt;键(key)必须使用不可变类型。&lt;/p&gt;
+&lt;p&gt;在同一个字典中，键(key)必须是唯一的。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 字典，类比如json，或者map，是一个kv键值对的集合
+dict_test = {&#39;name&#39;: &#39;hello&#39;, &#39;age&#39;: 100}
+# 获取字典的值
+print(dict_test[&#39;name&#39;])
+print(dict_test.get(&#39;age&#39;))
+# 获取键值对
+for k, v in dict_test.items():
+    print(k, v)
+  
+# 使用dict函数构造字典
+d = dict([(&#39;name&#39;, &#39;jack&#39;), (&#39;age&#39;, 100)])
+print(d)
+d2 = dict(name=&#39;tom&#39;, age=90)
+print(d2)
+
+# 字典支持推导式
+a = {x: x * 2 for x in (1, 2, 3)}
+print(a)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;流程控制&#34;&gt;流程控制&lt;/h2&gt;
+&lt;h3 id=&#34;条件判断&#34;&gt;条件判断&lt;/h3&gt;
+&lt;p&gt;if 语法如下所示：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每个条件后面要使用冒号 :，表示接下来是满足条件后要执行的语句块。&lt;/li&gt;
+&lt;li&gt;使用缩进来划分语句块，相同缩进数的语句在一起组成一个语句块。&lt;/li&gt;
+&lt;li&gt;在Python中没有switch – case语句。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# 语法格式
+if condition_1:
+    statement_block_1
+elif condition_2:
+    statement_block_2
+else:
+    statement_block_3
+  
+# 简单实例
+var = 10
+if var &amp;gt; 10:
+    print(&amp;quot;value(&amp;quot; + str(var) + &amp;quot;) grate than 10&amp;quot;)
+elif var == 10:
+    print(&amp;quot;value(&amp;quot; + str(var) + &amp;quot;) equals 10&amp;quot;)
+else:
+    print(&amp;quot;value(&amp;quot; + str(var) + &amp;quot;) less than 10&amp;quot;)  
+  
+# := 赋值表达式运算符，又称海象运算符（python3.8）
+a = &amp;quot;12&amp;quot;
+if n := len(a) &amp;gt; 1:
+    print(&amp;quot;True&amp;quot;)
+else:
+    print(&amp;quot;False&amp;quot;)  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;循环语句&#34;&gt;循环语句&lt;/h3&gt;
+&lt;p&gt;break（终止循环）及continue（跳过本次循环）用于流程控制。pass是空语句，是为了保持程序结构的完整性。&lt;/p&gt;
+&lt;p&gt;while语句&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 简单例子
+var = 1
+while var &amp;lt; 3:
+    print(&amp;quot;value: &amp;quot; + str(var))
+    var += 1
+  
+# pass占位语句
+while True:
+    pass  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;for语句（break（终止循环）及continue（跳过本次循环）用于流程控制）&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 简单例子
+# 列表 for循环
+list1 = [&amp;quot;first&amp;quot;, &#39;second&#39;, 123, 45.6]
+print(len(list1))
+for var in list1:
+    print(var, end=&amp;quot;; &amp;quot;)
+  
+# 获取索引及其值
+for i, v in enumerate(list1):
+    print(i, v)   
+  
+# 多个list，使用zip函数聚合
+list2 = [&#39;map&#39;, &#39;json&#39;, &#39;session&#39;, &#39;cookie&#39;]
+for q1, q2, in zip(list1, list2):
+    print(&#39;param1={0}, param2={1}&#39;.format(q1, q2))
+  
+# 内置的range函数可以遍历数字序列
+# 简单range，
+for i in range(3):
+    print(i)
+# 指定区间
+for i in range(1, 3):
+    print(i)
+# 指定区间及步长
+for i in range(1, 10, 2):
+    print(i)
+  
+# 迭代器
+list3 = [&amp;quot;good&amp;quot;, &amp;quot;fire&amp;quot;, &amp;quot;hello&amp;quot;]
+it = iter(list2)
+print(next(it))
+for var in it:
+    print(var)  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;函数&#34;&gt;函数&lt;/h2&gt;
+&lt;h3 id=&#34;函数-2&#34;&gt;函数&lt;/h3&gt;
+&lt;p&gt;函数是组织好的，可重复使用的，用来实现单一，或相关联功能的代码段。函数能提高应用的模块性，和代码的重复利用率。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;函数代码块以 def 关键词开头，后接函数标识符名称和圆括号 ()。&lt;/li&gt;
+&lt;li&gt;任何传入参数和自变量必须放在圆括号中间，圆括号之间可以用于定义参数。&lt;/li&gt;
+&lt;li&gt;函数的第一行语句可以选择性地使用文档字符串—用于存放函数说明。&lt;/li&gt;
+&lt;li&gt;函数内容以冒号 : 起始，并且缩进。&lt;/li&gt;
+&lt;li&gt;return [表达式] 结束函数，选择性地返回一个值给调用方，不带表达式的 return 相当于返回 None。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# 可变对象传递给函数，将会改变其中的值；不可变对象传递不会改变值（如果修改，则返回一个新的变量）
+def test_n(var):
+    var[0] = 3
+
+test1 = [2, 3]
+test_n(test1)
+print(test1)
+
+# 必需参数须以正确的顺序传入函数。调用时的数量必须和声明时的一样。
+def test_1(var):
+    print(var)
+
+test_1(1)
+
+# 关键字参数和函数调用关系紧密，函数调用使用关键字参数来确定传入的参数值。
+# 使用关键字参数允许函数调用时参数的顺序与声明时不一致，因为 Python 解释器能够用参数名匹配参数值。
+def test_2(var1, var2):
+    print(var1, var2)
+
+test_2(var2=2, var1=1)
+
+# 默认参数：调用函数时，如果没有传递参数，则会使用默认参数
+# 默认参数最好使用不可变数据类型，否则可能会出现超出预期的场景
+def test_3(var1, var2=2):
+    print(var1, var2)
+
+test_3(1)
+
+# 不定长参数: 当需要一个函数能处理比当初声明时更多的参数时，这些参数就叫做不定长参数
+# *表示一个元组
+def test_4(var1, *var2):
+    print(var1)
+    print(var2)
+
+test_4(1, 10, 20, 30)
+
+# **表示一个字典
+def test_4(var1, **var2):
+    print(var1)
+    print(var2)
+
+test_4(1, a=10, b=20, c=30)
+
+# 文档字符串
+# 第一行应该是对象目的的简要概述。为简洁起见，它不应显式声明对象的名称或类型，因为这些可通过其他方式获得（除非名称恰好是描述函数操作的动词）。这一行应以大写字母开头，以句点结尾。
+# 如果文档字符串中有更多行，则第二行应为空白，从而在视觉上将摘要与其余描述分开。后面几行应该是一个或多个段落，描述对象的调用约定，它的副作用等。
+def test_5():
+    &amp;quot;&amp;quot;&amp;quot;Do nothing, but document it.
+
+    No, really, it doesn&#39;t do anything
+    &amp;quot;&amp;quot;&amp;quot;
+    print(&amp;quot;test&amp;quot;)
+
+print(test_5.__doc__)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;匿名函数&#34;&gt;匿名函数&lt;/h3&gt;
+&lt;p&gt;python 使用 lambda 来创建匿名函数。&lt;/p&gt;
+&lt;p&gt;所谓匿名，意即不再使用 def 语句这样标准的形式定义一个函数。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;lambda 只是一个表达式，函数体比 def 简单很多。&lt;/li&gt;
+&lt;li&gt;lambda的主体是一个表达式，而不是一个代码块。仅仅能在lambda表达式中封装有限的逻辑进去。&lt;/li&gt;
+&lt;li&gt;lambda 函数拥有自己的命名空间，且不能访问自己参数列表之外或全局命名空间里的参数。&lt;/li&gt;
+&lt;li&gt;虽然lambda函数看起来只能写一行，却不等同于C或C++的内联函数，后者的目的是调用小函数时不占用栈内存从而增加运行效率。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# lambda函数
+# 语法
+lambda [arg1 [,arg2,.....argn]]:expression
+
+# 简单例子
+sum_result = lambda a1, a2: a1 + a2
+print(sum_result(2, 3))
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;错误与异常&#34;&gt;错误与异常&lt;/h2&gt;
+&lt;h3 id=&#34;异常&#34;&gt;异常&lt;/h3&gt;
+&lt;p&gt;即使语句或表达式在语法上是正确的，但在尝试执行时，它仍可能会引发错误。在执行时检测到的错误被称为异常，异常不一定会导致严重后果。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 简单异常
+print(3 / 0)
+# 输出
+Traceback (most recent call last):
+  File &amp;quot;D:/knowledge/python/pycharm/pythonProject/learn/test.py&amp;quot;, line 123, in &amp;lt;module&amp;gt;
+    print(3 / 0)
+ZeroDivisionError: division by zero
+
+# 处理异常
+def test_6(x, y):
+    try:
+        x / y
+    except Exception as msg:
+        print(msg)
+
+test_6(3, 0)
+
+# try finally， finally语句中的代码始终都会执行
+def test_7(x, y):
+    try:
+        x / y
+    except ZeroDivisionError as msg:
+        print(msg)
+    finally:
+        print(&amp;quot;finally exec&amp;quot;)
+
+test_7(3, 0)
+
+# raise抛出异常
+raise Exception(&amp;quot;raise exception&amp;quot;)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;一个 &lt;a href=&#34;https://docs.python.org/zh-cn/3.9/reference/compound_stmts.html#try&#34;&gt;try&lt;/a&gt; 语句可能有多个 except 子句，以指定不同异常的处理程序。 最多会执行一个处理程序。 处理程序只处理相应的 try 子句中发生的异常，而不处理同一 try 语句内其他处理程序中的异常。 一个 except 子句可以将多个异常命名为带括号的元组。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 一个except多个异常
+try:
+    expression
+except (RuntimeError, OSError, TypeError):
+    pass
+  
+# 多个except
+# 最后的 except 子句可以省略异常名，以用作通配符。但请谨慎使用，因为以这种方式很容易掩盖真正的编程错误！
+# 它还可用于打印错误消息，然后重新引发异常（同样允许调用者处理异常）   
+import sys
+try:
+    f = open(&#39;myfile.txt&#39;)
+    s = f.readline()
+    i = int(s.strip())
+except OSError as err:
+    print(&amp;quot;OS error: {0}&amp;quot;.format(err))
+except ValueError:
+    print(&amp;quot;Could not convert data to an integer.&amp;quot;)
+except:
+    print(&amp;quot;Unexpected error:&amp;quot;, sys.exc_info()[0])
+    raise 
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;使用with语句可以自动关闭流&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# with关键字会自动关闭文件,try捕获异常输出
+try:
+    with open(&#39;/opt/pythonDir/temp.txt&#39;, &#39;w+&#39;) as f:
+        f.write(&amp;quot;test content&amp;quot;)
+    print(f.close())
+except IOError as err:
+    print(&amp;quot;exception: {0}&amp;quot;.format(err))
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;面向对象&#34;&gt;面向对象&lt;/h2&gt;
+&lt;h3 id=&#34;python中的类&#34;&gt;python中的类&lt;/h3&gt;
+&lt;p&gt;类实例化后，可以使用其属性，实际上，创建一个类之后，可以通过类名访问其属性。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 创建类
+class FirstClass:
+    name = &amp;quot;python&amp;quot;
+
+    def fn(self):
+        print(self.name)
+        return &amp;quot;hello world&amp;quot;
+
+
+# 实例化类
+first_class = FirstClass()
+# 调用变量
+print(&amp;quot;name: &amp;quot;, first_class.name)
+# 调用函数
+print(&amp;quot;function: &amp;quot;, first_class.fn())
+
+# 定义初始化函数
+class People:
+    # 基本属性
+    name = &amp;quot;&amp;quot;
+    age = 0
+    # 使用双下划线定义私有属性，其无法被类外部所访问
+    __private_attribute = &amp;quot;private_attribute&amp;quot;
+
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    def speak(self):
+        print(&amp;quot;{0} speak: {1}, {2}&amp;quot;.format(self.name, self.age, self.__private_attribute))
+
+    def action(self):
+        print(&amp;quot;base class action&amp;quot;)
+
+
+# people = People(&amp;quot;Jack&amp;quot;, 100)
+# people.speak()
+
+# 继承类
+class Employee(People):
+    profession = &amp;quot;&amp;quot;
+
+    def __init__(self, name, age, profession):
+        People.__init__(self, name, age)
+        self.profession = profession
+
+    def speak(self):
+        print(&amp;quot;{0} speak: {1}, {2}&amp;quot;.format(self.name, self.age, self.profession))
+
+    # 重写toString方法
+#   def __str__(self):
+#       return &amp;quot;Employee:{name: %s, age: %d, profession: %s}&amp;quot; % (self.name, self.age, self.profession)
+
+    # 重写toString方法（使用f-string格式化）
+    def __str__(self):
+        return f&amp;quot;Employee:(name: {self.name}, age: {self.age}, profession: {self.profession})&amp;quot;
+
+teacher = Employee(&amp;quot;Tom&amp;quot;, 40, &amp;quot;teacher&amp;quot;)
+teacher.speak()
+teacher.action()
+print(teacher.name)
+
+json_str = json.dumps(teacher.__dict__)
+print(json_str)
+teacher2 = json.loads(json_str)
+print(teacher2)
+
+&lt;/code&gt;&lt;/pre&gt;
+">python3基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Lua脚本知识。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/tianjin-2185510_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;简介与安装&#34;&gt;简介与安装&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Lua是一个强大，高效且轻量化的嵌入式脚本语言，由 clean C（标准 C 和 C++ 间共通的子集）实现成一个库，支持过程编程，面向对象编程，函数编程以及数据驱动编程，以此来供任何需要的程序使用。&lt;/p&gt;
+&lt;p&gt;同时，作为一门扩展式语言，Lua 没有 &amp;quot;main&amp;quot; 程序的概念：它只能 嵌入 一个宿主程序中工作，该宿主程序被称为 被嵌入程序 或者简称 宿主 。 宿主程序可以调用函数执行一小段 Lua 代码，可以读写 Lua 变量，可以注册 C 函数让 Lua 代码调用。依靠 C 函数，Lua 可以共享相同的语法框架来定制编程语言，从而适用不同的领域。&lt;/p&gt;
+&lt;p&gt;这也是其设计目的：为了给应用程序提供灵活的可扩展及定制化功能。&lt;/p&gt;
+&lt;h3 id=&#34;安装&#34;&gt;安装&lt;/h3&gt;
+&lt;p&gt;linux/mac安装lua，命令如下，第四行根据系统自行选择，可在&lt;a href=&#34;http://www.lua.org/ftp&#34;&gt;官网地址&lt;/a&gt;中获取最新的lua下载信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;curl -R -O http://www.lua.org/ftp/lua-5.*.*.tar.gz
+tar zxf lua-5.*.*.tar.gz
+cd lua-5.*.*
+make linux/macosx test
+make install
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;windows下载LuaForWindows（双击安装即可）：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Github下载地址：&lt;a href=&#34;https://github.com/rjpcomputing/luaforwindows/releases&#34;&gt;点击此处跳转下载页面&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Google下载地址 : &lt;a href=&#34;https://code.google.com/p/luaforwindows/downloads/list&#34;&gt;点击此处跳转下载页面&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306010.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;基本概念&#34;&gt;基本概念&lt;/h2&gt;
+&lt;h3 id=&#34;值与类型&#34;&gt;值与类型&lt;/h3&gt;
+&lt;p&gt;Lua 是一门动态类型语言，这意味着变量没有类型，只有值才有类型；值可以存储在变量中，作为参数传递或者返回。&lt;/p&gt;
+&lt;p&gt;Lua 中有八种基本类型：nil、boolean、number、string、function、userdata、thread 和 table&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;数据类型&lt;/th&gt;
+&lt;th&gt;描述&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;nil&lt;/td&gt;
+&lt;td&gt;NIL是值nil的类型，用于与其他值区分；通常用来表示一个有意义的值不存在时的状态。如果用于条件判断，其等同于boolean中的false。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;boolean&lt;/td&gt;
+&lt;td&gt;包含两个值：true和false&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;number&lt;/td&gt;
+&lt;td&gt;整数及实数(浮点数)：标准Lua使用64位整数及双精度(64位)浮点数；小型机器和嵌入式系统可以使用32位整数及单精度(32位)浮点数。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;string&lt;/td&gt;
+&lt;td&gt;不可变的字节序列(字符串)，可以使用双引号(&amp;quot;&amp;quot;)，单引号(&#39;&#39;)，双中括号([[]])表示&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;function&lt;/td&gt;
+&lt;td&gt;由C或者Lua编写的函数&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;userdata&lt;/td&gt;
+&lt;td&gt;存储在变量中的C语言数据，用户数据类型的值是一个内存块，分为：完全用户数据：指一块由Lua管理的内存对应的对象；轻量用户数据：一个简单的C指针。Lua可使用元表(metatable)对userdata进行操作;如若需要修改用户数据中的值，只能通过C API进行处理，这保证了数据仅被宿主机所控制。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;thread&lt;/td&gt;
+&lt;td&gt;一个独立的执行序列，主要用于实现协程(coroutine)。注意：Lua中的线程与操作系统没有任何关系，因此，它可以为那些不支持原生线程的系统提供协程支持。线程跟协程的区别：线程可以同时多个运行，而协程任意时刻只能运行一个，并且处于运行状态的协程只有被挂起（suspend）时才会暂停。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;table&lt;/td&gt;
+&lt;td&gt;一个关联数组，是Lua中唯一的数据结构。它可被用于表示普通数组、序列、符号表、集合、记录、图、树等等。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;错误处理&#34;&gt;错误处理&lt;/h3&gt;
+&lt;p&gt;由于 Lua 是一门嵌入式扩展语言，其所有行为均源于宿主程序中代码对某个 Lua 库函数的调用（如果是单独使用 Lua 时，那么Lua 程序就是宿主程序）。因此，在编译或运行 Lua 代码块的过程中，无论何时发生错误，控制权都返回给宿主，由宿主负责采取恰当的措施（比如打印错误消息）。&lt;/p&gt;
+&lt;p&gt;在Lua中的可以通过asset函数或者error函数处理错误。&lt;/p&gt;
+&lt;p&gt;asset函数首先会检查第一个参数，如果没有问题则不做任何事情，否则输出第二个参数作为错误信息。使用样例：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;-- 错误处理
+local function add(i, j)
+    assert(type(i) == &amp;quot;number&amp;quot;, &amp;quot;i 不是一个数字&amp;quot;)
+	assert(type(j) == &amp;quot;number&amp;quot;, &amp;quot;j 不是一个数字&amp;quot;)
+	return i + j
+end
+print(add(rd, 1))
+-- 输出
+lua: demo.lua:3: i 不是一个数字
+stack traceback:
+	[C]: in function &#39;assert&#39;
+	demo.lua:3: in function &#39;add&#39;
+	demo.lua:7: in main chunk
+	[C]: ?
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;error函数：error (message [, level])，显式地抛出一个错误，内容为参数message，&lt;/p&gt;
+&lt;p&gt;Level参数指示获得错误的位置: Level=1[默认]：为调用error位置(文件+行号)；Level=2：指出哪个调用error的函数的函数；Level=0:不添加错误位置信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;error(&#39;error msg..&#39;)
+--输出
+lua: demo.lua:1: error msg..
+stack traceback:
+	[C]: in function &#39;error&#39;
+	demo.lua:1: in main chunk
+	[C]: ?
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果需要在 Lua 中捕获这些错误，可以使用 &lt;a href=&#34;https://www.bookstack.cn/read/lua-5.3/2.md#pdf-pcall&#34;&gt;pcall&lt;/a&gt; 或&lt;a href=&#34;https://www.bookstack.cn/read/lua-5.3/2.md#pdf-xpcall&#34;&gt;xpcall&lt;/a&gt;在 保护模式 下调用一个函数。&lt;/p&gt;
+&lt;p&gt;使用xpcall或pcall时，需要提供一个 消息处理函数 用于错误抛出时调用。该函数需接收原始的错误消息，并返回一个新的错误消息。&lt;/p&gt;
+&lt;p&gt;它在错误发生后栈尚未展开时调用，因此可以利用栈来收集更多的信息，比如通过探知栈来创建一组栈回溯信息。同时，该处理函数也处于保护模式下，所以该函数内发生的错误会再次触发它（递归）。如果递归太深，Lua 会终止调用并返回一个合适的消息。&lt;/p&gt;
+&lt;h3 id=&#34;垃圾收集&#34;&gt;垃圾收集&lt;/h3&gt;
+&lt;p&gt;Lua采用了自动内存管理（类似于Java）。这意味着使用者不用操心新创建的对象需要的内存如何分配出来，也不用考虑在对象不再被使用后怎样释放它们所占用的内存。&lt;/p&gt;
+&lt;p&gt;Lua 运行了一个 垃圾收集器 来收集所有 死对象（即在 Lua 中不可能再访问到的对象）来完成自动内存管理的工作。&lt;/p&gt;
+&lt;p&gt;Lua 中所有用到的内存，如：字符串、表、用户数据、函数、线程、内部结构等，都服从自动管理。&lt;/p&gt;
+&lt;p&gt;Lua 实现了一个增量标记-扫描收集器。它使用这两个数字来控制垃圾收集循环：垃圾收集器间歇率 和 垃圾收集器步进倍率。这两个数字都使用百分数为单位（例如：值 100 在内部表示 1 ）。&lt;/p&gt;
+&lt;p&gt;垃圾收集器间歇率控制着收集器需要在开启新的循环前要等待多久。增大这个值会减少收集器的积极性。当这个值比 100 小的时候，收集器在开启新的循环前不会有等待。设置这个值为 200 就会让收集器等到总内存使用量达到之前的两倍时才开始新的循环。&lt;/p&gt;
+&lt;p&gt;垃圾收集器步进倍率控制着收集器运作速度相对于内存分配速度的倍率。增大这个值不仅会让收集器更加积极，还会增加每个增量步骤的长度。不要把这个值设得小于 100 ，那样的话收集器就工作的太慢了以至于永远都干不完一个循环。默认值是 200 ，这表示收集器以内存分配的“两倍”速工作。&lt;/p&gt;
+&lt;p&gt;如果将步进倍率设为一个非常大的数字（比程序可能用到的字节数还大 10% ），收集器的行为就像一个 stop-the-world 收集器。接着若把间歇率设为 200 ，收集器的行为就和过去的 Lua 版本一样了：每次 Lua 使用的内存翻倍时，就做一次完整的收集。&lt;/p&gt;
+&lt;p&gt;通过在 C 中调用 lua_gc或在 Lua 中调用collectgarbage ([opt [, arg]])来控制自动内存管理。通过参数 opt 它提供了一组不同的功能：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;collectgarbage(&amp;quot;collect&amp;quot;): 做一次完整的垃圾收集循环。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;count&amp;quot;): 以 K 字节数为单位返回 Lua 使用的总内存数。 这个值有小数部分，所以只需要乘上 1024 就能得到 Lua 使用的准确字节数（除非溢出）。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;restart&amp;quot;): 重启垃圾收集器的自动运行。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;setpause&amp;quot;): 将 arg 设为收集器的 间歇率。 返回 间歇率 的前一个值。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;setstepmul&amp;quot;): 返回 步进倍率 的前一个值。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;step&amp;quot;): 单步运行垃圾收集器。 步长&amp;quot;大小&amp;quot;由 arg 控制。 传入 0 时，收集器步进（不可分割的）一步。 传入非 0 值， 收集器收集相当于 Lua 分配这些多（K 字节）内存的工作。 如果收集器结束一个循环将返回 true 。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;stop&amp;quot;): 停止垃圾收集器的运行。 在调用重启前，收集器只会因显式的调用运行。&lt;/li&gt;
+&lt;li&gt;collectgarbage(&amp;quot;isrunning&amp;quot;): 返回表示收集器是否工作的布尔值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;demoTable = {&amp;quot;LUa&amp;quot;, &amp;quot;shell&amp;quot;, &amp;quot;python&amp;quot;, &amp;quot;Java&amp;quot;, &amp;quot;ruby&amp;quot;}
+print(collectgarbage(&amp;quot;count&amp;quot;))
+demoTable = nil
+
+print(collectgarbage(&amp;quot;count&amp;quot;))
+print(collectgarbage(&amp;quot;collect&amp;quot;))
+print(collectgarbage(&amp;quot;count&amp;quot;))
+-- 输出
+21.0859375
+21.1123046875
+0
+19.498046875
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;协程coroutine&#34;&gt;协程（coroutine）&lt;/h3&gt;
+&lt;p&gt;Lua中的协程也被称作协同式多线程，代表了一段独立执行的线程。它与线程非常的类似：拥有独立的堆栈、局部变量、指令指针，同时又与其他协程共享全局变量。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;方法&lt;/th&gt;
+&lt;th&gt;描述&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.create()&lt;/td&gt;
+&lt;td&gt;创建一个协程。其唯一的参数是该协程的主函数。create 函数只负责新建一个协程并返回其句柄（一个 thread 类型的对象）；而不会启动该协程。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.resume()&lt;/td&gt;
+&lt;td&gt;执行一个协程。第一次调用coroutine.resume时，第一个参数应传入coroutine.create返回的线程对象，然后协程从其主函数的第一行开始执行。传递给coroutine.resume的其他参数将作为协程主函数的参数传入。协程启动之后，将一直运行到它终止或调用coroutine.yield。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.yield()&lt;/td&gt;
+&lt;td&gt;挂起协程，让出执行权。一般与resume配合使用。协程挂起时，对应的最近coroutine.resume函数会立刻返回，即使该挂起操作发生在内嵌函数调用中（即不在主函数，但在主函数直接或间接调用的函数内部）。在协程挂起的情况下，coroutine.resume也会返回 true，并加上传给coroutine.yield的参数。当下次重启同一个协程时，协程会接着从挂起点继续执行。此时，此前挂起点处对coroutine.yield的调用会返回，返回值为传给coroutine.resume的第一个参数之外的其他参数。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.status()&lt;/td&gt;
+&lt;td&gt;查看线程状态：dead，suspended，running&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.warp()&lt;/td&gt;
+&lt;td&gt;与create类似，也是创建一个协程。不同之处在于，它不返回协程本身，而是返回一个函数。调用这个函数将启动该协程。传递给该函数的任何参数均当作coroutine.resume的额外参数。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;coroutine.running()&lt;/td&gt;
+&lt;td&gt;返回一个running协程的协程号。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;协程样例及步骤解释：&lt;/p&gt;
+&lt;p&gt;1、函数foo加载，协程co创建。&lt;/p&gt;
+&lt;p&gt;2、第15行print执行，由coroutine.resume触发执行co协程。&lt;/p&gt;
+&lt;p&gt;2.1、接着打印第7行数据，对应输出结果第28行。&lt;/p&gt;
+&lt;p&gt;2.2、随后第8行调用函数foo，开始执行第2行，打印结果为第29行&lt;/p&gt;
+&lt;p&gt;2.3、最后第3行执行，协程被挂起，打印结果对应第30行。&lt;/p&gt;
+&lt;p&gt;注意：yield调用后的返回值为下次resume同一协程时的输入参数。对应第8行的r。&lt;/p&gt;
+&lt;p&gt;3、第16行执行，打印协程状态，为suspended（挂起）。&lt;/p&gt;
+&lt;p&gt;4、第18行执行，resume同一协程，输入参数“r”对应第8行的local r，也即第3行yield挂起后的返回值。&lt;/p&gt;
+&lt;p&gt;4.1、第9行打印，对应结果为第32行。&lt;/p&gt;
+&lt;p&gt;4.2、第10行执行，协程挂起，返回r，s两个值，作为下次resume时可输入的值。&lt;/p&gt;
+&lt;p&gt;5、第21行执行，resume同一协程，输入参数“x”，“y”，对应第10行的local r，s。&lt;/p&gt;
+&lt;p&gt;5.1、第11行执行，打印协程内容，对接结果为第35行。&lt;/p&gt;
+&lt;p&gt;5.2、协程结束，打印结果为第36行。&lt;/p&gt;
+&lt;p&gt;6、第22执行，显示协程已dead（死亡），对应结果为第37行。&lt;/p&gt;
+&lt;p&gt;7、第24行执行，resume协程，开始提示，协程已经dead，对应结果为第38行。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;function foo (a)
+  print(&amp;quot;foo&amp;quot;, a)
+  return coroutine.yield(2*a)
+end
+
+co = coroutine.create(function (a,b)
+      print(&amp;quot;co-body&amp;quot;, a, b)
+      local r = foo(a+1)
+      print(&amp;quot;co-body&amp;quot;, r)
+      local r, s = coroutine.yield(a+b, a-b)
+      print(&amp;quot;co-body&amp;quot;, r, s)
+      return b, &amp;quot;end&amp;quot;
+end)
+
+print(&amp;quot;main&amp;quot;, coroutine.resume(co, 1, 10))
+print(coroutine.status(co))
+
+print(&amp;quot;main&amp;quot;, coroutine.resume(co, &amp;quot;r&amp;quot;))
+print(coroutine.status(co))
+
+print(&amp;quot;main&amp;quot;, coroutine.resume(co, &amp;quot;x&amp;quot;, &amp;quot;y&amp;quot;))
+print(coroutine.status(co))
+
+print(&amp;quot;main&amp;quot;, coroutine.resume(co, &amp;quot;x&amp;quot;, &amp;quot;y&amp;quot;))
+print(coroutine.status(co))
+
+-- 输出
+co-body	1	10
+foo	2
+main	true	4
+suspended
+co-body	r
+main	true	11	-9
+suspended
+co-body	x	y
+main	true	10	end
+dead
+main	false	cannot resume dead coroutine
+dead
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;基本语法&#34;&gt;基本语法&lt;/h2&gt;
+&lt;h3 id=&#34;变量&#34;&gt;变量&lt;/h3&gt;
+&lt;p&gt;在Lua中的进行赋值操作，是不需要指定类型的。如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;-- 简单赋值
+z = 1
+print(z)
+-- 多重赋值，同时也支持多重返回值
+a,b = 3,4
+print(a)
+print(b)
+return a,b
+
+-- 本地（局部）变量赋值
+local x,y=5,6
+print(x)
+print(y)
+-- 交换数据
+x,y = y,x
+print(x)
+print(y)
+
+-- 代码块
+do
+    local str = &amp;quot;world&amp;quot;
+	print(str)
+end
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;表达式&#34;&gt;表达式&lt;/h3&gt;
+&lt;p&gt;在Lua中的表达式基本与高级语言相差无几，如下：&lt;/p&gt;
+&lt;p&gt;操作符&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;算术运算符：+ - * / ^ (加减乘除幂)&lt;/li&gt;
+&lt;li&gt;关系运算符：&amp;lt; &amp;gt; &amp;lt;= &amp;gt;= == ~=&lt;/li&gt;
+&lt;li&gt;逻辑运算符：and or not&lt;/li&gt;
+&lt;li&gt;连接运算符：..&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;有几个操作符需要注意：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;a ~= b 即 a 不等于 b&lt;/li&gt;
+&lt;li&gt;a ^ b 即 a 的 b 次方&lt;/li&gt;
+&lt;li&gt;a .. b 将 a 和 b 作为字符串连接&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优先级：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;^&lt;/li&gt;
+&lt;li&gt;not -(负号)&lt;/li&gt;
+&lt;li&gt;*/&lt;/li&gt;
+&lt;li&gt;+-&lt;/li&gt;
+&lt;li&gt;..&lt;/li&gt;
+&lt;li&gt;&amp;lt; &amp;gt; &amp;lt;= &amp;gt;= ~= ==&lt;/li&gt;
+&lt;li&gt;and&lt;/li&gt;
+&lt;li&gt;or&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;控制流&#34;&gt;控制流&lt;/h3&gt;
+&lt;p&gt;Lua以if for while等来进行流程控制，具体如下所示：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;-- if语句
+local num = &amp;quot;21&amp;quot;
+if (tonumber(num)~=nil) then
+    print(&amp;quot;tonumber result: &amp;quot;..tonumber(num))
+else
+    print(&amp;quot;tonumber result is not number&amp;quot;)
+end
+
+-- for语句
+-- 三个数字分别表示初始值，终止值，步长
+for i = 2, 10, 2 do
+    print(i)
+end
+-- i，v分别表示数组对应的索引及值，注意：Lua中的数组是从1开始排序
+demoTable = {&amp;quot;LUa&amp;quot;, &amp;quot;shell&amp;quot;, &amp;quot;python&amp;quot;, &amp;quot;Java&amp;quot;, &amp;quot;ruby&amp;quot;}
+for i,v in ipairs(demoTable) do
+    print(i)
+    print(v)
+end
+
+-- while语句
+local i = 0
+while i &amp;lt; 2 do
+    print(i)
+	i = i + 1
+	if (i == 1) then break end
+end
+
+&lt;/code&gt;&lt;/pre&gt;
+">Lua基本知识</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/mysql-ri-zhi-xi-tong/"" data-c="
