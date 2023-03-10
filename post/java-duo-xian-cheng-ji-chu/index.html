@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Java多线程基础 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1678267308901">
+<link rel="shortcut icon" href="/favicon.ico?v=1678440216911">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">25</span>
+        <span class="site-item-stat-count">27</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">16</span>
+        <span class="site-item-stat-count">18</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">16</span>
+        <span class="site-item-stat-count">18</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1318,6 +1318,661 @@ class TestCallable implements Callable&lt;Integer&gt; {
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述一种基于云服务的敏感数据加密设计方案。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sunset-1117008_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;引言&#34;&gt;引言&lt;/h2&gt;
+&lt;h3 id=&#34;需求描述&#34;&gt;需求描述&lt;/h3&gt;
+&lt;p&gt;为了防止敏感数据泄露，造成资产损失，故需要对相关数据进行加密处理；同时，允许部分加密数据支持模糊搜索。&lt;/p&gt;
+&lt;h2 id=&#34;详细设计&#34;&gt;详细设计&lt;/h2&gt;
+&lt;h3 id=&#34;总体设计&#34;&gt;总体设计&lt;/h3&gt;
+&lt;p&gt;加密服务提供针对敏感数据存储的加密能力，用于防止因外部或内部安全威胁所导致的数据泄露问题，从而提高数据安全的防护水平。&lt;/p&gt;
+&lt;p&gt;基本功能：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;基础安全保障：加解密从根本上夯实了数据安全性。对敏感字段加密后，可以有效防止数据库内容被直接盗取。且密钥以租户维度隔离，有效解决应用的水平权限隔离问题。&lt;/li&gt;
+&lt;li&gt;数据库内容和密钥存储管理分离：接入方只存储加密数据，不保存密钥。只需接入本产品提供的SDK即可（实现细节将由SDK处理）。这在增强安全系数的同时，也简化了开发者管理、存储密钥的成本。&lt;/li&gt;
+&lt;li&gt;安全与服务平滑性兼得：SDK提供智能的、丰富的api可以自动识别数据库中存量密文的版本、自动加密、解密。接入方引入SDK后，可以做到在不停服务的条件下进行密钥升级。&lt;/li&gt;
+&lt;li&gt;接入简单便捷：加解密方案不依赖硬件，只需要引入加解密SDK即可，对数据库无特殊要求，使用成本、改造成本低。&lt;/li&gt;
+&lt;li&gt;保证数据完整性传输：所有接口都将使用非对称加密RSA进行签名校验，保证了数据的完整性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;整体业务流程&#34;&gt;整体业务流程&lt;/h3&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310009.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;接入方使用&#34;&gt;接入方使用&lt;/h4&gt;
+&lt;p&gt;引入加解密SDK，初始化client后，直接调用对应的函数即可。&lt;/p&gt;
+&lt;h4 id=&#34;加解密云服务&#34;&gt;加解密云服务&lt;/h4&gt;
+&lt;p&gt;1、允许用户输入应用级别的RSA公私钥，应用公私钥功能：应用使用私钥加签数据，云服务使用公钥验签数据。此值支持变更。&lt;/p&gt;
+&lt;p&gt;2、自动生成云服务RSA公私钥，云服务公私钥功能：云服务使用私钥加签数据，应用使用公钥验签数据。此值不支持变更。&lt;/p&gt;
+&lt;p&gt;3、自动生成AES密钥（外部获取此值时，将会被RSA加密），此密钥不展示。此值支持变更。&lt;/p&gt;
+&lt;p&gt;4、自动生成伪随机码（日期+雪花算法生成），用于验伪操作，客户端需持有此参数并传递。此值支持变更。&lt;/p&gt;
+&lt;p&gt;5、自动生成appid，用于唯一标识一个应用（同一个客户允许存在多个appid），云服务前缀+雪花算法生成。&lt;/p&gt;
+&lt;p&gt;6、appId加version为组合唯一索引；其中version默认为0，每次变更AES密钥时，version+1。&lt;/p&gt;
+&lt;p&gt;7、允许设置过期时间（默认90天），最大有效期（默认120天，必须大于过期时间）；单位：天。主要用于客户端本地缓存的有效时长。&lt;/p&gt;
+&lt;p&gt;8、允许设置滑动窗口（默认4）大小及压缩长度（默认3）；用于加密search类型的数据。&lt;/p&gt;
+&lt;h3 id=&#34;整体技术方案&#34;&gt;整体技术方案&lt;/h3&gt;
+&lt;h4 id=&#34;关于算法&#34;&gt;关于算法&lt;/h4&gt;
+&lt;p&gt;对称加密与非对称加密混合使用：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;云服务自动生成出一对秘钥pub/pri。将私钥保密，将公钥公开。&lt;/li&gt;
+&lt;li&gt;接入方请求云服务时，拿到云服务的公钥pub。&lt;/li&gt;
+&lt;li&gt;云服务通过AES计算出一个对称加密的秘钥X。 然后使用应用公钥将X进行加密。&lt;/li&gt;
+&lt;li&gt;接入方发送加签请求到云服务获取加密后的秘钥X，云服务对请求进行验签，通过了方才返回秘钥X。&lt;/li&gt;
+&lt;li&gt;接入方得到加密后的秘钥X，便可以使用应用私钥解密，得到AES秘钥。&lt;/li&gt;
+&lt;li&gt;之后便可以使用AES秘钥进行敏感数据的加解密操作。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意：接入方不需要额外的开发，只需引入云服务SDK，并调用对应的接口即可。&lt;/p&gt;
+&lt;h5 id=&#34;rsa&#34;&gt;RSA&lt;/h5&gt;
+&lt;p&gt;将用于签名（保证数据完整性）及加密（保证数据安全性）&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;开放平台签名算法名称&lt;/th&gt;
+&lt;th&gt;标准签名算法名称&lt;/th&gt;
+&lt;th&gt;备注&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;RSA2&lt;/td&gt;
+&lt;td&gt;SHA256WithRSA&lt;/td&gt;
+&lt;td&gt;强制要求 RSA 密钥的长度至少为 2048&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;RSA&lt;/td&gt;
+&lt;td&gt;SHA1WithRSA&lt;/td&gt;
+&lt;td&gt;对 RSA 密钥的长度不限制，推荐使用 2048 位以上&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;由于计算能力的飞速发展，从安全性角度考虑，云服务推荐使用 SHA256WithRSA 的签名算法。该算法在摘要算法上比 SHA1WithRSA 有更强的安全能力。&lt;/p&gt;
+&lt;p&gt;注意避免公私钥混用：不同签名算法的签名密钥是隔离的。由于同时提供了两套签名算法，若选择了特定的签名算法，请保证使用对应的私钥签名，同时使用对应的云服务公钥进行验签。&lt;/p&gt;
+&lt;h5 id=&#34;aes&#34;&gt;AES&lt;/h5&gt;
+&lt;p&gt;将用于加解密敏感数据，此数据传输时，会被RSA加密保护，算法特性如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;加密算法使用“AES/CBC/PKCS5Padding”&lt;/li&gt;
+&lt;li&gt;加密用的初始向量会直接编码到加密数据中, 因此相同数据内容多次加密的结果不同&lt;/li&gt;
+&lt;li&gt;不同应用使用不同的秘钥，不同应用间加密数据无法解密（以appId作为区分）&lt;/li&gt;
+&lt;li&gt;支持秘钥升级, 密文中会包含加密密文用的秘钥版本，更新后支持老版本密文解密（appId + version 获取唯一AES秘钥）&lt;/li&gt;
+&lt;li&gt;传输过程AES秘钥将会被应用RSA公钥加密，返回时需要使用应用RSA私钥解密。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4 id=&#34;加密类型&#34;&gt;加密类型&lt;/h4&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;phone&lt;/th&gt;
+&lt;th&gt;id&lt;/th&gt;
+&lt;th&gt;simple&lt;/th&gt;
+&lt;th&gt;search&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;描述&lt;/td&gt;
+&lt;td&gt;手机号&lt;/td&gt;
+&lt;td&gt;有规律的数字，例如身份证&lt;/td&gt;
+&lt;td&gt;普通文本类型&lt;/td&gt;
+&lt;td&gt;支持模糊搜索的文本类型&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;1、phone，id为有规律的数字, 其加密算法只支持使用尾号后4位搜索。如13912345678的手机号加密后可用5678搜索。&lt;/p&gt;
+&lt;p&gt;2、接入方如果存在phone，id类的加密类型，建议增加一列检索串（创建索引），用于匹配搜索（List&lt;code&gt;&amp;lt;DO&amp;gt;&lt;/code&gt; objects =  SELECT * FROM table WHERE phone=‘encryptedData’）；如果不想增加额外的检索串，也可以在原有的加密手机号字段上建立前缀索引，可缩短一定的模糊匹配查询时间；当然也可以在加密手机号字段上直接建立普通索引，因为加密后的索引串会放在整个加密字符的最前方（List&lt;code&gt;&amp;lt;DO&amp;gt;&lt;/code&gt; objects =  SELECT * FROM table WHERE phone like ‘encryptedData%’）。关于如何截取检索串可在附录中查看。&lt;/p&gt;
+&lt;p&gt;3、simple类型只进行加密，不支持模糊搜索。&lt;/p&gt;
+&lt;p&gt;4、search类型支持模糊搜索，基本实现原理是根据4位英文字符（半角），2个中文字符（全角）为一个检索条件。将一个字段拆分为多个。&lt;/p&gt;
+&lt;p&gt;比如：test123，使用4个字符为一组的加密方式。切割结果为：[test, est1, st12, t123]，第一组 test，第二组est1，第三组st12，第四组 t123… 依次类推，如果需要检索 所有包含 检索条件4个字符的数据 比如：test，加密字符后通过key like “%partial%” 查库。&lt;/p&gt;
+&lt;p&gt;因为密文检索开启后 密文长度会膨胀几倍以上，如果没有强需求建议不开启。&lt;/p&gt;
+&lt;p&gt;使用这种方式存在一定的代价：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;支持模糊查询加密方式，产出的密文比较长；&lt;/li&gt;
+&lt;li&gt;支持的模糊查询子句长度必须大于等于4个英文/数字，或者2个汉字。不支持过短的查询(出于安全考虑)；&lt;/li&gt;
+&lt;li&gt;如果数据本身长度不够4个数字或2个汉字, 则此时输入全文即可搜索.  如: 原始数据为&amp;quot;安&amp;quot;的, 使用&amp;quot;安&amp;quot;调用平台搜索接口即可获取搜索用文本；&lt;/li&gt;
+&lt;li&gt;返回的结果列表中有可能有多余的结果，需要增加筛选的逻辑：对记录先解密，再筛选；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;加密格式&#34;&gt;加密格式&lt;/h4&gt;
+&lt;p&gt;注意：其中 Index 是检索信息，同一份数据多次加密后的结果都不会变。&lt;/p&gt;
+&lt;p&gt;手机号(phone)和身份证(id)格式，其中手机号(phone)分隔符：SEP=$；身份证(id)分隔符：SEP=#&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;Index&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;EncryptedData&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;Version&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;search类文本，SEP=~&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;EncryptedData&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;Index&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;Version&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;simple类文本，SEP=~&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;EncryptedData&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;th&gt;Version&lt;/th&gt;
+&lt;th&gt;SEP&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h4 id=&#34;加密样例&#34;&gt;加密样例&lt;/h4&gt;
+&lt;p&gt;加密算法支持模糊搜索(可选)，模糊加密的数据比一般加密更长一些，大概长度扩大 10-15 倍。&lt;/p&gt;
+&lt;p&gt;加密数据的示例如下：&lt;/p&gt;
+&lt;p&gt;phone(手机号)加密方式，加密类型：phone&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;手机号&lt;/th&gt;
+&lt;th&gt;13012345678&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;支持搜索的密文&lt;/td&gt;
+&lt;td&gt;$mMHmK1rfa+OZ23eYhO1AUQ==$q6cFTUyW6SuJD2NReTUVBQ==$1$$&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;后四位手机号&lt;/td&gt;
+&lt;td&gt;5678&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;5678检索串&lt;/td&gt;
+&lt;td&gt;mMHmK1rfa+OZ23eYhO1AUQ==&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;身份证加密方式，加密类型：id&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;身份证&lt;/th&gt;
+&lt;th&gt;200300190002039898&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;支持搜索的密文&lt;/td&gt;
+&lt;td&gt;#uJfxXOF0EJ+6V8H51L9rdg==#ao/gDujB17PTObfSjeAOvl/YxmScgYuxQPl2wokwlec=#1##&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;后四位身份证&lt;/td&gt;
+&lt;td&gt;9898&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;9898检索串&lt;/td&gt;
+&lt;td&gt;uJfxXOF0EJ+6V8H51L9rdg==&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;普通文本加密方式，加密类型：simple&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;地址&lt;/th&gt;
+&lt;th&gt;浙江省杭州市滨江区星耀城&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;支持搜索的密文&lt;/td&gt;
+&lt;td&gt;~thzORLtQtSKYQZW2UFvM64bMN5NhDPb8PSRZ5KNLtl3ZJ+sIYfzMN5gxPy7+ba4o~1~&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;支持搜索的文本加密方式，加密类型：search&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;域名&lt;/th&gt;
+&lt;th&gt;www.test.hostname.com&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;支持搜索的密文&lt;/td&gt;
+&lt;td&gt;~J/7ro/3scxjvrPXFB5+OxxOZdv45iqXbkP4doNfcEAo=~Q9bpt3Na0G8oOwOe1i9y+Eanjg7Tfr5U3vcYuMyC2iZi7ciYfvC+bNP6pS29uUPpo4L3spYx~1~~&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;需要查询的字符&lt;/td&gt;
+&lt;td&gt;test.hostname&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;test.hostname检索串&lt;/td&gt;
+&lt;td&gt;1i9y+Eanjg7Tfr5U3vcYuMyC2iZi7ciYfvC+bNP6&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h4 id=&#34;加密长度&#34;&gt;加密长度&lt;/h4&gt;
+&lt;p&gt;加密后由于增加了密文信息, 将比原文要长, 各种常见字段加密后的数据长度参考表如下:&lt;/p&gt;
+&lt;p&gt;注: 当发生加密秘钥version字段变更时, 密文长度可能会发生变化. 建议设计字段时在表中字段上加10个左右字符。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;数据类型&lt;/th&gt;
+&lt;th&gt;密文长度（支持搜索）&lt;/th&gt;
+&lt;th&gt;密文长度（不支持搜索）（使用simple类型加密）&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;phone（手机号）&lt;/td&gt;
+&lt;td&gt;54&lt;/td&gt;
+&lt;td&gt;28&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id（身份证为例）&lt;/td&gt;
+&lt;td&gt;74&lt;/td&gt;
+&lt;td&gt;48&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;文本数据（5字符，全汉字）&lt;/td&gt;
+&lt;td&gt;46&lt;/td&gt;
+&lt;td&gt;28&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;文本数据（10字符，全汉字）&lt;/td&gt;
+&lt;td&gt;86&lt;/td&gt;
+&lt;td&gt;48&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;文本数据（20字符，全汉字）&lt;/td&gt;
+&lt;td&gt;170&lt;/td&gt;
+&lt;td&gt;92&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;文本数据（40字符，全汉字）&lt;/td&gt;
+&lt;td&gt;334&lt;/td&gt;
+&lt;td&gt;176&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id=&#34;数据库设计&#34;&gt;数据库设计&lt;/h2&gt;
+&lt;h3 id=&#34;数据库ddl&#34;&gt;数据库DDL&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;-- DROP TABLE IF EXISTS `tb_app_config_aes`;
+CREATE TABLE `tb_app_config_aes`
+(
+  `id`             bigint(20)  NOT NULL AUTO_INCREMENT COMMENT &#39;自增主键&#39;,
+  `app_id`         varchar(64) NOT NULL COMMENT &#39;应用id，用于唯一标识应用；生成规则：云服务前缀+雪花算法生成&#39;,
+  `aes_key`        char(24)    NOT NULL COMMENT &#39;aes秘钥,固定长度&#39;,
+  `secret_version` bigint(16)  NOT NULL COMMENT &#39;版本号，用于升级aesKey&#39;,
+  `is_delete`      tinyint(1)  NOT NULL DEFAULT 0 COMMENT &#39;删除标识，0-未删除，1-已删除&#39;,
+  `create_time`    datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT &#39;创建时间&#39;,
+  `modify_time`    datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT &#39;修改时间&#39;,
+  PRIMARY KEY (`id`),
+  unique key `unique_index_app_id_secret_version` (`app_id`, `secret_version`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8 COMMENT =&#39;AES秘钥配置表&#39;;
+  
+-- DROP TABLE IF EXISTS `tb_app_config_rsa`;
+CREATE TABLE `tb_app_config_rsa`
+(
+  `id`                         bigint(20)    NOT NULL AUTO_INCREMENT COMMENT &#39;自增主键&#39;,
+  `app_id`                     varchar(64)   NOT NULL COMMENT &#39;应用id，用于唯一标识应用；生成规则：云服务前缀+雪花算法生成&#39;,
+  `tenant_id`                  varchar(128)  NOT NULL COMMENT &#39;租户id&#39;,
+  `tenant_name`                varchar(255)  NOT NULL COMMENT &#39;租户名称&#39;,
+  `app_pub_key`                varchar(512)  NOT NULL COMMENT &#39;应用公钥，用于验签接口，同时加密AES秘钥&#39;,
+  `das_pub_key`                varchar(512)  NOT NULL COMMENT &#39;云服务公钥，用于接入方验签&#39;,
+  `das_pri_key`                varchar(2048) NOT NULL COMMENT &#39;云服务私钥，云服务使用此私钥进行加签&#39;,
+  `encrypt_slide_size`         int(3)        NOT NULL DEFAULT 4 COMMENT &#39;滑动窗口大小&#39;,
+  `encrypt_index_compress_len` int(3)        NOT NULL DEFAULT 3 COMMENT &#39;密文滑窗压缩长度&#39;,
+  `random_num`                 varchar(64)   NOT NULL COMMENT &#39;伪随机码，生成规则：日期+雪花算法生成&#39;,
+  `invalid_time`               int(4)        NOT NULL DEFAULT 90 COMMENT &#39;过期时间，单位：天，默认90天&#39;,
+  `max_invalid_time`           int(4)        NOT NULL DEFAULT 120 COMMENT &#39;最大有效期，单位：天，默认120天；必须大于invalidTime&#39;,
+  `is_delete`                  tinyint(1)    NOT NULL DEFAULT 0 COMMENT &#39;删除标识，0-未删除，1-已删除&#39;,
+  `create_time`                datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT &#39;创建时间&#39;,
+  `modify_time`                datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT &#39;修改时间&#39;,
+  PRIMARY KEY (`id`),
+  unique key `unique_index_app_id` (`app_id`),
+  unique key `unique_index_tenant_id` (`tenant_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8 COMMENT =&#39;RSA秘钥配置表&#39;;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;附录&#34;&gt;附录&lt;/h2&gt;
+&lt;h3 id=&#34;rsa公私钥生成代码-java版&#34;&gt;RSA公私钥生成代码-java版&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.util.Base64;
+ 
+/**
+ * @author philosopherZB
+ * @date 2022/1/13
+ */
+public class GenerateKeyUtils {
+    private static KeyPair KEY_PAIR_INSTANCE = null;
+    private static String ALGORITHM = &amp;quot;RSA&amp;quot;;
+    private static Integer KEY_LENGTH = 2048;
+ 
+    /**
+     * 生成默认公钥--algorithm=RSA; keyLength=2048
+     *
+     * @return publicKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genDefaultPublicKey() throws NoSuchAlgorithmException {
+        return genPublicKey(ALGORITHM, KEY_LENGTH);
+ 
+    }
+ 
+    /**
+     * 生成默认私钥--algorithm=RSA; keyLength=2048
+     *
+     * @return privateKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genDefaultPrivateKey() throws NoSuchAlgorithmException {
+        return genPrivateKey(ALGORITHM, KEY_LENGTH);
+    }
+ 
+    /**
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return publicKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genPublicKey(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        PublicKey publicKey = getKeyPairInstance(algorithm, keyLength).getPublic();
+        return Base64.getEncoder().encodeToString(publicKey.getEncoded());
+ 
+    }
+ 
+    /**
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return privateKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genPrivateKey(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        PrivateKey privateKey = getKeyPairInstance(algorithm, keyLength).getPrivate();
+        return Base64.getEncoder().encodeToString(privateKey.getEncoded());
+    }
+ 
+    /**
+     * getKeyPairInstance
+     *
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return KeyPair
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    private static KeyPair getKeyPairInstance(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        if (KEY_PAIR_INSTANCE == null) {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+            SecureRandom secureRandom = new SecureRandom();
+            keyPairGenerator.initialize(keyLength, secureRandom);
+            KEY_PAIR_INSTANCE = keyPairGenerator.generateKeyPair();
+        }
+ 
+        return KEY_PAIR_INSTANCE;
+    }
+ 
+    public static void main(String[] args) throws NoSuchAlgorithmException {
+        System.out.println(&amp;quot;publicKey: &amp;quot; + genPublicKey(&amp;quot;RSA&amp;quot;, 2048));
+        System.out.println(&amp;quot;privateKey: &amp;quot; + genPrivateKey(&amp;quot;RSA&amp;quot;, 2048));
+ 
+        System.out.println(&amp;quot;default publicKey: &amp;quot; + genDefaultPublicKey());
+        System.out.println(&amp;quot;default privateKey: &amp;quot; + genDefaultPrivateKey());
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;检索串提取代码示例-java版&#34;&gt;检索串提取代码示例-java版&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;public static String extractIndex(String encryptedData) {
+    if (encryptedData == null || encryptedData.length() &amp;lt; 4) {
+        return null;
+    }
+    char sepInData = encryptedData.charAt(0);
+    if (encryptedData.charAt(encryptedData.length() - 2) != sepInData) {
+        return null;
+    }
+    String[] parts = StringUtils.split(encryptedData, sepInData);
+    if (sepInData == &#39;$&#39; || sepInData == &#39;#&#39;) {
+        return parts[0];
+    } else {
+        return parts[1];
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;sdk使用样例-java版&#34;&gt;SDK使用样例-java版&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;public static void main(String[] args) {
+    String privateKey = &amp;quot;MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGbO1R5OQ0Ff27V+k1FuPBnKMqwC3c0HFnAFu0ZUWH5FTyfkMahhsRntg7/uLk2QM1v0rx7kEdd/ExhOs5z68nO8xbyX/YbC+DX/NH3IsvNRrDU+xfpZdnuMT3bjtlGsasTIOK8S3DlHfiGpO4HPgeY7mBfduBaPStmJFLMM4Xpg3piD4r8mmq+2dAIhq6vX8GpwVqap0XLk8TcYY5h8WQ0FTbTSbRUNN/+YHmlwbEJVa+NR8qaUoo75/WHeVgjNlZ8SAfdjMt1oVWmibSiKYDr1JBVZrPD4CjBy6UR9jDrTxTrwmGsvHUzE3ZThPJZvJEWVXHbMCTs4KReUds/UcPAgMBAAECggEAXSsAM5e53wsEXFbm1VquDlax9nzODASDes3cQZPblfcMO+A1OdsGErv25BTGDJYo/6+WTQqF4IRU5991Y2u03kMhrWdrc/84QANpg7B2WfAhZN2e+zoRYU5MjbFgihSMfJJgoXik+FRaBfxcp/JSPlKs47RowNa7LFeawSdlXYxy+eXCouYomGe0aCPACKfHRyBWDRCf+eK/UwXRcmiyHi8hXOa/IfsaBsZNLtHR3rFod4x+hZUoIJAuXpupc2KW4qsK8ImW9BDcx2p2EO6iggw6MZMZkIo7NRHf3aaaLfpVsebjHm5lBF95ptVUP4CFpfoNevn3y09D4nhGjBP7AQKBgQDnZIcX+XJDykYES10jClxKndibhLYN9zNp7FOiin1Sfd5tUux+VXNEocWSMIqz8wuuI6kyrigwa0E2Kis3QANLizsaOu39jCW5kAHFm19txG3IgntPix95qADl9fQAO1Y3Nbh+zL43FH8f0s066L3V9bTvmZ6rN9vf8GF/xHrfLwKBgQDbhuUop370RhFbgN1CIFM6m6gio7pft7NW6YLyn4yXa/vbpw7c7B+c5TA1ru9maaXlF+Sff5WtLVK10czghDOdI0B5qrm62+TEhOEk7C6dgNsCdaHuDzqA2MYEmq4HJhoXrwM+xvzrlCwNZQ1AIRQWKdceKK9YgEnZQXQU9TEeIQKBgQCfPELrcLH9jLlaQzK45mxUvQNPIqjWO4OaJRP5CyzrE8t5mFM/LTbByEHaNKV+6IblM41AXzExAN5DlAlhYB/kYNAvYNZeYY+kf0F4509ojoCuN3z8ZFUot0DG/9cGQc829zUbrXJJHUXOdJbfL0NUdl4pdKIIWcxp81ZlQqT76QKBgHMlCzfKux1XTy1mpydTGzSnhoY8yLoB+dBBhQzLwQt/eUhaFMKuG1rJIANYcXuPOJO0d5dtbU27cyGpHMQ6s3PdlKj8cpTfV9v4MruSIlU8zCM7Hidm13HTwfGSTGu1gYQgqRwZdXn/ayfPdCbJ8uY5JftMrcRG7fVFjqSbgxrhAoGAVPNPW/QOVarHZDCVJi0XtOhl1g6oR51FGkOZ13SEuu8271v0PxcP55Hib6WvCPDOFB75oPaa1HmQs/WL41RCFMlELH/DhwEEkd2hLFmou4AiiB+M2DQODxagyINOx0RGd7FZuhiIWQTocqXj2PV71gkn5q4pIGKLsk1aklLTKXY=&amp;quot;;
+    String dasPubKey = &amp;quot;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiPNXFw6tQyfpNi63OoR5E+VR+KS4Sy1+1EFNiHTIc/f5AXXZtmo8CVTgAM8X7a2GHLMwRqjH1JZ/2Da9HHn8zHdEtSAbObxMtTKPrnQOG5NrTuA3hfRb/4N00iZZ2KZMr5fTXJ4824VMr2/fQZySwDd0bOPTmrNnlHLu6ErFvfJwjQqbhWVC1VhRkGzvT81O2SM+ALuTnbgoFGqFyaUE9YUP57COA/Hw4Yz+GmQkHxs9ELPvikFSGdBdptDvHQ2dTprskRW8UU/v0XjVED8jeayiqKxJFn2Yejq43eqkH+SV6c9R1jE39qhMyEX7hVvzSMcyvONSo5Za4R5zLqap4wIDAQAZ&amp;quot;;
+    // 初始化一次即可（单例模式）
+    SecurityClient securityClient =
+            new DefaultSecurityClient(&amp;quot;http://127.0.0.1:8999&amp;quot;, &amp;quot;cloud20220209651316091208540160&amp;quot;, privateKey, &amp;quot;20220209651322386368110592&amp;quot;, dasPubKey);
+    try {
+        // 加密类型: TYPE_PHONE-手机号; TYPE_ID-id; TYPE_SIMPLE-普通加密；TYPE_SEARCH-支持搜索的加密
+        // version 为AES版本号，可从云服务中查看
+        String encryptData = securityClient.encrypt(&amp;quot;www.test.hostname.com&amp;quot;, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&amp;quot;encryptData: &amp;quot; + encryptData);
+
+        boolean isEncryptData = securityClient.isEncryptData(encryptData, SecurityConstants.TYPE_SEARCH);
+        System.out.println(&amp;quot;isEncryptData: &amp;quot; + isEncryptData);
+
+        String decryptData = securityClient.decrypt(encryptData, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&amp;quot;decryptData: &amp;quot; + decryptData);
+
+        String searchData = securityClient.search(&amp;quot;test.hostname&amp;quot;, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&amp;quot;searchData: &amp;quot; + searchData);
+    } catch (DasSecurityException e) {
+        e.printStackTrace();
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">敏感数据加密方案</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/fen-bu-shi-shi-wu-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述单事务到分布式事务的转变以及对应分布式事务解决方案。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/iceland-1768744_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;事务演变&#34;&gt;事务演变&lt;/h2&gt;
+&lt;h3 id=&#34;概要&#34;&gt;概要&lt;/h3&gt;
+&lt;p&gt;随着业务的不断发展以及业务复杂度的提升，传统单体服务逐渐暴露出了一些问题，如开发效率低、可维护性差、架构扩展难、部署不灵活等。因此，走上分布式微服务是一条必然的道路。&lt;/p&gt;
+&lt;p&gt;在分布式中，每个服务便是一个独立的进程，各个服务间可单独迭代，互不影响，甚至可以用不同的语言开发，只需事先定义好对接规范即可。&lt;/p&gt;
+&lt;p&gt;分布式很好地解决了单体服务的一些问题，但随之而来的便是一系列分布式难题。本篇将要讲述的便是分布式事务这个问题。&lt;/p&gt;
+&lt;h3 id=&#34;本地事务&#34;&gt;本地事务&lt;/h3&gt;
+&lt;p&gt;本地事务，一般也被称之为数据库事务。它主要功能是将多条SQL语句当做一个整体来处理，保证这一个整体要么执行成功，要么执行失败。&lt;/p&gt;
+&lt;p&gt;比较典型的例子就是转账服务了：A转账100给B，那么对应有A-100和B+100两条语句，事务必须保证这两条语句的整体性，否则就会出现A-100，但B没有增加100的场景。&lt;/p&gt;
+&lt;p&gt;上述例子体现了事务的一个重要特性：原子性。事实上，事务具备四个基本特性：原子性，一致性，隔离性，永久性；通常也简称为ACID特性。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Atomicity(原子性)：一个事务便是一个整体，是不可再被分隔的最小独立单元；在一个事务中的操作，要么同时成功，要么同时失败，不会存在部分成功，部分失败的场景。&lt;/li&gt;
+&lt;li&gt;Consistency(一致性)：在事务开始前以及结束后，数据库的完整性没有被破坏。完整性包括约束、级联、触发器及其任意组合。&lt;/li&gt;
+&lt;li&gt;Isolation(隔离性)：数据库允许事务并发执行读写，为了防止出现多个事务并发写导致数据不一致，便有了隔离性。&lt;/li&gt;
+&lt;li&gt;Durability(持久性)：事务提交后，数据将会被永久地保存，即使系统故障也不会丢失。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;隔离级别：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Isolation Level&lt;/th&gt;
+&lt;th&gt;Dirty Reads&lt;/th&gt;
+&lt;th&gt;Non-Repeatable Reads&lt;/th&gt;
+&lt;th&gt;Phantom Reads&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Read uncommitted&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Read committed(Sql server, Oracle)&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Repeatable reads(Mysql)&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;td&gt;允许&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Serializable&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;td&gt;不允许&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;ul&gt;
+&lt;li&gt;Dirty reads：A事务可以读到B事务还未提交的数据。&lt;/li&gt;
+&lt;li&gt;Non-repeatable read：A事务读取一行数据，B事务后续修改了这行数据，A事务再次读取这行数据，结果得到的数据不同。&lt;/li&gt;
+&lt;li&gt;Phantom reads：A事务通过SELECT ... WHERE得到一些行，B事务插入新行或者删除已有的行使得这些行满足A事务的WHERE条件，A事务再次SELECT ... WHERE结果比上一次多/少了一些行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注意1：mysql默认使用RR隔离级别，这是由于binlog的格式问题（statement-记录修改的SQL语句,row-记录每行实际数据的变更,mixed-前面两种混合）所导致的，在5.0之前binlog只有statement一种格式，而主从复制时，这会导致数据的不一致。&lt;/p&gt;
+&lt;p&gt;注意2：其他数据库选用RC隔离级别，是由于RR隔离级别增加了间隙锁，会增加发生死锁的概率；同时，条件列未命中索引时，会锁全表，RC只会锁行。&lt;/p&gt;
+&lt;p&gt;注意3：RC隔离级别下，主从复制需要采用binlog的row格式，基于行的复制，这样不会出现主从不一致问题。&lt;/p&gt;
+&lt;h3 id=&#34;分布式事务&#34;&gt;分布式事务&lt;/h3&gt;
+&lt;p&gt;随着业务量的增加，单体服务所能承载的数据量越来越多，系统的运行速度逐渐下降，这时候便需要进行服务独立化（微服务）。&lt;/p&gt;
+&lt;p&gt;比如跨行转账，或者本行跨服务转账等都是比较典型的分布式场景；这里的每个服务都有自己独立的数据库，为了避免服务不可用，网络连接异常等情造成的数据不一致，分布式事务便应运而生了。&lt;/p&gt;
+&lt;p&gt;分布式事务的本质是为了多服务之间事务的正确执行，是对本地事务的一个扩展，但它只遵循部分ACID规范。所以，有必要介绍下分布式事务中的CAP定理与BASE理论。&lt;/p&gt;
+&lt;h4 id=&#34;cap定理&#34;&gt;CAP定理&lt;/h4&gt;
+&lt;p&gt;在理论计算机科学中，CAP定理(CAP theorem)，又被称为&lt;a href=&#34;https://mwhittaker.github.io/blog/an_illustrated_proof_of_the_cap_theorem/&#34;&gt;布鲁尔定理(Brewer&#39;s theorem)&lt;/a&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Consistency(一致性)：此处指的是强一致性；它要求分布式系统中一个服务的写操作成功后，其他服务的读操作都是刚刚写入的数据（最新数据）。&lt;/li&gt;
+&lt;li&gt;Availability(可用性)：非故障服务节点收到请求后必须给予响应（非最新数据）。&lt;/li&gt;
+&lt;li&gt;Partition-tolerance(分区容错性)：分布式系统在遇到任何网络分区故障时，仍然可以对外提供服务，除非整个分布式系统宕机。（ Gilbert and Lync describe partitions: the network will be allowed to lose arbitrarily many messages sent from one node to another）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;网络分区：在分布式系统中，不同的节点分布在不同的子网络中，由于一些特殊的原因，这些子节点之间出现了网络不通的状态，但他们的内部子网络是正常的。从而导致了整个系统的环境被切分成了若干个孤立的区域，这就是分区。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;cap定理验证&#34;&gt;CAP定理验证&lt;/h4&gt;
+&lt;p&gt;事实上，在分布式系统中，CAP三者是无法同时存在的，且由于分布式的缘故，分区容灾是必须存在的。&lt;/p&gt;
+&lt;p&gt;为了验证CAP定理，假设网络中存在两个节点N1和N2，它们之间网络互通，其中N1上存在服务A和独立数据库D1，N2上存在服务B和独立数据库D2。此时，A和B是分布式系统中的一部分，同时对外提供相关服务。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一致性要求A，B服务中的数据是一致的，即D1=D2。&lt;/li&gt;
+&lt;li&gt;可用性要求不管是请求A还是B都可以得到确认的响应。&lt;/li&gt;
+&lt;li&gt;分区容灾则是指出现网络故障或其他异常场景时，都不会影响A，B之间的正常运行，除非服务本身宕机。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在分布式系统中，网络通信时最常见的，就比如上述N1与N2之间；现在假设N1与N2因网络故障而无法通信，为了支持这种网络异常，即要满足分区容灾，那么如果还要同时满足一致性与可用性是否可行了？&lt;/p&gt;
+&lt;p&gt;可以简单模拟一下：当N1与N2断开网络时，一个请求抵达服务A，更新了D1上的一条数据；此时为了一致性要求，需要将该条更新数据同步至服务B上的数据库D2，但由于网络故障，两个服务无法通信，此时便面临两种选择。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;牺牲一致性，保证可用性；当下次请求服务B时响应旧的数据。&lt;/li&gt;
+&lt;li&gt;牺牲可用性，保证一致性；阻塞等待网络恢复，将数据更新至服务B。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;cap抉择&#34;&gt;CAP抉择&lt;/h4&gt;
+&lt;p&gt;CAP三者究竟该如何选择，才能满足业务需求，这是每个分布式系统架构中都需要考虑。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;CA(一致性与可用性)：如果选择CA，那么就需要一种非常严格的强一致性协议来进行保障；且，不允许出现网络故障或节点错误，否则整个系统将会不可用。显然，CA不是很适合分布式系统。&lt;/li&gt;
+&lt;li&gt;CP(一致性与分区容灾)：CP保证了数据的一致性，但由于P的存在，某些时候一个请求将会被无限延长。&lt;/li&gt;
+&lt;li&gt;AP(可用性与分区容灾)：AP保证了可用性，但却丢失了数据的一致性，在某些场景（银行转账服务）中是难以忍受的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;base理论&#34;&gt;BASE理论&lt;/h4&gt;
+&lt;p&gt;由上述CAP定理中可以知道，分布式系统是无法同时满足三者的，只能从中取二。由于分布式系统中网络环境的不可信，分区容灾是必选的；其次可用性保证了用户体验，除开一些需要强一致性的场景(支付，转账等)，应该先选；但如果没有一致性，分布式系统也就失去了存在的意义。&lt;/p&gt;
+&lt;p&gt;针对此种场景，可以对CAP中的强一致性做一定的让步，有些时候，我们只关注数据的最终一致性即可。于是，BASE理论便诞生了。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Basically Available(基本可用)：相对高可用而言，基本可用要求系统即使出现了重大故障，仍然能够提供一些基本型的服务。例如响应时间上的损失以及功能上的损失(熔断，降级)。&lt;/li&gt;
+&lt;li&gt;Soft state(软状态)：软状态是相对原子性(硬状态，即多个节点间的数据完全一致)而言的。该状态允许数据存在中间状态，并认为该状态并不影响系统的整体可用性，即允许系统在多个不同节点的数据同步存在一定的延时。（注意：对于软状态,我们允许中间状态存在，但不可能一直是中间状态，必须要有个期限，系统保证在没有后续更新的前提下,在这个期限后,系统最终返回上一次更新操作的值,从而达到数据的最终一致性,这个容忍期限（不一致窗口的时间）取决于通信延迟，系统负载，数据复制方案设计，复制副本个数等，DNS是一个典型的最终一致性系统。）&lt;/li&gt;
+&lt;li&gt;Eventually consisten(最终一致性)：相对强一致性而言，最终一致性仅仅要求数据在经过一段合理的延时后（软状态），最终抵达一致即可。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;关于最终一致性的变种模型，一般在实践中，五种模式会组合使用：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;因果一致性(Causal consistency)：如果节点A在更新完某个数据后通知了节点B，那么节点B之后对该数据的访问和修改都是基于A更新后的值。与此同时，和节点A没有因果关系的节点C则没有这样的限制。&lt;/li&gt;
+&lt;li&gt;读己所写(Read your writes)：一个节点总能访问自己更新过的最新值，是因果一致性的特定形式。&lt;/li&gt;
+&lt;li&gt;会话一致性(session consistency)：系统保证在一个有效的会话中实现读己所写(Read your writes)。&lt;/li&gt;
+&lt;li&gt;单调读一致性(Monotonic read consistency)：节点A从系统中读到一个数据项D的某个值V后，节点A后续对数据项D的访问都不会返回比值V更旧的值。&lt;/li&gt;
+&lt;li&gt;单调写一致性(Monotonic write consistency)：系统需保证来自同一个节点的写操作被顺序执行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310003.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;解决方案&#34;&gt;解决方案&lt;/h2&gt;
+&lt;h3 id=&#34;概要-2&#34;&gt;概要&lt;/h3&gt;
+&lt;p&gt;因为业务的多样性与复杂性，再加上分布式事务解决方案也并未银弹，所以，在实际开发中，应该以本身业务作为作出发点，选择最适合自己的方案。&lt;/p&gt;
+&lt;h3 id=&#34;二阶段提交协议&#34;&gt;二阶段提交协议&lt;/h3&gt;
+&lt;p&gt;在分布式系统中，为了保证多节点间事务的正确执行，便需要一个协调者来管理参与事务的所有节点，确保操作结果符合执行预期。其中，XA便是一个典型的分布式事务处理协议。&lt;/p&gt;
+&lt;p&gt;XA协议是由X/Open组织提出的分布式事务处理规范，它主要定义了(全局)事务管理器TM和(局部)资源管理器RM之间的接口；是通过二阶段提交协议来保证强一致性的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一阶段(prepare)：事务管理者TM(协调者)向资源管理者RM(参与者)发送prepare请求，RM(参与者)进行预提交并将结果响应给TM。&lt;/li&gt;
+&lt;li&gt;第二阶段(commit/rollback)：如果所有RM(参与者)预提交结果都为成功，则TM(协调者)向所有RM(参与者)发送commit请求，否则发送rollback请求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310004.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;二阶段提交协议虽然为强一致性提出了一套解决方案，但需要注意的是，其中也有几个不可忽略的缺点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;同步阻塞：TM(协调者)控制着所有RM(参与者)的操作(准备与实际提交)，这个过程是同步的，TM(协调者)必须等待所有的RM(参与者)返回操作结果才能进行下一步操作；如果在这个过程中有其他请求进来，将会被阻塞。&lt;/li&gt;
+&lt;li&gt;单点故障：无论是TM(协调者)还是RM(参与者)发生故障，整个流程都将会陷入无限期等待中。&lt;/li&gt;
+&lt;li&gt;数据不一致：极端情况下，prepare成功，但commit出现部分提交，部分宕机，便会导致数据不一致。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;三阶段提交协议&#34;&gt;三阶段提交协议&lt;/h3&gt;
+&lt;p&gt;三阶段提交协议是二阶段提交协议的改良版本，它增加了超时机制用来解决同步阻塞问题；实际上是将第一阶段prepare拆分为canCommit和preCommit两个阶段。&lt;/p&gt;
+&lt;p&gt;preCommit阶段，TM(协调者)在发送真正的commit请求之前，会再次检查各个RM(参与者)的状态，以确保它们的状态一致。&lt;/p&gt;
+&lt;p&gt;当然，某些极端场景下，同样会出现数据不一致；如：第三阶段的commit出现机器宕机。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310005.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;tcc&#34;&gt;TCC&lt;/h3&gt;
+&lt;p&gt;在二阶段提交协议，资源管理者RM负责准备、提交与回滚，而事务管理者TM则负责协调所有RM具体进行哪些操作；资源管理者RM有很多种实现方式，其中TCC(Try-Confirm-Cancel)便是资源管理者的一种服务化的实现。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Try阶段：尝试执行，完成业务检查（一致性），预留业务资源（隔离性）。&lt;/li&gt;
+&lt;li&gt;Confirm阶段：真正的执行具体业务操作，保证幂等。&lt;/li&gt;
+&lt;li&gt;Cancel阶段：回滚操作，释放try阶段预留的业务资源，保证幂等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310006.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;关于TCC理论及设计可参考：&lt;a href=&#34;https://www.sofastack.tech/blog/seata-tcc-theory-design-realization/&#34;&gt;点击此处跳转文章页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;关于TCC使用场景可参考：&lt;a href=&#34;https://www.sofastack.tech/blog/seata-tcc-applicable-models-scenarios/&#34;&gt;点击此处跳转文章页面&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;saga&#34;&gt;Saga&lt;/h3&gt;
+&lt;p&gt;saga会将一个长事务(long lived transaction)拆分为多个短事务，然后saga自己进行调度管理。saga有点类似于tcc，但是没有try阶段。&lt;/p&gt;
+&lt;p&gt;当流程出现异常导致部分事务执行失败时，saga会进行补偿操作。此时saga有两种选择：backward recovery 和 forward recovery。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;逆向恢复(backward recovery)：即回滚操作，将之前所有成功的节点进行回滚，以达到数据一致的目的。&lt;/li&gt;
+&lt;li&gt;正向恢复(forward recovery)：根据save-point尽最大努力不断重试，以达到数据一致的目的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;sagas论文地址：&lt;a href=&#34;https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf&#34;&gt;点击此处跳转论文页面&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;重试补偿模式&#34;&gt;重试补偿模式&lt;/h3&gt;
+&lt;p&gt;在实际业务开发中，可以针对某些特定的业务添加额外的消息表记录失败信息，后续定时地进行补偿操作。例如京东订单成功后会发送邮件信息，此时可简单的拆分为订单服务与邮件服务，时序图如下：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310007.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;开源分布式事务框架&#34;&gt;开源分布式事务框架&lt;/h2&gt;
+&lt;h3 id=&#34;rocketmq&#34;&gt;RocketMQ&lt;/h3&gt;
+&lt;p&gt;从4.3版本开始提供基于2PC(二阶段提交协议)加补偿机制的分布式事务消息，其中补偿机制主要针对2PC过程超时或失败的场景。可参考：&lt;a href=&#34;http://rocketmq.apache.org/rocketmq/the-design-of-transactional-message/&#34;&gt;点击此处跳转页面&lt;/a&gt;&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;9&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310008.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;ol&gt;
+&lt;li&gt;生产者发送半消息(half message)至MQ服务端。&lt;/li&gt;
+&lt;li&gt;如果发送半消息成功，则执行本地事务。&lt;/li&gt;
+&lt;li&gt;基于本地事务的执行结果发送commit或rollback消息到MQ服务端。&lt;/li&gt;
+&lt;li&gt;如果commit/rollback消息丢失或者生产者在执行本地事务时处于pended状态，MQ服务端将会发送检查消息到同组(same group)的每个生产者获取事务消息的状态(CommitTransaction,RollbackTransaction,Unknown)。&lt;/li&gt;
+&lt;li&gt;生产者基于本地事务状态恢复commit/rollback消息。&lt;/li&gt;
+&lt;li&gt;已提交的消息会被MQ服务端分发给消费者，而回滚类消息则会被丢弃。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意1：半消息(half message)是无法被消费的，因为它位于一个独立的内部half-topic中，对消费者是不可见的；commit过程相当于从half-topic中取出消息进行重新投递。&lt;/p&gt;
+&lt;p&gt;注意2：使用事务消息功能将会降低rocketMQ的执行效率，因为写过程被放大了。&lt;/p&gt;
+&lt;h3 id=&#34;tcc-transaction&#34;&gt;TCC-Transaction&lt;/h3&gt;
+&lt;p&gt;基于TCC模式开发的分布式事务框架，具体可参考：&lt;a href=&#34;https://github.com/changmingxie/tcc-transaction&#34;&gt;点击此处跳转官网地址&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;servicecomb-saga&#34;&gt;ServiceComb-Saga&lt;/h3&gt;
+&lt;p&gt;servicecomb-saga是servicecomb中的一部分，比之tcc而言少了一个try操作，更加轻量化，具体可参考：&lt;a href=&#34;https://github.com/apache/servicecomb-saga-actuator&#34;&gt;点击此处跳转官网地址&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;seata&#34;&gt;Seata&lt;/h3&gt;
+&lt;p&gt;阿里开源的分布式事务解决方案，致力于提供高性能和简单易用，包括AT，TCC，SAGA以及XA事务模式。具体可参考：&lt;a href=&#34;http://seata.io/zh-cn/&#34;&gt;点击此处跳转官网地址&lt;/a&gt;&lt;/p&gt;
+">分布式事务详解</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/bash-tiao-jian-pan-duan-xiang-jie/"" data-c="

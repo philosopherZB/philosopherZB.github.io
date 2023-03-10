@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>JVM详解 | Philosopher</title>
+<title>敏感数据加密方案 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678440216911">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="JVM详解" />
-  <meta name="keywords" content="jvm,java" />
+  <meta name="description" content="敏感数据加密方案" />
+  <meta name="keywords" content="设计方案" />
 </head>
 
 <body>
@@ -255,68 +255,46 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#jvm%E6%A6%82%E8%BF%B0">JVM概述</a>
+<li><a href="#%E5%BC%95%E8%A8%80">引言</a>
 <ul>
-<li><a href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">基本概念</a></li>
-<li><a href="#%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B">运行过程</a></li>
+<li><a href="#%E9%9C%80%E6%B1%82%E6%8F%8F%E8%BF%B0">需求描述</a></li>
 </ul>
 </li>
-<li><a href="#jvm%E7%BA%BF%E7%A8%8B">JVM线程</a>
+<li><a href="#%E8%AF%A6%E7%BB%86%E8%AE%BE%E8%AE%A1">详细设计</a>
 <ul>
-<li><a href="#%E7%BA%BF%E7%A8%8B">线程</a></li>
+<li><a href="#%E6%80%BB%E4%BD%93%E8%AE%BE%E8%AE%A1">总体设计</a></li>
+<li><a href="#%E6%95%B4%E4%BD%93%E4%B8%9A%E5%8A%A1%E6%B5%81%E7%A8%8B">整体业务流程</a>
+<ul>
+<li><a href="#%E6%8E%A5%E5%85%A5%E6%96%B9%E4%BD%BF%E7%94%A8">接入方使用</a></li>
+<li><a href="#%E5%8A%A0%E8%A7%A3%E5%AF%86%E4%BA%91%E6%9C%8D%E5%8A%A1">加解密云服务</a></li>
 </ul>
 </li>
-<li><a href="#jvm%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F">JVM内存区域</a>
+<li><a href="#%E6%95%B4%E4%BD%93%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88">整体技术方案</a>
 <ul>
-<li><a href="#%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E5%9B%BE">内存区域图</a></li>
-<li><a href="#%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E5%9F%9F">运行时数据区域</a>
+<li><a href="#%E5%85%B3%E4%BA%8E%E7%AE%97%E6%B3%95">关于算法</a>
 <ul>
-<li><a href="#%E7%A8%8B%E5%BA%8F%E8%AE%A1%E6%95%B0%E5%99%A8program-counter-register">程序计数器（Program Counter Register）</a></li>
-<li><a href="#java%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%A0%88java-virtual-machine-stack">Java虚拟机栈（Java Virtual Machine Stack）</a></li>
-<li><a href="#%E6%9C%AC%E5%9C%B0%E6%96%B9%E6%B3%95%E6%A0%88native-method-stack">本地方法栈（Native Method Stack）</a></li>
-<li><a href="#java%E5%A0%86java-heap">Java堆（Java Heap）</a></li>
-<li><a href="#%E6%96%B9%E6%B3%95%E5%8C%BAmethod-area">方法区（Method Area）</a></li>
-<li><a href="#%E8%BF%90%E8%A1%8C%E6%97%B6%E5%B8%B8%E9%87%8F%E6%B1%A0runtime-constant-pool">运行时常量池（Runtime Constant Pool）</a></li>
-<li><a href="#%E7%9B%B4%E6%8E%A5%E5%86%85%E5%AD%98direct-memory">直接内存（Direct Memory）</a></li>
+<li><a href="#rsa">RSA</a></li>
+<li><a href="#aes">AES</a></li>
 </ul>
 </li>
-<li><a href="#jvm%E8%BF%90%E8%A1%8C%E6%97%B6%E5%86%85%E5%AD%98">JVM运行时内存</a>
-<ul>
-<li><a href="#%E5%88%86%E4%BB%A3">分代</a></li>
-<li><a href="#%E6%96%B0%E7%94%9F%E4%BB%A3">新生代</a>
-<ul>
-<li><a href="#%E6%96%B0%E7%94%9F%E4%BB%A3%E7%BB%86%E5%88%86%E5%8C%BA%E5%9F%9F">新生代细分区域</a></li>
-<li><a href="#%E6%96%B0%E7%94%9F%E4%BB%A3gc%E8%BF%87%E7%A8%8B%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95">新生代GC过程（复制算法）</a></li>
-</ul>
-</li>
-<li><a href="#%E8%80%81%E5%B9%B4%E4%BB%A3">老年代</a></li>
-<li><a href="#%E6%B0%B8%E4%B9%85%E4%BB%A3">永久代</a></li>
-</ul>
-</li>
-<li><a href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E4%B8%8E%E7%AE%97%E6%B3%95">垃圾回收与算法</a>
-<ul>
-<li><a href="#gc%E7%AE%97%E6%B3%95%E5%9B%BE">GC算法图</a></li>
-<li><a href="#%E5%9E%83%E5%9C%BE%E7%A1%AE%E8%AE%A4%E7%AE%97%E6%B3%95">垃圾确认算法</a></li>
-<li><a href="#%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95">垃圾收集算法</a>
-<ul>
-<li><a href="#%E6%A0%87%E8%AE%B0%E6%B8%85%E9%99%A4%E7%AE%97%E6%B3%95mark-sweep">标记清除算法（Mark-Sweep）</a></li>
-<li><a href="#%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95copying">复制算法（copying）</a></li>
-<li><a href="#%E5%88%86%E4%BB%A3%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95">分代收集算法</a></li>
+<li><a href="#%E5%8A%A0%E5%AF%86%E7%B1%BB%E5%9E%8B">加密类型</a></li>
+<li><a href="#%E5%8A%A0%E5%AF%86%E6%A0%BC%E5%BC%8F">加密格式</a></li>
+<li><a href="#%E5%8A%A0%E5%AF%86%E6%A0%B7%E4%BE%8B">加密样例</a></li>
+<li><a href="#%E5%8A%A0%E5%AF%86%E9%95%BF%E5%BA%A6">加密长度</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#gc%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8">GC垃圾收集器</a>
+<li><a href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1">数据库设计</a>
 <ul>
-<li><a href="#serial%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%8D%95%E7%BA%BF%E7%A8%8B%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95">Serial垃圾收集器（单线程，复制算法）</a></li>
-<li><a href="#parnew%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8serial-%E5%A4%9A%E7%BA%BF%E7%A8%8B">ParNew垃圾收集器（serial + 多线程）</a></li>
-<li><a href="#parallel-scavenge%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95%E9%AB%98%E6%95%88">Parallel Scavenge垃圾收集器（多线程复制算法，高效）</a></li>
-<li><a href="#serial-old%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%A0%87%E8%AE%B0%E6%95%B4%E7%90%86%E7%AE%97%E6%B3%95">Serial Old垃圾收集器（单线程，标记整理算法）</a></li>
-<li><a href="#parallel-old%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A0%87%E8%AE%B0%E6%95%B4%E7%90%86%E7%AE%97%E6%B3%95">Parallel Old垃圾收集器（多线程，标记整理算法）</a></li>
-<li><a href="#cms%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A0%87%E8%AE%B0%E6%B8%85%E9%99%A4%E7%AE%97%E6%B3%95">CMS垃圾收集器（多线程，标记清除算法）</a></li>
-<li><a href="#g1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A0%87%E8%AE%B0%E6%95%B4%E7%90%86%E7%AE%97%E6%B3%95">G1垃圾收集器（多线程，标记整理算法）</a></li>
+<li><a href="#%E6%95%B0%E6%8D%AE%E5%BA%93ddl">数据库DDL</a></li>
 </ul>
 </li>
+<li><a href="#%E9%99%84%E5%BD%95">附录</a>
+<ul>
+<li><a href="#rsa%E5%85%AC%E7%A7%81%E9%92%A5%E7%94%9F%E6%88%90%E4%BB%A3%E7%A0%81-java%E7%89%88">RSA公私钥生成代码-java版</a></li>
+<li><a href="#%E6%A3%80%E7%B4%A2%E4%B8%B2%E6%8F%90%E5%8F%96%E4%BB%A3%E7%A0%81%E7%A4%BA%E4%BE%8B-java%E7%89%88">检索串提取代码示例-java版</a></li>
+<li><a href="#sdk%E4%BD%BF%E7%94%A8%E6%A0%B7%E4%BE%8B-java%E7%89%88">SDK使用样例-java版</a></li>
 </ul>
 </li>
 </ul>
@@ -586,8 +564,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/jvm-xiang-jie/">
-      JVM详解
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/">
+      敏感数据加密方案
     </a>
   </h1>
   <div class="post-meta">
@@ -595,7 +573,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2021-02-27 15:44:30">2021-02-27</span>
+      <span class="publish-time" data-t="2022-05-31 15:43:18">2022-05-31</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -604,14 +582,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/qo1G6Y6MB/">
-        <span>jvm</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
+      <a href="https://philosopherzb.github.io/tag/jddHyECqX/">
+        <span>设计方案</span>
       </a>
       
       
@@ -620,17 +592,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>17<span class="language" data-lan="minute">分钟</span></span>
+      <span>15<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4720<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>3588<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/jvm-xiang-jie/" data-flag-title="JVM详解" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/min-gan-shu-ju-jia-mi-fang-an/" data-flag-title="敏感数据加密方案" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -640,159 +612,472 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述JVM，包括jvm线程，jvm运行时区域，jvm垃圾回收机制--回收算法以及垃圾回收器</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-139012_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="jvm概述">JVM概述</h2>
-<h3 id="基本概念">基本概念</h3>
-<p>JVM是运行java代码的虚拟计算机平台，它运行于计算机操作系统之上，并不直接与硬件进行交互。</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301019.png" alt="img" loading="lazy"></figure>
-<h3 id="运行过程">运行过程</h3>
-<p><em>x.java源文件，通过编译器产生对应的</em>.Class字节码文件，之后又通过java虚拟机中的解释器，编译成特定机器上的机器码。</p>
-<p>流程如下：</p>
+<p>本章主要简述一种基于云服务的敏感数据加密设计方案。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sunset-1117008_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="引言">引言</h2>
+<h3 id="需求描述">需求描述</h3>
+<p>为了防止敏感数据泄露，造成资产损失，故需要对相关数据进行加密处理；同时，允许部分加密数据支持模糊搜索。</p>
+<h2 id="详细设计">详细设计</h2>
+<h3 id="总体设计">总体设计</h3>
+<p>加密服务提供针对敏感数据存储的加密能力，用于防止因外部或内部安全威胁所导致的数据泄露问题，从而提高数据安全的防护水平。</p>
+<p>基本功能：</p>
 <ul>
-<li>Java源文件 ----&gt; 编译器 ----&gt; 字节码文件</li>
-<li>字节码文件 ----&gt; JVM解释器 ----&gt; 机器码</li>
+<li>基础安全保障：加解密从根本上夯实了数据安全性。对敏感字段加密后，可以有效防止数据库内容被直接盗取。且密钥以租户维度隔离，有效解决应用的水平权限隔离问题。</li>
+<li>数据库内容和密钥存储管理分离：接入方只存储加密数据，不保存密钥。只需接入本产品提供的SDK即可（实现细节将由SDK处理）。这在增强安全系数的同时，也简化了开发者管理、存储密钥的成本。</li>
+<li>安全与服务平滑性兼得：SDK提供智能的、丰富的api可以自动识别数据库中存量密文的版本、自动加密、解密。接入方引入SDK后，可以做到在不停服务的条件下进行密钥升级。</li>
+<li>接入简单便捷：加解密方案不依赖硬件，只需要引入加解密SDK即可，对数据库无特殊要求，使用成本、改造成本低。</li>
+<li>保证数据完整性传输：所有接口都将使用非对称加密RSA进行签名校验，保证了数据的完整性。</li>
 </ul>
-<p>每一种平台的解释器都是不同的，但其依赖的虚拟机是一样的，这也就是java跨平台运行的核心原理。</p>
-<p>虚拟机实例随着程序的运行而启动，程序退出或关闭则会使对应的虚拟机实例消亡。多个程序启动会存在多个虚拟机实例，各个虚拟机实例之间互不干扰，数据独立。</p>
-<h2 id="jvm线程">JVM线程</h2>
-<h3 id="线程">线程</h3>
-<p>此处所说的线程为程序执行过程中的一个线程实体。JVM允许一个应用并发执行多个线程。</p>
-<p>Hotspot JVM中的java线程与操作系统原生线程存在直接的映射关系：当java线程创建完毕后，会同步创建一个操作系统原生线程。java线程结束，原生线程也会随之被回收（原生线程由操作系统负责调度，如将其分配至可用的CPU）。</p>
-<p>Hotspot JVM 后台运行的系统线程如下图所示：</p>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301020.png" alt="img" loading="lazy"></figure>
-<h2 id="jvm内存区域">JVM内存区域</h2>
-<h3 id="内存区域图">内存区域图</h3>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301021.png" alt="img" loading="lazy"></figure>
-<h3 id="运行时数据区域">运行时数据区域</h3>
-<p>Java虚拟机在执行java程序时，定义了若干程序运行期间会使用到的运行时数据区域，其中线程共享区域随着虚拟机的启动/关闭而创建/销毁，线程私有区域则与用户线程一一对应，会随着用户线程的启动/关闭而创建/销毁（ Hotspot JVM中，用户线程会与原生线程对应）。</p>
-<p>运行时数据区域图如下：</p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301022.png" alt="img" loading="lazy"></figure>
-<h4 id="程序计数器program-counter-register">程序计数器（Program Counter Register）</h4>
-<ul>
-<li>是一块内存小，线程私有，且不会发生OOM（OutOfMemoryError）的区域（因为它只是当前线程所执行的字节码的行号指示器）。</li>
-<li>在Java虚拟机概念模型中（仅仅指概念模型，各类不同的虚拟机可能有更高效的处理方式），字节码解释器工作时就是通过改变这个计数器的值来选取下一条需要执行指令的字节码指令，分支、循环、跳转、异常处理、线程恢复等基础功能都需要依赖计数器来完成。</li>
-<li>Java虚拟机可以支持多线程同时执行（可参考《Java 语言规范》第 17 章），是通过轮转时间片的方式让处理器来执行线程的。在任意时刻，一个处理器（对于多核处理器来说是指一个内核）只会处理一个线程中的指令，为了保证线程切换能够回到正确的执行指令，Java虚拟机针对每个线程分配了一个独立的程序计数器，各线程之间的计数器互不干扰，独立存储。</li>
-<li>如果线程正在执行的方法不是 native的（即Java方法），那程序计数器就保存 Java 虚拟机正在执行的字节码指令的地址，如果该方法是 native 的，那程序计数器的值是 undefined。</li>
-<li>程序计数器的容量至少应当能保存一个 returnAddress 类型的数据或者一个与平台相关的本地指针的值。</li>
-</ul>
-<h4 id="java虚拟机栈java-virtual-machine-stack">Java虚拟机栈（Java Virtual Machine Stack）</h4>
-<ul>
-<li>Java虚拟机栈是线程私有的，它的生命周期与线程一致。</li>
-<li>虚拟机栈描述的是 Java 方法执行的内存模型：每个方法在执行的同时都会创建一个栈帧(Stack Frame)用于存储局部变量表、操作数栈、动态链接、方法出口等信息。每一个方法从调用直至执行完成的过程，就对应着一个栈帧从虚拟机栈中入栈到出栈的过程。</li>
-<li>局部变量表存放了编译期可知的各种基本类型(boolean、byte、char、short、int、float、long、double)、对象引用(reference类型，它不等同于对象本身)和 returnAddress 类型(指向了一条字节码指令的地址)。</li>
-<li>需要注意的是64位的long以及double类型的数据会占用两个局部变量空间（Slot），其余的数据类型只占一个。局部变量表所需的内存空间在编译期间就已经完成了分配，当进入一个方法时，这个方法需要在帧中分配多大的局部变量空间是已经确认了的，在方法运行期间不会去改变局部变量表的大小。</li>
-<li>Java虚拟机栈有可能发生以下两种异常状况：如果线程请求分配的栈容量（栈深度）超过 Java 虚拟机栈允许的最大容量（深度）时，Java 虚拟机将会抛出一 个StackOverflowError异常；如果Java 虚拟机栈可以动态扩展（目前大部分虚拟机都支持动态扩展），并且扩展的动作已经尝试过，但是目前无法申请到足够的内存去完成扩展，或者在建立新的线程时没有足够的内存去创建对应的虚拟机栈，那 Java 虚拟机将会抛出一个 OutOfMemoryError异常。</li>
-</ul>
-<h4 id="本地方法栈native-method-stack">本地方法栈（Native Method Stack）</h4>
-<ul>
-<li>本地方法栈与Java虚拟机栈是非常类似的，他们的主要区别是Java虚拟机栈是服务于Java方法（字节码）的，而本地方法栈则是服务于Native方法的。</li>
-<li>与Java虚拟机栈一样，本地方法栈同样会出现StackOverflowError异常和OutOfMemoryError异常。</li>
-</ul>
-<h4 id="java堆java-heap">Java堆（Java Heap）</h4>
-<ul>
-<li>在 Java 虚拟机中，堆（Heap）是可供各条线程共享的运行时内存区域，也是供所有类实例和数组对象分配内存的区域，一般而言堆（Heap）占用的内存空间也是最大的。</li>
-<li>Java 堆在虚拟机启动的时候就被创建，它存储了被自动内存管理系统（Automatic Storage Management System，也即是常说的“Garbage Collector（垃圾收集器）”）所管理的各种对象，这些受管理的对象无需，也无法显式地被销毁。所以一般我们也称Java堆为GC堆（Garbage Collected Heap）。</li>
-<li>如果实际所需的堆超过了自动内存管理系统能提供的最大容量（或者说堆中没有内存来完成实例分配，且无法扩展），那 Java 虚拟机将会抛出一个 OutOfMemoryError异常。</li>
-</ul>
-<h4 id="方法区method-area">方法区（Method Area）</h4>
-<ul>
-<li>在 Java 虚拟机中，方法区（Method Area）是可供各条线程共享的运行时内存区域。</li>
-<li>它存储了每一个类的结构信息，例如运行时常量池（Runtime Constant Pool）、字段和方法数据、构造函数和普通方法的字节码内容、还包括一些在类、实例、接口初始化时用到的特殊方法（即存储着已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据）。</li>
-<li>如果方法区的内存空间不能满足内存分配请求，那 Java 虚拟机将抛出一个 OutOfMemoryError异常。</li>
-</ul>
-<h4 id="运行时常量池runtime-constant-pool">运行时常量池（Runtime Constant Pool）</h4>
-<ul>
-<li>运行时常量池是方法区（Method Area）的一部分。</li>
-<li>它是每一个类或接口的常量池（Constant_Pool）的运行时表示形式，它包括了若干种不同的常量：从编译期可知的数值字面量到必须运行期解析后才能获得的方法或字段引用。</li>
-<li>一般情况下，除了保存Class文件中描述的符号引用外，还会把翻译过来的直接引用也保存在运行时常量池中。</li>
-<li>运行时常量池相对于Class文件常量池的另一个特征是具备动态性，即运行期间也可将新的常量放入池中，比如String.intern()方法。</li>
-<li>当创建类或接口的时候，如果构造运行时常量池所需要的内存空间超过了方法区所能提供的最大值，那 Java 虚拟机将会抛出一个 OutOfMemoryError 异常。</li>
-</ul>
-<h4 id="直接内存direct-memory">直接内存（Direct Memory）</h4>
-<ul>
-<li>直接内存并不属于Java虚拟机运行时内存区域，也不是Java虚拟机规范中定义的内存区域。</li>
-<li>在这里提出来的主要原因是因为Java在1.4版本引入了NIO类，是一种基于通道（Channel）和缓存区（Buffer）的IO操作，它可以使用Native函数库直接分配堆外内存，然后通过一个存储在Java堆中的DirectByteBuffer对象作为这块内存的引用进行操作。</li>
-<li>在某些情况下，通过减少Java堆和Native堆来回复制数据的操作，从而提高一些性能。</li>
-<li>因为这块内存也是实际存在的，所以受硬件总内存影响，如果需要对虚拟机内存进行扩容操作，需要考虑虚拟机内存加直接内存超过物理内存限制所引起的 OutOfMemoryError异常。</li>
-</ul>
-<h3 id="jvm运行时内存">JVM运行时内存</h3>
-<h4 id="分代">分代</h4>
-<p>Java堆从GC角度还可以细分为新生代（Eden区，From Survivor区，To Survivor区），老年代。</p>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301023.png" alt="img" loading="lazy"></figure>
-<h4 id="新生代">新生代</h4>
-<p>用于存储初创对象，一般占据堆内存1/3。对象的创建频繁且杂多，所以此区域会经常触发MinorGC进行垃圾回收。</p>
-<h5 id="新生代细分区域">新生代细分区域</h5>
-<p>Eden区：Java新对象的出生地（如果新创建的对象占用内存过大，将直接被分配至老年代），当Eden内存不足时，将触发一次MinorGC，对其进行垃圾回收。</p>
-<p>From Survivor区：上一次GC的幸存者存放在此区域，将作为这一次GC的扫描对象。</p>
-<p>To Survivor区：经历一次MinorGC过程的幸存者。</p>
-<h5 id="新生代gc过程复制算法">新生代GC过程（复制算法）</h5>
-<p>首先将Eden和From Survivor区域中存活的对象复制到To Survivor区域（From Survivor区如果存在对象年龄且大于阈值，则直接复制到老年代），同时将这些对象的年龄+1（如果To Survivor区被填满了，剩余的对象会被复制到老年代中）。随后清空Eden和From Survivor区域中的死对象。最后，将From Survivor和To Survivor调换名字，这样，在下一次GC时，原To Survivor将成为From Survivor。</p>
-<h4 id="老年代">老年代</h4>
-<p>主要存储应用程序中生命周期较长的内存对象。进入老年代的对象一般都比较稳定，所以不会频繁地执行MajorGC。</p>
-<p>MajorGC采用标记清除算法：首先扫描一次所有老年代，标记出存活的对象，然后回收未标记的对象。此过程耗时较长，且会产生内存碎片。</p>
-<h4 id="永久代">永久代</h4>
-<p>内存的永久保存区域，主要存放Class以及Meta（元数据）信息。Class在被加载时便放入永久区域，它跟存放实例的区域不同，GC不会在主程序执行期间对永久区域进行清理。所以，这也导致了永久区域随着加载的Class增多而不断膨胀，最终抛出OOM异常。</p>
-<p>Java8中，永久代已经被移除，被一个称为“元数据区”（元空间）的区域所替代。元空间的本质与永久代类似，它们之间最大的区别在于：元空间并不在虚拟机中，而是使用本地内存。</p>
-<h3 id="垃圾回收与算法">垃圾回收与算法</h3>
-<h4 id="gc算法图">GC算法图</h4>
-<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301024.png" alt="img" loading="lazy"></figure>
-<h4 id="垃圾确认算法">垃圾确认算法</h4>
-<p>引用计数法：对象被引用则+1，否则-1，为0时将被回收（存在循环引用问题）。</p>
-<p>可达性分析：为了避免引用计数法中的循环引用问题，如今java一般采用可达性分析，通过一系列的GC ROOTS（VM栈中的引用，方法区中的静态引用，JNI中的引用等）作为对象的起点搜索。如果GC ROOTS和一个对象之间没有可达路径，则称其为不可达。需要注意的是：不可达对象不等价于可回收对象，不可达对象变为可回收对象最少需要经历两次标记过程，如果仍然不可达，则会面临回收。</p>
-<h4 id="垃圾收集算法">垃圾收集算法</h4>
-<h5 id="标记清除算法mark-sweep">标记清除算法（Mark-Sweep）</h5>
-<p>最基础的垃圾回收算法，分为两个阶段，标记和清除。如下图所示（容易出现内存碎片）：</p>
-<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301025.png" alt="img" loading="lazy"></figure>
-<h5 id="复制算法copying">复制算法（copying）</h5>
-<p>为了解决Mark-Sweep算法中内存碎片化的缺陷而被提出的算法。</p>
-<p>它按内存容量将内存划分为等大小的两块，每次只使用其中一块，当这一块内存满了之后，便将其中存活的对象移至另一块内存上去，同时把已使用的内存清理掉。</p>
-<p>这种算法实现简单，内存效率高，不易产生碎片，但同时也带来了一个问题，那就是可用内存被压缩到了原来的一半，且当存活对象过多时，其算法效率又会大大降低。</p>
-<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301026.png" alt="img" loading="lazy"></figure>
-<h5 id="分代收集算法">分代收集算法</h5>
-<p>此算法是目前大部分JVM所采用的方法，其核心思想是根据对象存活的不同生命周期将内存划分为不同的域。</p>
-<p>一般情况下，会将GC堆划分为老年代（Tenured/Old Generation）和新生代（Young Generation）。</p>
-<p>老年代的特点是每次需要回收的对象很少，新生代则与之相反，因此可以根据不同的区域选择不同的算法。</p>
-<p>新生代由于需要经常进行垃圾回收，所以可以采用复制算法（一般会将其再次划分为Eden，From Survivor以及To Survivor三个区域，比例为8:1:1（实际调优需要根据具体的业务调整））。</p>
-<p>老年代则一般采用标记复制算法或者标记整理算法，可根据具体场景指定。</p>
-<h3 id="gc垃圾收集器">GC垃圾收集器</h3>
-<h4 id="serial垃圾收集器单线程复制算法">Serial垃圾收集器（单线程，复制算法）</h4>
-<p>Serial是最基本的垃圾收集器，使用复制算法。JDK1.3.1之前，它是新生代唯一的垃圾收集器。</p>
-<p>Serial是一个单线程的收集器，它不但只会用一个CPU或一条线程去完成垃圾收集工作，并且在进行垃圾收集的过程中，还要暂停其他所有线程（stop the world），直到垃圾收集结束。</p>
-<p>Serial在执行时虽然会暂停其他所有线程，但其简单高效，对于限定单个CPU的环境来说，没有线程交互的开销，可以获得最高的单线程垃圾收集效率。</p>
-<p>因此，Serial依旧是java虚拟机运行在Client模式下新生代的默认垃圾收集器。</p>
-<h4 id="parnew垃圾收集器serial-多线程">ParNew垃圾收集器（serial + 多线程）</h4>
-<p>ParNew其实是Serial收集器的多线程版本，除了多线程之外，其余与Serial完全一致。</p>
-<p>ParNew默认开启和CPU数目相同的线程数，可以通过-XX:ParallelGCThreads参数来限制垃圾收集器的线程数。</p>
-<p>相较于Seria而言，ParNew是java虚拟机运行在Server模式下新生代的默认垃圾收集器。</p>
-<h4 id="parallel-scavenge垃圾收集器多线程复制算法高效">Parallel Scavenge垃圾收集器（多线程复制算法，高效）</h4>
-<p>Parallel Scavenge 是一个新生代垃圾收集器，使用复制算法，且为多线程。其重点关注的是程序达到一个可控制的吞吐量（Thoughput，CPU用于运行用户代码时间/CPU总消耗时间，即吞吐量=运行用户代码时间/（运行用户代码时间+垃圾收集时间））。</p>
-<p>高吞吐量可以最高效率的利用CPU时间，尽快地完成程序的运行任务，主要适用于在后台运算，而不需要太多交互的任务。</p>
-<p>自适应调节策略也是Parallel Scavenge与ParNew的一个重要区别。</p>
-<h4 id="serial-old垃圾收集器单线程标记整理算法">Serial Old垃圾收集器（单线程，标记整理算法）</h4>
-<p>Serial Old是Serial垃圾收集器的老年代版本，它同样是单线程的，使用的算法为标记整理。Serial Old是java虚拟机运行在Client模式下老年代的默认垃圾收集器。</p>
-<p>其在Server模式下，主要有两个用途：</p>
-<p>1、在JDK1.5之前版本与新生代的Parallel Scavenge收集器搭配使用。</p>
-<p>2、作为老年代中CMS的后备垃圾收集器。</p>
-<h4 id="parallel-old垃圾收集器多线程标记整理算法">Parallel Old垃圾收集器（多线程，标记整理算法）</h4>
-<p>Parallel Old是Parallel Scavenge垃圾收集器的老年代版本，它同样是多线程的，使用的算法为标记整理（JDK1.6之后才提供）。</p>
-<h4 id="cms垃圾收集器多线程标记清除算法">CMS垃圾收集器（多线程，标记清除算法）</h4>
-<p>Concurrent Mark Sweep是一种老年代垃圾收集器，其主要目的是为了获取最短垃圾回收停顿时间（在交互过程中提高用户体验），使用的算法为标记清除。</p>
-<p>CMS执行过程：</p>
+<h3 id="整体业务流程">整体业务流程</h3>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230310009.png" alt="img" loading="lazy"></figure>
+<h4 id="接入方使用">接入方使用</h4>
+<p>引入加解密SDK，初始化client后，直接调用对应的函数即可。</p>
+<h4 id="加解密云服务">加解密云服务</h4>
+<p>1、允许用户输入应用级别的RSA公私钥，应用公私钥功能：应用使用私钥加签数据，云服务使用公钥验签数据。此值支持变更。</p>
+<p>2、自动生成云服务RSA公私钥，云服务公私钥功能：云服务使用私钥加签数据，应用使用公钥验签数据。此值不支持变更。</p>
+<p>3、自动生成AES密钥（外部获取此值时，将会被RSA加密），此密钥不展示。此值支持变更。</p>
+<p>4、自动生成伪随机码（日期+雪花算法生成），用于验伪操作，客户端需持有此参数并传递。此值支持变更。</p>
+<p>5、自动生成appid，用于唯一标识一个应用（同一个客户允许存在多个appid），云服务前缀+雪花算法生成。</p>
+<p>6、appId加version为组合唯一索引；其中version默认为0，每次变更AES密钥时，version+1。</p>
+<p>7、允许设置过期时间（默认90天），最大有效期（默认120天，必须大于过期时间）；单位：天。主要用于客户端本地缓存的有效时长。</p>
+<p>8、允许设置滑动窗口（默认4）大小及压缩长度（默认3）；用于加密search类型的数据。</p>
+<h3 id="整体技术方案">整体技术方案</h3>
+<h4 id="关于算法">关于算法</h4>
+<p>对称加密与非对称加密混合使用：</p>
 <ol>
-<li>初始标记：标记一下GC ROOTS能直接关联的对象，速度很快，需要暂停工作线程。</li>
-<li>并发标记：进行GC ROOTS跟踪的过程，和用户线程一起工作，不需要暂停工作线程。</li>
-<li>重新标记：为了修正并发标记期间，因用户程序继续运行而导致标记产生变动的那一部分对象的标记录，需要暂停工作线程。</li>
-<li>并发清除：清除GC ROOTS不可达对象，和用户线程一起工作，不需要暂停工作线程，由于耗时最长的并发标记和并发清除是与用户线程一起工作的，所以总体上来看，CMS收集过程与用户线程是并发执行的。</li>
+<li>云服务自动生成出一对秘钥pub/pri。将私钥保密，将公钥公开。</li>
+<li>接入方请求云服务时，拿到云服务的公钥pub。</li>
+<li>云服务通过AES计算出一个对称加密的秘钥X。 然后使用应用公钥将X进行加密。</li>
+<li>接入方发送加签请求到云服务获取加密后的秘钥X，云服务对请求进行验签，通过了方才返回秘钥X。</li>
+<li>接入方得到加密后的秘钥X，便可以使用应用私钥解密，得到AES秘钥。</li>
+<li>之后便可以使用AES秘钥进行敏感数据的加解密操作。</li>
 </ol>
-<h4 id="g1垃圾收集器多线程标记整理算法">G1垃圾收集器（多线程，标记整理算法）</h4>
-<p>Garbage first是目前垃圾收集器理论发展的最前沿成果，相比于CMS收集器，G1最突出的两个改进为：</p>
+<p>注意：接入方不需要额外的开发，只需引入云服务SDK，并调用对应的接口即可。</p>
+<h5 id="rsa">RSA</h5>
+<p>将用于签名（保证数据完整性）及加密（保证数据安全性）</p>
+<table>
+<thead>
+<tr>
+<th>开放平台签名算法名称</th>
+<th>标准签名算法名称</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RSA2</td>
+<td>SHA256WithRSA</td>
+<td>强制要求 RSA 密钥的长度至少为 2048</td>
+</tr>
+<tr>
+<td>RSA</td>
+<td>SHA1WithRSA</td>
+<td>对 RSA 密钥的长度不限制，推荐使用 2048 位以上</td>
+</tr>
+</tbody>
+</table>
+<p>由于计算能力的飞速发展，从安全性角度考虑，云服务推荐使用 SHA256WithRSA 的签名算法。该算法在摘要算法上比 SHA1WithRSA 有更强的安全能力。</p>
+<p>注意避免公私钥混用：不同签名算法的签名密钥是隔离的。由于同时提供了两套签名算法，若选择了特定的签名算法，请保证使用对应的私钥签名，同时使用对应的云服务公钥进行验签。</p>
+<h5 id="aes">AES</h5>
+<p>将用于加解密敏感数据，此数据传输时，会被RSA加密保护，算法特性如下：</p>
 <ol>
-<li>基于标记整理算法，不会产生内存碎片。</li>
-<li>可以非常精准的控制停顿时间，在不牺牲吞吐量的前提下，实现低停顿回收。</li>
+<li>加密算法使用“AES/CBC/PKCS5Padding”</li>
+<li>加密用的初始向量会直接编码到加密数据中, 因此相同数据内容多次加密的结果不同</li>
+<li>不同应用使用不同的秘钥，不同应用间加密数据无法解密（以appId作为区分）</li>
+<li>支持秘钥升级, 密文中会包含加密密文用的秘钥版本，更新后支持老版本密文解密（appId + version 获取唯一AES秘钥）</li>
+<li>传输过程AES秘钥将会被应用RSA公钥加密，返回时需要使用应用RSA私钥解密。</li>
 </ol>
-<p>G1避免全区域的垃圾收集，它把堆内存划分为大小固定的几个独立区域，并且跟踪这些区域的垃圾收集进度，同时在后台维护一个优先级列表，每次根据所允许的收集时间，优先回收垃圾最多的区域。</p>
-<p>区域划分和优先级区域回收机制，确保了G1可以在有限的时间内获得最高的垃圾收集效率。</p>
+<h4 id="加密类型">加密类型</h4>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>phone</th>
+<th>id</th>
+<th>simple</th>
+<th>search</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>描述</td>
+<td>手机号</td>
+<td>有规律的数字，例如身份证</td>
+<td>普通文本类型</td>
+<td>支持模糊搜索的文本类型</td>
+</tr>
+</tbody>
+</table>
+<p>1、phone，id为有规律的数字, 其加密算法只支持使用尾号后4位搜索。如13912345678的手机号加密后可用5678搜索。</p>
+<p>2、接入方如果存在phone，id类的加密类型，建议增加一列检索串（创建索引），用于匹配搜索（List<code>&lt;DO&gt;</code> objects =  SELECT * FROM table WHERE phone=‘encryptedData’）；如果不想增加额外的检索串，也可以在原有的加密手机号字段上建立前缀索引，可缩短一定的模糊匹配查询时间；当然也可以在加密手机号字段上直接建立普通索引，因为加密后的索引串会放在整个加密字符的最前方（List<code>&lt;DO&gt;</code> objects =  SELECT * FROM table WHERE phone like ‘encryptedData%’）。关于如何截取检索串可在附录中查看。</p>
+<p>3、simple类型只进行加密，不支持模糊搜索。</p>
+<p>4、search类型支持模糊搜索，基本实现原理是根据4位英文字符（半角），2个中文字符（全角）为一个检索条件。将一个字段拆分为多个。</p>
+<p>比如：test123，使用4个字符为一组的加密方式。切割结果为：[test, est1, st12, t123]，第一组 test，第二组est1，第三组st12，第四组 t123… 依次类推，如果需要检索 所有包含 检索条件4个字符的数据 比如：test，加密字符后通过key like “%partial%” 查库。</p>
+<p>因为密文检索开启后 密文长度会膨胀几倍以上，如果没有强需求建议不开启。</p>
+<p>使用这种方式存在一定的代价：</p>
+<ul>
+<li>支持模糊查询加密方式，产出的密文比较长；</li>
+<li>支持的模糊查询子句长度必须大于等于4个英文/数字，或者2个汉字。不支持过短的查询(出于安全考虑)；</li>
+<li>如果数据本身长度不够4个数字或2个汉字, 则此时输入全文即可搜索.  如: 原始数据为&quot;安&quot;的, 使用&quot;安&quot;调用平台搜索接口即可获取搜索用文本；</li>
+<li>返回的结果列表中有可能有多余的结果，需要增加筛选的逻辑：对记录先解密，再筛选；</li>
+</ul>
+<h4 id="加密格式">加密格式</h4>
+<p>注意：其中 Index 是检索信息，同一份数据多次加密后的结果都不会变。</p>
+<p>手机号(phone)和身份证(id)格式，其中手机号(phone)分隔符：SEP=$；身份证(id)分隔符：SEP=#</p>
+<table>
+<thead>
+<tr>
+<th>SEP</th>
+<th>Index</th>
+<th>SEP</th>
+<th>EncryptedData</th>
+<th>SEP</th>
+<th>Version</th>
+<th>SEP</th>
+<th>SEP</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+<p>search类文本，SEP=~</p>
+<table>
+<thead>
+<tr>
+<th>SEP</th>
+<th>EncryptedData</th>
+<th>SEP</th>
+<th>Index</th>
+<th>SEP</th>
+<th>Version</th>
+<th>SEP</th>
+<th>SEP</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+<p>simple类文本，SEP=~</p>
+<table>
+<thead>
+<tr>
+<th>SEP</th>
+<th>EncryptedData</th>
+<th>SEP</th>
+<th>Version</th>
+<th>SEP</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+<h4 id="加密样例">加密样例</h4>
+<p>加密算法支持模糊搜索(可选)，模糊加密的数据比一般加密更长一些，大概长度扩大 10-15 倍。</p>
+<p>加密数据的示例如下：</p>
+<p>phone(手机号)加密方式，加密类型：phone</p>
+<table>
+<thead>
+<tr>
+<th>手机号</th>
+<th>13012345678</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>支持搜索的密文</td>
+<td>$mMHmK1rfa+OZ23eYhO1AUQ==$q6cFTUyW6SuJD2NReTUVBQ==$1$$</td>
+</tr>
+<tr>
+<td>后四位手机号</td>
+<td>5678</td>
+</tr>
+<tr>
+<td>5678检索串</td>
+<td>mMHmK1rfa+OZ23eYhO1AUQ==</td>
+</tr>
+</tbody>
+</table>
+<p>身份证加密方式，加密类型：id</p>
+<table>
+<thead>
+<tr>
+<th>身份证</th>
+<th>200300190002039898</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>支持搜索的密文</td>
+<td>#uJfxXOF0EJ+6V8H51L9rdg==#ao/gDujB17PTObfSjeAOvl/YxmScgYuxQPl2wokwlec=#1##</td>
+</tr>
+<tr>
+<td>后四位身份证</td>
+<td>9898</td>
+</tr>
+<tr>
+<td>9898检索串</td>
+<td>uJfxXOF0EJ+6V8H51L9rdg==</td>
+</tr>
+</tbody>
+</table>
+<p>普通文本加密方式，加密类型：simple</p>
+<table>
+<thead>
+<tr>
+<th>地址</th>
+<th>浙江省杭州市滨江区星耀城</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>支持搜索的密文</td>
+<td>~thzORLtQtSKYQZW2UFvM64bMN5NhDPb8PSRZ5KNLtl3ZJ+sIYfzMN5gxPy7+ba4o~1~</td>
+</tr>
+</tbody>
+</table>
+<p>支持搜索的文本加密方式，加密类型：search</p>
+<table>
+<thead>
+<tr>
+<th>域名</th>
+<th>www.test.hostname.com</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>支持搜索的密文</td>
+<td>~J/7ro/3scxjvrPXFB5+OxxOZdv45iqXbkP4doNfcEAo=~Q9bpt3Na0G8oOwOe1i9y+Eanjg7Tfr5U3vcYuMyC2iZi7ciYfvC+bNP6pS29uUPpo4L3spYx~1~~</td>
+</tr>
+<tr>
+<td>需要查询的字符</td>
+<td>test.hostname</td>
+</tr>
+<tr>
+<td>test.hostname检索串</td>
+<td>1i9y+Eanjg7Tfr5U3vcYuMyC2iZi7ciYfvC+bNP6</td>
+</tr>
+</tbody>
+</table>
+<h4 id="加密长度">加密长度</h4>
+<p>加密后由于增加了密文信息, 将比原文要长, 各种常见字段加密后的数据长度参考表如下:</p>
+<p>注: 当发生加密秘钥version字段变更时, 密文长度可能会发生变化. 建议设计字段时在表中字段上加10个左右字符。</p>
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>密文长度（支持搜索）</th>
+<th>密文长度（不支持搜索）（使用simple类型加密）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phone（手机号）</td>
+<td>54</td>
+<td>28</td>
+</tr>
+<tr>
+<td>id（身份证为例）</td>
+<td>74</td>
+<td>48</td>
+</tr>
+<tr>
+<td>文本数据（5字符，全汉字）</td>
+<td>46</td>
+<td>28</td>
+</tr>
+<tr>
+<td>文本数据（10字符，全汉字）</td>
+<td>86</td>
+<td>48</td>
+</tr>
+<tr>
+<td>文本数据（20字符，全汉字）</td>
+<td>170</td>
+<td>92</td>
+</tr>
+<tr>
+<td>文本数据（40字符，全汉字）</td>
+<td>334</td>
+<td>176</td>
+</tr>
+</tbody>
+</table>
+<h2 id="数据库设计">数据库设计</h2>
+<h3 id="数据库ddl">数据库DDL</h3>
+<pre><code>-- DROP TABLE IF EXISTS `tb_app_config_aes`;
+CREATE TABLE `tb_app_config_aes`
+(
+  `id`             bigint(20)  NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `app_id`         varchar(64) NOT NULL COMMENT '应用id，用于唯一标识应用；生成规则：云服务前缀+雪花算法生成',
+  `aes_key`        char(24)    NOT NULL COMMENT 'aes秘钥,固定长度',
+  `secret_version` bigint(16)  NOT NULL COMMENT '版本号，用于升级aesKey',
+  `is_delete`      tinyint(1)  NOT NULL DEFAULT 0 COMMENT '删除标识，0-未删除，1-已删除',
+  `create_time`    datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `modify_time`    datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  unique key `unique_index_app_id_secret_version` (`app_id`, `secret_version`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8 COMMENT ='AES秘钥配置表';
+  
+-- DROP TABLE IF EXISTS `tb_app_config_rsa`;
+CREATE TABLE `tb_app_config_rsa`
+(
+  `id`                         bigint(20)    NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `app_id`                     varchar(64)   NOT NULL COMMENT '应用id，用于唯一标识应用；生成规则：云服务前缀+雪花算法生成',
+  `tenant_id`                  varchar(128)  NOT NULL COMMENT '租户id',
+  `tenant_name`                varchar(255)  NOT NULL COMMENT '租户名称',
+  `app_pub_key`                varchar(512)  NOT NULL COMMENT '应用公钥，用于验签接口，同时加密AES秘钥',
+  `das_pub_key`                varchar(512)  NOT NULL COMMENT '云服务公钥，用于接入方验签',
+  `das_pri_key`                varchar(2048) NOT NULL COMMENT '云服务私钥，云服务使用此私钥进行加签',
+  `encrypt_slide_size`         int(3)        NOT NULL DEFAULT 4 COMMENT '滑动窗口大小',
+  `encrypt_index_compress_len` int(3)        NOT NULL DEFAULT 3 COMMENT '密文滑窗压缩长度',
+  `random_num`                 varchar(64)   NOT NULL COMMENT '伪随机码，生成规则：日期+雪花算法生成',
+  `invalid_time`               int(4)        NOT NULL DEFAULT 90 COMMENT '过期时间，单位：天，默认90天',
+  `max_invalid_time`           int(4)        NOT NULL DEFAULT 120 COMMENT '最大有效期，单位：天，默认120天；必须大于invalidTime',
+  `is_delete`                  tinyint(1)    NOT NULL DEFAULT 0 COMMENT '删除标识，0-未删除，1-已删除',
+  `create_time`                datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `modify_time`                datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  unique key `unique_index_app_id` (`app_id`),
+  unique key `unique_index_tenant_id` (`tenant_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8 COMMENT ='RSA秘钥配置表';
+
+</code></pre>
+<h2 id="附录">附录</h2>
+<h3 id="rsa公私钥生成代码-java版">RSA公私钥生成代码-java版</h3>
+<pre><code>import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.util.Base64;
+ 
+/**
+ * @author philosopherZB
+ * @date 2022/1/13
+ */
+public class GenerateKeyUtils {
+    private static KeyPair KEY_PAIR_INSTANCE = null;
+    private static String ALGORITHM = &quot;RSA&quot;;
+    private static Integer KEY_LENGTH = 2048;
+ 
+    /**
+     * 生成默认公钥--algorithm=RSA; keyLength=2048
+     *
+     * @return publicKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genDefaultPublicKey() throws NoSuchAlgorithmException {
+        return genPublicKey(ALGORITHM, KEY_LENGTH);
+ 
+    }
+ 
+    /**
+     * 生成默认私钥--algorithm=RSA; keyLength=2048
+     *
+     * @return privateKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genDefaultPrivateKey() throws NoSuchAlgorithmException {
+        return genPrivateKey(ALGORITHM, KEY_LENGTH);
+    }
+ 
+    /**
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return publicKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genPublicKey(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        PublicKey publicKey = getKeyPairInstance(algorithm, keyLength).getPublic();
+        return Base64.getEncoder().encodeToString(publicKey.getEncoded());
+ 
+    }
+ 
+    /**
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return privateKey
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    public static String genPrivateKey(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        PrivateKey privateKey = getKeyPairInstance(algorithm, keyLength).getPrivate();
+        return Base64.getEncoder().encodeToString(privateKey.getEncoded());
+    }
+ 
+    /**
+     * getKeyPairInstance
+     *
+     * @param algorithm 标准的算法名: https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+     * @param keyLength 指定长度
+     * @return KeyPair
+     * @throws NoSuchAlgorithmException 算法不存在异常
+     */
+    private static KeyPair getKeyPairInstance(String algorithm, int keyLength) throws NoSuchAlgorithmException {
+        if (KEY_PAIR_INSTANCE == null) {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+            SecureRandom secureRandom = new SecureRandom();
+            keyPairGenerator.initialize(keyLength, secureRandom);
+            KEY_PAIR_INSTANCE = keyPairGenerator.generateKeyPair();
+        }
+ 
+        return KEY_PAIR_INSTANCE;
+    }
+ 
+    public static void main(String[] args) throws NoSuchAlgorithmException {
+        System.out.println(&quot;publicKey: &quot; + genPublicKey(&quot;RSA&quot;, 2048));
+        System.out.println(&quot;privateKey: &quot; + genPrivateKey(&quot;RSA&quot;, 2048));
+ 
+        System.out.println(&quot;default publicKey: &quot; + genDefaultPublicKey());
+        System.out.println(&quot;default privateKey: &quot; + genDefaultPrivateKey());
+    }
+}
+
+</code></pre>
+<h3 id="检索串提取代码示例-java版">检索串提取代码示例-java版</h3>
+<pre><code>public static String extractIndex(String encryptedData) {
+    if (encryptedData == null || encryptedData.length() &lt; 4) {
+        return null;
+    }
+    char sepInData = encryptedData.charAt(0);
+    if (encryptedData.charAt(encryptedData.length() - 2) != sepInData) {
+        return null;
+    }
+    String[] parts = StringUtils.split(encryptedData, sepInData);
+    if (sepInData == '$' || sepInData == '#') {
+        return parts[0];
+    } else {
+        return parts[1];
+    }
+}
+
+</code></pre>
+<h3 id="sdk使用样例-java版">SDK使用样例-java版</h3>
+<pre><code>public static void main(String[] args) {
+    String privateKey = &quot;MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGbO1R5OQ0Ff27V+k1FuPBnKMqwC3c0HFnAFu0ZUWH5FTyfkMahhsRntg7/uLk2QM1v0rx7kEdd/ExhOs5z68nO8xbyX/YbC+DX/NH3IsvNRrDU+xfpZdnuMT3bjtlGsasTIOK8S3DlHfiGpO4HPgeY7mBfduBaPStmJFLMM4Xpg3piD4r8mmq+2dAIhq6vX8GpwVqap0XLk8TcYY5h8WQ0FTbTSbRUNN/+YHmlwbEJVa+NR8qaUoo75/WHeVgjNlZ8SAfdjMt1oVWmibSiKYDr1JBVZrPD4CjBy6UR9jDrTxTrwmGsvHUzE3ZThPJZvJEWVXHbMCTs4KReUds/UcPAgMBAAECggEAXSsAM5e53wsEXFbm1VquDlax9nzODASDes3cQZPblfcMO+A1OdsGErv25BTGDJYo/6+WTQqF4IRU5991Y2u03kMhrWdrc/84QANpg7B2WfAhZN2e+zoRYU5MjbFgihSMfJJgoXik+FRaBfxcp/JSPlKs47RowNa7LFeawSdlXYxy+eXCouYomGe0aCPACKfHRyBWDRCf+eK/UwXRcmiyHi8hXOa/IfsaBsZNLtHR3rFod4x+hZUoIJAuXpupc2KW4qsK8ImW9BDcx2p2EO6iggw6MZMZkIo7NRHf3aaaLfpVsebjHm5lBF95ptVUP4CFpfoNevn3y09D4nhGjBP7AQKBgQDnZIcX+XJDykYES10jClxKndibhLYN9zNp7FOiin1Sfd5tUux+VXNEocWSMIqz8wuuI6kyrigwa0E2Kis3QANLizsaOu39jCW5kAHFm19txG3IgntPix95qADl9fQAO1Y3Nbh+zL43FH8f0s066L3V9bTvmZ6rN9vf8GF/xHrfLwKBgQDbhuUop370RhFbgN1CIFM6m6gio7pft7NW6YLyn4yXa/vbpw7c7B+c5TA1ru9maaXlF+Sff5WtLVK10czghDOdI0B5qrm62+TEhOEk7C6dgNsCdaHuDzqA2MYEmq4HJhoXrwM+xvzrlCwNZQ1AIRQWKdceKK9YgEnZQXQU9TEeIQKBgQCfPELrcLH9jLlaQzK45mxUvQNPIqjWO4OaJRP5CyzrE8t5mFM/LTbByEHaNKV+6IblM41AXzExAN5DlAlhYB/kYNAvYNZeYY+kf0F4509ojoCuN3z8ZFUot0DG/9cGQc829zUbrXJJHUXOdJbfL0NUdl4pdKIIWcxp81ZlQqT76QKBgHMlCzfKux1XTy1mpydTGzSnhoY8yLoB+dBBhQzLwQt/eUhaFMKuG1rJIANYcXuPOJO0d5dtbU27cyGpHMQ6s3PdlKj8cpTfV9v4MruSIlU8zCM7Hidm13HTwfGSTGu1gYQgqRwZdXn/ayfPdCbJ8uY5JftMrcRG7fVFjqSbgxrhAoGAVPNPW/QOVarHZDCVJi0XtOhl1g6oR51FGkOZ13SEuu8271v0PxcP55Hib6WvCPDOFB75oPaa1HmQs/WL41RCFMlELH/DhwEEkd2hLFmou4AiiB+M2DQODxagyINOx0RGd7FZuhiIWQTocqXj2PV71gkn5q4pIGKLsk1aklLTKXY=&quot;;
+    String dasPubKey = &quot;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiPNXFw6tQyfpNi63OoR5E+VR+KS4Sy1+1EFNiHTIc/f5AXXZtmo8CVTgAM8X7a2GHLMwRqjH1JZ/2Da9HHn8zHdEtSAbObxMtTKPrnQOG5NrTuA3hfRb/4N00iZZ2KZMr5fTXJ4824VMr2/fQZySwDd0bOPTmrNnlHLu6ErFvfJwjQqbhWVC1VhRkGzvT81O2SM+ALuTnbgoFGqFyaUE9YUP57COA/Hw4Yz+GmQkHxs9ELPvikFSGdBdptDvHQ2dTprskRW8UU/v0XjVED8jeayiqKxJFn2Yejq43eqkH+SV6c9R1jE39qhMyEX7hVvzSMcyvONSo5Za4R5zLqap4wIDAQAZ&quot;;
+    // 初始化一次即可（单例模式）
+    SecurityClient securityClient =
+            new DefaultSecurityClient(&quot;http://127.0.0.1:8999&quot;, &quot;cloud20220209651316091208540160&quot;, privateKey, &quot;20220209651322386368110592&quot;, dasPubKey);
+    try {
+        // 加密类型: TYPE_PHONE-手机号; TYPE_ID-id; TYPE_SIMPLE-普通加密；TYPE_SEARCH-支持搜索的加密
+        // version 为AES版本号，可从云服务中查看
+        String encryptData = securityClient.encrypt(&quot;www.test.hostname.com&quot;, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&quot;encryptData: &quot; + encryptData);
+
+        boolean isEncryptData = securityClient.isEncryptData(encryptData, SecurityConstants.TYPE_SEARCH);
+        System.out.println(&quot;isEncryptData: &quot; + isEncryptData);
+
+        String decryptData = securityClient.decrypt(encryptData, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&quot;decryptData: &quot; + decryptData);
+
+        String searchData = securityClient.search(&quot;test.hostname&quot;, SecurityConstants.TYPE_SEARCH, 1L);
+        System.out.println(&quot;searchData: &quot; + searchData);
+    } catch (DasSecurityException e) {
+        e.printStackTrace();
+    }
+}
+
+</code></pre>
 
             </div>
             
@@ -805,7 +1090,7 @@
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/jvm-xiang-jie/" title="JVM详解">https://philosopherzb.github.io/post/jvm-xiang-jie/</a>
+      <a href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/" title="敏感数据加密方案">https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -814,23 +1099,17 @@
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/qo1G6Y6MB/"># jvm</a>
-    
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
+      <a href="https://philosopherzb.github.io/tag/jddHyECqX/"># 设计方案</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
-        <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="java中引用&amp;IO&amp;类加载&amp;对象创建过程" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">java中引用&amp;IO&amp;类加载&amp;对象创建过程</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="java中引用&amp;IO&amp;类加载&amp;对象创建过程" href="https://philosopherzb.github.io/post/java-zhong-yin-yong-andioandlei-jia-zai-anddui-xiang-chuang-jian-guo-cheng/">上一篇</a>
-      
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="Java8新特性Stream&amp;CompletableFuture" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/">Java8新特性Stream&amp;CompletableFuture</a>
-        <a class="nav-mobile-next" title="Java8新特性Stream&amp;CompletableFuture" href="https://philosopherzb.github.io/post/java8-xin-te-xing-streamandcompletablefuture/">下一篇</a>
+        <a class="nav-pc-next" title="分布式事务详解" href="https://philosopherzb.github.io/post/fen-bu-shi-shi-wu-xiang-jie/">分布式事务详解</a>
+        <a class="nav-mobile-next" title="分布式事务详解" href="https://philosopherzb.github.io/post/fen-bu-shi-shi-wu-xiang-jie/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
