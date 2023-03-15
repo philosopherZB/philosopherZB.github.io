@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Lua基本知识 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1678440216911">
+<link rel="shortcut icon" href="/favicon.ico?v=1678869195699">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">27</span>
+        <span class="site-item-stat-count">29</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">18</span>
+        <span class="site-item-stat-count">19</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">18</span>
+        <span class="site-item-stat-count">19</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1455,6 +1455,547 @@ end
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/xiao-xi-dui-lie-yu-kafka/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述消息队列以及kafka整体架构。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-547363_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;消息队列message-queue&#34;&gt;消息队列(message queue)&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;消息队列是一种进程间通信或同一进程的不同线程间的通信方式；针对如今微服务或云架构，则指代服务间的异步通信方式。&lt;/p&gt;
+&lt;p&gt;在现代云架构或微服务架构中，应用程序被分解为多个规模较小且易于开发、部署和维护的构建块。消息队列可以为这些分布式应用程序提供通信与协调；同时，消息队列也可以显著的简化分离应用编码，并提高性能、可靠性和可扩展性等。&lt;/p&gt;
+&lt;h3 id=&#34;消息投递模式&#34;&gt;消息投递模式&lt;/h3&gt;
+&lt;h4 id=&#34;端到端point-to-point&#34;&gt;端到端(Point-to-point)&lt;/h4&gt;
+&lt;p&gt;在端到端消息模式中，一条消息将会一直存储在队列中，直到被消费者所接收；且，发送者必须要知道消费者的一些关键信息，例如：将要发送消息的队列名或者特定的队列管理器名。&lt;/p&gt;
+&lt;p&gt;此模式中，消息队列将会提供一个临时存储消息的轻量级缓冲区，并允许微服务连接到队列以发送和接收消息的终端节点；这种情况下，消息的规模一般较小，如请求，恢复，错误消息及明文消息等；同时一条消息只能由一个接收者处理一次。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314008.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;发布订阅publishsubscribe&#34;&gt;发布订阅(Publish/Subscribe)&lt;/h4&gt;
+&lt;p&gt;发布订阅模式中，一条消息由发送者推送至特定的主题(topic)，随后所有订阅了该topic的消费者都将收到同一条广播消息。&lt;/p&gt;
+&lt;p&gt;消息主题的订阅者通常会执行不同的功能，并可以同时对消息执行不同的操作。发布者无需知道谁在使用广播的信息，而订阅者也无需知道消息来自哪里。这种消息收发模式与端到端稍有不同，在端到端中，发送消息的组件通常知道发送的目的地。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314009.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;消息队列优势&#34;&gt;消息队列优势&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;解耦：在分布式系统中，同一份数据可能要分发给不同的程序进行处理；例如订单生成后，要扣库存，加积分；此时如果由订单服务直接调用库存服务及积分服务的接口，将会让订单服务变得十分臃肿，且不利于后续扩展（比如再加一个支付服务）。这时便可以加入消息队列，采用发布订阅模式，订单服务只需将消息发送至指定topic即可，其他服务选择性订阅。这样便将系统业务进行了解耦操作，增加了系统的可扩展性。&lt;/li&gt;
+&lt;li&gt;异步通信：消息队列天然支持异步操作（所有的消息都会存储在队列中，消费者可以延迟处理），针对分布式系统中的异步操作，可采用消息队列进行处理。&lt;/li&gt;
+&lt;li&gt;削峰填谷：针对高并发大数据的场景，消息队列可以有效地做到削峰填谷。数据推送高峰时，将由消息队列暂存所有的数据，等到数据推送低谷时，由消费者逐步消费所有的数据。必要时，也可以额外的增加消费者进行数据处理。&lt;/li&gt;
+&lt;li&gt;缓冲：消息队列通过一个缓冲层来帮助任务最高效率的执行；写入队列的处理会尽可能的快速。该缓冲有助于控制和优化数据流经过系统的速度。&lt;/li&gt;
+&lt;li&gt;跨平台：消息队列支持跨平台消息处理，只需要发送者及消费者约定数据格式即可。例如，由Java发送消息，go消费消息。&lt;/li&gt;
+&lt;li&gt;灵活性与可扩展性：在高流量期间，可以通过动态的扩展机器来接受更多的消息，防止高并发冲击服务，导致服务挂掉。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;kafka&#34;&gt;kafka&lt;/h2&gt;
+&lt;h3 id=&#34;简介-2&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Kafka 是由 Linkedin 公司开发的，它是一个分布式的，支持多分区、多副本，基于 Zookeeper 的消息流平台，它同时也是一款开源的基于发布订阅模式的消息引擎系统；&lt;/p&gt;
+&lt;p&gt;Kafka由服务端及客户端组成，且服务端和客户端可以通过高性能的TCP网络协议进行通讯。关于kafka的部署环境，无论本地还是云环境中的裸机，虚拟机或者容器都可以支持。&lt;/p&gt;
+&lt;h3 id=&#34;基本术语&#34;&gt;基本术语&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;生产者(Producer)：向kafka中的主题(topic)发布消息事件的客户端应用程序被称为生产者。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;消费者(Consumer)：订阅了kafka消息事件所在的主题(topic)的客户端应用程序称为消费者。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;主题(Topic)：用于存储同一类消息事件；打个简单的比喻：主题类似于文件系统中的文件夹，而消息事件则类似于文件夹中的文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;消息(Message)：kafka中的数据单元被称为消息，也可以叫记录(record)。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;偏移量(Offset)：是一种元数据，且是一个不断递增的整数值；当消费者处理完消息后，将会提交offset+1到broker中。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;broker： 一个独立的 Kafka 服务器就被称为 broker，broker 接收来自生产者的消息，并为消息设置偏移量，同时持久化消息到磁盘。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;分区(Partition)：在一个主题中可以存在一个或多个分区，每个分区中消息有序；同一主题中的多个分区可以位于不同机器上，方便后续扩容操作。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;副本(Replica)：消息的备份称为副本，在创建主题时可以指定副本数量。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;重平衡(Rebalance)：当消费组(多个消费者将会形成一个消费组)中的某个消费者实例挂掉或者新增一个消费者实例时，其他消费者实例可以自动地重新分配订阅主题，这个过程叫重平衡。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AR与ISR：AR即可分配副本 Assigned Replicas；而所有与leader副本保持一定同步状态的副本（包含leader副本）构成ISR（In-Sync Replicas）；ISR集合是AR集合中的一个子集。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;ISR的伸缩：leader 副本负责维护和跟踪 ISR 集合中所有 follower 副本的滞后状态，当 follower 副本落后太多或失效时，leader 副本会把它从 ISR 集合中剔除。如果 OSR（Out-Sync Replicas） 集合中有 follower 副本“追上”了 leader 副本，那么 leader 副本会把它从 OSR 集合转移至 ISR 集合。默认情况下，当 leader 副本发生故障时，只有在 ISR 集合中的副本才有资格被选举为新的 leader，而在 OSR 集合中的副本则没有任何机会（不过这个原则也可以通过修改相应的参数配置来改变）。&lt;/p&gt;
+&lt;p&gt;replica.lag.time.max.ms ： 这个参数的含义是 Follower 副本能够落后 Leader 副本的最长时间间隔，默认10s。&lt;/p&gt;
+&lt;p&gt;unclean.leader.election.enable：是否允许 Unclean 领导者选举。开启 Unclean 领导者选举可能会造成数据丢失，但好处是，它使得分区 Leader 副本一直存在，不至于停止对外提供服务，因此提升了高可用性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;HW与LW：HW（High Watermark）俗称高水位，它标识了一个特定的偏移量(offset)，消费者只能拉取此偏移量之前的数据；LW（Low Watermark）俗称低水位，它同样标识了一个特定的偏移量(offset)，一般为AR集合中最小的LSO值；LW值的增长与副本的拉取或删除请求息息相关。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;LSO：LSO 是LogStartOffset的缩写，一般情况下，日志文件的起始偏移量 logStartOffset 等于第一个日志分段的 baseOffset，但这并不是绝对的，logStartOffset 的值可以通过 DeleteRecordsRequest 请求(比如使用 KafkaAdminClient 的 deleteRecords()方法、使用 kafka-delete-records.sh 脚本、日志的清理和截断等操作）进行修改。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;LEO：LEO是 LogEndOffset 的缩写，它标识当前日志文件中下一条待写入消息的 offset，如下图中 offset 为9的位置即为当前日志文件的 LEO，LEO 的大小相当于当前日志分区中最后一条消息的 offset 值加1。分区 ISR 集合中的每个副本都会维护自身的 LEO，而 ISR 集合中最小的 LEO 即为分区的 HW，对消费者而言只能消费 HW 之前的消息&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314010.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;ul&gt;
+&lt;li&gt;发送者，broker集群，消费者基本协作结构图&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314011.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314011.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;主题剖析结构图&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230315001.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;ul&gt;
+&lt;li&gt;一个两节点的 kafka 集群支持的 2 个消费组的四个分区 (P0-P3)。消费者 A 有两个消费者实例，消费者 B 有四个消费者实例。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230315002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;基本特性&#34;&gt;基本特性&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;高吞吐、低延迟：收发消息快是kafka最重要的特性之一，即使在非常廉价的机器上，kafka也可以轻松达到每秒几十万条消息的传输速率，且此过程中最低延迟仅有几毫秒；一般可以用来做实时日志聚合。&lt;/li&gt;
+&lt;li&gt;持久化：kafka中的所有消息都会被其持久化存储在文件系统中；在这个过程中，kafka采用顺序写磁盘及直接写页缓存的机制提高IO效率（顺序写磁盘的速度接近于随机写内存的速度：&lt;a href=&#34;https://queue.acm.org/detail.cfm?id=1563874&#34;&gt;点击此处跳转文章页面&lt;/a&gt;）。&lt;/li&gt;
+&lt;li&gt;水平扩容(Scale out)：kafka提供分区机制以达到动态扩容的效果，即增加分区数（不支持减少分区操作）；&lt;/li&gt;
+&lt;li&gt;分区容错(Partition-tolerance)：即使集群中的某个节点挂掉，kafka仍然可以提供可用性（可用性与一致性间的冲突，kafka目前采用的是ISR机制进行了部分妥协）。&lt;/li&gt;
+&lt;li&gt;核心API：Producer API，Consumer API，Streams API，Connect API，Admin API&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;生产者producer&#34;&gt;生产者(Producer)&lt;/h3&gt;
+&lt;h4 id=&#34;简介-3&#34;&gt;简介&lt;/h4&gt;
+&lt;p&gt;生产者无需经过路由便可将消息发送至主分区所在的服务器上；为了实现这个功能，所有的kafka服务器节点都能够响应这样的元数据请求：哪些服务器存活，主题的主分区位于哪台服务器上。&lt;/p&gt;
+&lt;p&gt;对于生产者而言，只需要执行发送请求，消息将会自动根据路由规则分配到不同的分区上。&lt;/p&gt;
+&lt;p&gt;消息路由规则：如果指定了 partition，则直接使用；如果未指定 partition 但指定了 key，则通过对 key 的 value 进行hash 选出一个 partition（形如：Math.abs(key.hashCode()) % partitions.size()）； 如果partition 和 key 都未指定，便会轮询选出一个 partition。&lt;/p&gt;
+&lt;h4 id=&#34;整体流程架构&#34;&gt;整体流程架构&lt;/h4&gt;
+&lt;p&gt;整个生产者客户端由两个线程协调运行，这两个线程分别为主线程和 Sender 线程（发送线程）。&lt;/p&gt;
+&lt;p&gt;在主线程中由 KafkaProducer 创建消息，然后通过可能的拦截器、序列化器和分区器的作用之后缓存到消息累加器（RecordAccumulator，也称为消息收集器）中。&lt;/p&gt;
+&lt;p&gt;Sender 线程负责从 RecordAccumulator 中获取消息并将其发送到 Kafka 中。&lt;/p&gt;
+&lt;p&gt;RecordAccumulator 主要用来缓存消息以便 Sender 线程可以批量发送，进而减少网络传输的资源消耗以提升性能。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230315003.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h5 id=&#34;序列化器&#34;&gt;序列化器&lt;/h5&gt;
+&lt;p&gt;生产者需要用序列化器（Serializer）把对象转换成字节数组才能通过网络发送给 Kafka；在消费者侧同样需要用反序列化器（Deserializer）把从 Kafka 中收到的字节数组转换成相应的对象。网络传输过程中，序列化是必须的操作。自定义时需要实现org.apache.kafka.common.serialization.Serializer&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;package org.apache.kafka.common.serialization;
+
+import org.apache.kafka.common.header.Headers;
+
+import java.io.Closeable;
+import java.util.Map;
+
+/**
+ * 一个用于转换对象为字节的接口
+ *
+ * 实现此接口的类应具有不带参数的构造函数
+ * 
+ * @param &amp;lt;T&amp;gt; Type to be serialized from.
+ */
+public interface Serializer&amp;lt;T&amp;gt; extends Closeable {
+
+    /**
+     * 配置当前类，此方法一般是在创建 KafkaProducer 实例的时候调用的，主要用来确定编码类型。
+     * @param configs configs in key/value pairs
+     * @param isKey whether is for key or value
+     */
+    default void configure(Map&amp;lt;String, ?&amp;gt; configs, boolean isKey) {
+        // intentionally left blank
+    }
+
+    /**
+     * 转换数据为字节数组（执行序列化操作）
+     * 可以进行编解码，如果 Kafka 客户端提供的几种序列化器都无法满足应用需求，
+     * 则可以选择使用如 Avro、JSON、Thrift、ProtoBuf 和 Protostuff 等通用的序列化工具来实现，
+     * 或者使用自定义类型的序列化器来实现。  
+     *
+     * @param topic topic associated with data
+     * @param data typed data
+     * @return serialized bytes
+     */
+    byte[] serialize(String topic, T data);
+
+    /**
+     * 转换数据为字节数组（执行序列化操作）
+     * 可以进行编解码，如果 Kafka 客户端提供的几种序列化器都无法满足应用需求，
+     * 则可以选择使用如 Avro、JSON、Thrift、ProtoBuf 和 Protostuff 等通用的序列化工具来实现，
+     * 或者使用自定义类型的序列化器来实现。  
+     *
+     * @param topic topic associated with data
+     * @param headers headers associated with the record
+     * @param data typed data
+     * @return serialized bytes
+     */
+    default byte[] serialize(String topic, Headers headers, T data) {
+        return serialize(topic, data);
+    }
+
+    /**
+     * 关闭序列化器
+     * 注意：此方法必须是幂等的，因为它可能会被多次调用。
+     */
+    @Override
+    default void close() {
+        // intentionally left blank
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h5 id=&#34;分区器&#34;&gt;分区器&lt;/h5&gt;
+&lt;p&gt;分区器的作用就是为消息分配partition。如果消息 ProducerRecord 中没有指定 partition 字段，那么就需要依赖分区器，根据 key 这个字段来计算 partition 的值；或者依赖轮询分配partition（可参考消息路由规则）。Kafka 中提供的默认分区器是 org.apache.kafka.clients.producer.internals.DefaultPartitioner，它实现了 org.apache.kafka.clients.producer.Partitioner 接口。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;package org.apache.kafka.clients.producer.internals;
+
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.common.Cluster;
+import org.apache.kafka.common.utils.Utils;
+
+import java.util.Map;
+
+/**
+ * 默认的分区策略器
+ * &amp;lt;ul&amp;gt;
+ * &amp;lt;li&amp;gt;如果记录中指定了分区，则直接使用
+ * &amp;lt;li&amp;gt;如果未制定分区，但存在key，则基于key的hash值选择一个分区（拥有相同 key 的消息会被写入同一个分区，前提是分区数不会变更）
+ * &amp;lt;li&amp;gt;如果分区和key都不存在，则选择在批处理已满时更改的粘性分区（轮询操作）。
+ * 
+ * See KIP-480 for details about sticky partitioning.
+ */
+public class DefaultPartitioner implements Partitioner {
+
+    private final StickyPartitionCache stickyPartitionCache = new StickyPartitionCache();
+
+    public void configure(Map&amp;lt;String, ?&amp;gt; configs) {}
+
+    /**
+     * 计算将要发送消息的分区
+     *
+     * @param topic The topic name
+     * @param key The key to partition on (or null if no key)
+     * @param keyBytes serialized key to partition on (or null if no key)
+     * @param value The value to partition on or null
+     * @param valueBytes serialized value to partition on or null
+     * @param cluster The current cluster metadata
+     */
+    public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+        return partition(topic, key, keyBytes, value, valueBytes, cluster, cluster.partitionsForTopic(topic).size());
+    }
+
+    /**
+     * 计算将要发送消息的分区
+     *
+     * @param topic The topic name
+     * @param numPartitions The number of partitions of the given {@code topic}
+     * @param key The key to partition on (or null if no key)
+     * @param keyBytes serialized key to partition on (or null if no key)
+     * @param value The value to partition on or null
+     * @param valueBytes serialized value to partition on or null
+     * @param cluster The current cluster metadata
+     */
+    public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster,
+                         int numPartitions) {
+        if (keyBytes == null) {
+            return stickyPartitionCache.partition(topic, cluster);
+        }
+        // 基于key 的hash值选择一个翻去
+        return Utils.toPositive(Utils.murmur2(keyBytes)) % numPartitions;
+    }
+
+    public void close() {}
+  
+    /**
+     * 轮询选择分区
+     */
+    public void onNewBatch(String topic, Cluster cluster, int prevPartition) {
+        stickyPartitionCache.nextPartition(topic, cluster, prevPartition);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;package org.apache.kafka.clients.producer;
+
+import org.apache.kafka.common.Configurable;
+import org.apache.kafka.common.Cluster;
+
+import java.io.Closeable;
+
+/**
+ * 分区器接口，自定义分区器时，需要实现此接口。
+ */
+public interface Partitioner extends Configurable, Closeable {
+
+    /**
+     * 计算将要发送消息的分区
+     *
+     * @param topic The topic name
+     * @param key The key to partition on (or null if no key)
+     * @param keyBytes The serialized key to partition on( or null if no key)
+     * @param value The value to partition on or null
+     * @param valueBytes The serialized value to partition on or null
+     * @param cluster The current cluster metadata
+     */
+    public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster);
+
+    /**
+     * 关闭分区器时执行相关操作
+     */
+    public void close();
+
+
+    /**
+     * 通知分区器有一个已创建的新批处理数据。当时用粘性分区器时，次方法会自动为新批处理数据选择一个粘性分区。
+     * @param topic The topic name
+     * @param cluster The current cluster metadata
+     * @param prevPartition The partition previously selected for the record that triggered a new batch
+     */
+    default public void onNewBatch(String topic, Cluster cluster, int prevPartition) {
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h5 id=&#34;拦截器&#34;&gt;拦截器&lt;/h5&gt;
+&lt;p&gt;生产者拦截器既可以用来在消息发送前做一些准备工作，比如按照某个规则过滤不符合要求的消息、修改消息的内容等，也可以用来在发送回调逻辑前做一些定制化的需求，比如统计类工作。消费者拦截器主要在消费到消息或在提交消费位移时进行一些定制化的操作。自定义时需要实现org.apache.kafka.clients.producer. ProducerInterceptor&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;package org.apache.kafka.clients.producer;
+
+import org.apache.kafka.common.Configurable;
+
+/**
+ * 一个插件接口，允许拦截（并可能改变）生产者发布到kafka集群中的记记录
+*/
+public interface ProducerInterceptor&amp;lt;K, V&amp;gt; extends Configurable {
+    /**
+     * 将消息序列化及分区（如果分区未指定）前对消息进行相关定制化处理。
+     * @param record the record from client or the record returned by the previous interceptor in the chain of interceptors.
+     * @return producer record to send to topic/partition
+     */
+    public ProducerRecord&amp;lt;K, V&amp;gt; onSend(ProducerRecord&amp;lt;K, V&amp;gt; record);
+
+    /**
+     * 当发送到服务器的记录已被确认，或者在发送到服务器之前发送记录失败时调用此方法。
+     * 此方法通常在调用用户callback之前调用
+     * 此方法通常运行在 Producer 的 background I/O线程中，因此这个方法中的实现代码逻辑越简单越好，否则会影响消息的发送速度。
+     * 
+     * This method will generally execute in the background I/O thread, so the implementation should be reasonably fast.
+     * Otherwise, sending of messages from other threads could be delayed.
+     *
+     * @param metadata The metadata for the record that was sent (i.e. the partition and offset).
+     *                 If an error occurred, metadata will contain only valid topic and maybe
+     *                 partition. If partition is not given in ProducerRecord and an error occurs
+     *                 before partition gets assigned, then partition will be set to RecordMetadata.NO_PARTITION.
+     *                 The metadata may be null if the client passed null record to
+     *                 {@link org.apache.kafka.clients.producer.KafkaProducer#send(ProducerRecord)}.
+     * @param exception The exception thrown during processing of this record. Null if no error occurred.
+     */
+    public void onAcknowledgement(RecordMetadata metadata, Exception exception);
+
+    /**
+     * 用于关闭拦截器时执行逻辑，例如清理相关资源等
+     */
+    public void close();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h5 id=&#34;处理顺序&#34;&gt;处理顺序&lt;/h5&gt;
+&lt;p&gt;拦截器-&amp;gt;序列化器-&amp;gt;分区器；KafkaProducer 在将消息序列化和计算分区之前会调用生产者拦截器的 onSend() 方法来对消息进行相应的定制化操作。然后生产者需要用序列化器（Serializer）把对象转换成字节数组才能通过网络发送给 Kafka。最后可能会被发往分区器为消息分配分区。&lt;/p&gt;
+&lt;h3 id=&#34;消费者consumer&#34;&gt;消费者(Consumer)&lt;/h3&gt;
+&lt;h4 id=&#34;简介-4&#34;&gt;简介&lt;/h4&gt;
+&lt;p&gt;kafka consumer 订阅感兴趣的主题，同时向其所在的主分区发送fetch请求，获取需要进行消费的消息；需要注意的是，此过程中，consumer的每个请求都需要在partition中指定offset，从而消费从offset处开始的message。因此，consumer对offset的控制便尤为重要，可以依此来进行回退重消费操作。&lt;/p&gt;
+&lt;h4 id=&#34;关于offset&#34;&gt;关于offset&lt;/h4&gt;
+&lt;p&gt;大多数消息系统都在 broker 上保存被消费消息的元数据。也就是说，当消息被传递给 consumer，broker 要么立即在本地记录该事件，要么等待 consumer 的确认后再记录。这是一种相当直接的选择，而且事实上对于单机服务器来说，也没其它地方能够存储这些状态信息。&lt;/p&gt;
+&lt;p&gt;由于大多数消息系统用于存储的数据结构规模都很小，所以这也是一个很实用的选择，因为只要 broker 知道哪些消息被消费了，就可以在本地立即进行删除，一直保持较小的数据量。&lt;/p&gt;
+&lt;p&gt;然而，此过程中要一直保持broker与consumer的数据一致性不是一件容易的事；例如consumer已消费了数据，但是回执给broker时出现网络错误导致broker没有删除本地记录，这时消息便有可能会重复消费；并且这种记录操作对于broker而言也是一个不小的性能负担（首先对其加锁，确保该消息只被发送一次，然后将其永久的标记为 consumed，以便将其移除）。&lt;/p&gt;
+&lt;p&gt;为了应对上述问题，Kafka 使用了完全不同的方式来解决消息丢失问题。&lt;/p&gt;
+&lt;p&gt;首先Kafka 的 topic 被分割成了一组完全有序的 partition，其中每一个 partition 在任意给定的时间内只能被每个订阅了这个 topic 的 consumer group中的一个 consumer 消费。这意味着 partition 中 每一个 consumer 的位置仅仅是一个数字，即下一条要消费的消息的 offset。这使得被消费的消息的状态信息相当少，每个 partition 只需要一个数字。这个状态信息还可以作为周期性的 checkpoint。这以非常低的代价实现了和消息确认机制等同的效果。&lt;/p&gt;
+&lt;p&gt;这种方式还有一个附加的好处，那就是consumer 可以回退到之前的 offset 来再次消费之前的数据，这个操作违反了队列的基本原则，但事实证明对大多数 consumer 来说这是一个必不可少的特性。 例如，如果 consumer 的代码有 bug，并且在 bug 被发现前已经有一部分数据被消费了，那么 consumer 可以在 bug 修复后通过回退到之前的 offset 来再次消费这些数据。需要注意的是，对于重复消费的消息要保持幂等操作。&lt;/p&gt;
+&lt;h4 id=&#34;push-vs-pull&#34;&gt;Push vs Pull&lt;/h4&gt;
+&lt;p&gt;关于消息的推送拉取，kafka采用的是：Producer push数据到broker，Consumer从broker pull数据。针对消费者而言，无论是pull-based还是push-based都有各自的优缺点。&lt;/p&gt;
+&lt;p&gt;pull-based：数据传输速率由Consumer控制，可防止服务因大量数据冲击而宕机，同时也简化了broker的设计；且，此模式中，Producer可以达到最大化量产消息。当然，其缺点就是如果 broker 中没有数据，consumer 可能会在一个紧密的循环中结束轮询，实际上却是在忙于等待数据的到达。为了避免 busy-waiting，kafka在 pull 请求中加入参数，使得 consumer 在一个“long pull”中阻塞等待，直到数据到来（还可以选择等待给定字节长度的数据来确保传输长度）。&lt;/p&gt;
+&lt;p&gt;push-based：消息能最快的被指定消费者所消费，但是相应的broker设计将会更复杂，且数据传输速率过大时，容易冲击消费者服务，导致其宕机无法提供服务。&lt;/p&gt;
+">消息队列与kafka</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述kafka安装，使用以及spring-kafka配置信息。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-6278825_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;win10下部署kafka&#34;&gt;Win10下部署kafka&lt;/h2&gt;
+&lt;p&gt;主要涉及Java，zookeeper，kafka，步骤如下。&lt;/p&gt;
+&lt;h3 id=&#34;java安装&#34;&gt;Java安装&lt;/h3&gt;
+&lt;p&gt;JDK下载：&lt;a href=&#34;https://www.oracle.com/java/technologies/javase-downloads.html&#34;&gt;点此此处跳转官网下载页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;安装过程比较简单，基本都是下一步即可，唯一需要注意的是环境变量的设置；安装完后效果如下图所示（注意：Java安装路径不要太深（目录过多），同时文件夹命名不要存在空格，否则将导致kafka部署失败）&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314001.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314002.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;zookeeper安装&#34;&gt;zookeeper安装&lt;/h3&gt;
+&lt;p&gt;下载地址：&lt;a href=&#34;https://zookeeper.apache.org/releases.html&#34;&gt;点击此处跳转官网下载页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;找一个稳定的版本下载即可：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314003.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;ol&gt;
+&lt;li&gt;下载后解压到一个目录：eg: D:\Program\zookeeper\zookeeper-3.4.14&lt;/li&gt;
+&lt;li&gt;在zookeeper-3.4.14目录下，新建两个文件夹，并命名(eg: data,log)，(路径：D:\Program\zookeeper\zookeeper-3.4.14\data,D:\Program\zookeeper\zookeeper-3.4.14\log)&lt;/li&gt;
+&lt;li&gt;进入Zookeeper设置目录，eg: D:\Program\zookeeper\zookeeper-3.4.14\conf；复制“zoo_sample.cfg”副本并将副本重命名为“zoo.cfg”；在任意文本编辑器（eg：记事本）中打开zoo.cfg；找到并编辑dataDir=D:\Program\zookeeper\zookeeper-3.4.14\data；dataLogDir=D:\Program\zookeeper\zookeeper-3.4.14\log&lt;/li&gt;
+&lt;li&gt;进入D:\Program\zookeeper\zookeeper-3.4.14\bin目录，双击zkServer.cmd即可运行zk。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;kafka安装&#34;&gt;kafka安装&lt;/h3&gt;
+&lt;p&gt;下载地址：&lt;a href=&#34;http://kafka.apache.org/downloads.html&#34;&gt;点击此处跳转官网下载页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;2.8之后kafka支持不依赖zookeeper启动：&lt;a href=&#34;https://kafka.apache.org/quickstart&#34;&gt;点击此处跳转详细说明页面&lt;/a&gt;&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314004.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;下载后解压缩。eg: D:\Program\kafka_2.13-2.7.0&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;建立一个空文件夹 logs. eg: D:\Program\kafka_2.13-2.7.0\logs&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;进入config目录，编辑 server.properties文件(eg: 用“写字板”打开)。；找到并编辑log.dirs=D:\Program\kafka_2.13-2.7.0\logs；找到并编辑zookeeper.connect=localhost:2181。表示本地运行。(Kafka会按照默认，在9092端口上运行，并连接zookeeper的默认端口：2181)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;运行：命令行下切入D:\Program\kafka_2.13-2.7.0目录，随后执行如下命令即可（注意先开启zookeeper）：.\bin\windows\kafka-server-start.bat .\config\server.properties&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;可能存在的报错：&lt;/p&gt;
+&lt;p&gt;输入行太长。 命令语法不正确：目录树太深了，减少几个目录即可。&lt;/p&gt;
+&lt;p&gt;找不到或无法加载主类 Files\java\jdk8\lib;D:\Program：此错误由目录存在空格所导致。解决：找到D:\Program\kafka_2.13-2.7.0\bin\windows，用编辑器（eg：记事本）打开kafka-run-class.bat，查看配置是否有加上双引号&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314005.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;如果加了双引号仍然无法启动，那可以去查看java安装路径中的文件夹是否存在空格，如果存在，将空格去掉即可。&lt;/p&gt;
+&lt;p&gt;启动图如下：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;7&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314006.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;简单kafka命令&#34;&gt;简单kafka命令&lt;/h2&gt;
+&lt;p&gt;部分kafka命令，基于win10（如果非win系统，使用bin目录下的.sh即可）&lt;/p&gt;
+&lt;h3 id=&#34;创建topic两个副本-四个分区&#34;&gt;创建topic（两个副本。四个分区）&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 2 --partitions 4 --topic testTopic  
+$ bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --topic topic_test( Kafka 版本 &amp;gt;= 2.2 支持此方式（推荐）)  
+$ bin/kafka-topics.sh --create --topic quickstart-events --bootstrap-server localhost:9092
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;查看topic&#34;&gt;查看topic&lt;/h3&gt;
+&lt;p&gt;查看topic列表：kafka-topics.bat --list --zookeeper localhost:2181&lt;/p&gt;
+&lt;p&gt;查看topic详情：bin/kafka-topics.sh --zookeeper host12:2181  --describe --topic ltopicName&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ bin/kafka-topics.sh --describe --topic quickstart-events --bootstrap-server localhost:9092
+Topic:quickstart-events  PartitionCount:1    ReplicationFactor:1 Configs:
+Topic: quickstart-events Partition: 0    Leader: 0   Replicas: 0 Isr: 0
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;清除Kafka topic下所有消息：kafka-topics.sh --zookeeper zookeeper地址:端口 --delete --topic topic_name&lt;/p&gt;
+&lt;h3 id=&#34;删除topic&#34;&gt;删除topic&lt;/h3&gt;
+&lt;p&gt;linux：./bin/kafka-topics  --delete --zookeeper 【zookeeper server】  --topic 【topic name】&lt;/p&gt;
+&lt;p&gt;win：kafka-topics.bat --delete --zookeeper localhost:2181 --topic testTopic&lt;/p&gt;
+&lt;p&gt;如果kafaka启动时加载的配置文件中server.properties没有配置delete.topic.enable=true，那么此时的删除并不是真正的删除，而是把topic标记为：marked for deletion&lt;/p&gt;
+&lt;p&gt;彻底删除topic，可以如下操作：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;删除kafka存储目录（server.properties文件log.dirs配置，默认为&amp;quot;/tmp/kafka-logs&amp;quot;）相关topic目录&lt;/li&gt;
+&lt;li&gt;登录zookeeper客户端：命令：./bin/zookeeper-client&lt;/li&gt;
+&lt;li&gt;找到topic所在的目录：ls /brokers/topics&lt;/li&gt;
+&lt;li&gt;找到要删除的topic，执行命令：rmr /brokers/topics/【topic name】即可，此时topic被彻底删除。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;8&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314007.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;发送消息至topic&#34;&gt;发送消息至topic&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+This is my first event
+This is my second event
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;消费topic消息&#34;&gt;消费topic消息&lt;/h3&gt;
+&lt;p&gt;从头开始查看kafka topic下的数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --from-beginning&lt;/p&gt;
+&lt;p&gt;按照偏移量查看topic下数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --offset latest --partition 0&lt;/p&gt;
+&lt;p&gt;--offset设置偏移量 latest代表最后 ，可以设置区间，不设置结尾的话默认为查询到latest(最后)&lt;/p&gt;
+&lt;p&gt;--partition 设置分区 使用偏移量查询时一定要设置分区才能查询&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ bin/kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap-server localhost:9092
+This is my first event
+This is my second event
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;spring-kafka属性配置&#34;&gt;spring-kafka属性配置&lt;/h2&gt;
+&lt;p&gt;spring已经封装了kafka，所以在springboot项目中可以非常便捷的集成kafka，引入其依赖，如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;lt;dependency&amp;gt;
+  &amp;lt;groupId&amp;gt;org.springframework.kafka&amp;lt;/groupId&amp;gt;
+  &amp;lt;artifactId&amp;gt;spring-kafka&amp;lt;/artifactId&amp;gt;
+  &amp;lt;version&amp;gt;${last.version}&amp;lt;/version&amp;gt;
+&amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;文档地址：&lt;a href=&#34;https://docs.spring.io/spring-kafka/docs/current/reference/html/&#34;&gt;点击此处跳转官网页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;属性配置：&lt;a href=&#34;https://docs.spring.io/spring-boot/docs/current/reference/html/appendix-application-properties.html#spring.kafka.admin.client-id&#34;&gt;点击此处跳转说明页面&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;producer的配置参数&#34;&gt;producer的配置参数&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#procedure要求leader在考虑完成请求之前收到的确认数，用于控制发送记录在服务端的持久化，其值可以为如下：
+#acks = 0 如果设置为零，则生产者将不会等待来自服务器的任何确认，该记录将立即添加到套接字缓冲区并视为已发送。在这种情况下，无法保证服务器已收到记录，并且重试配置将不会生效（因为客户端通常不会知道任何故障），为每条记录返回的偏移量始终设置为-1。
+#acks = 1 这意味着leader会将记录写入其本地日志，但无需等待所有副本服务器的完全确认即可做出回应，在这种情况下，如果leader在确认记录后立即失败，但在将数据复制到所有的副本服务器之前，则记录将会丢失。
+#acks = all 这意味着leader将等待完整的同步副本集以确认记录，这保证了只要至少一个同步副本服务器仍然存活，记录就不会丢失，这是最强有力的保证，这相当于acks = -1的设置。
+#可以设置的值为：all(-1), 0, 1
+spring.kafka.producer.acks=1
+ 
+#每当多个记录被发送到同一分区时，生产者将尝试将记录一起批量处理为更少的请求， 
+#这有助于提升客户端和服务器上的性能，此配置控制默认批量大小（以字节为单位），默认值为16384
+spring.kafka.producer.batch-size=16384
+ 
+#以逗号分隔的主机：端口对列表，用于建立与Kafka集群的初始连接
+spring.kafka.producer.bootstrap-servers
+ 
+#生产者可用于缓冲等待发送到服务器的记录的内存总字节数，默认值为33554432
+spring.kafka.producer.buffer-memory=33554432
+ 
+#ID在发出请求时传递给服务器，用于服务器端日志记录
+spring.kafka.producer.client-id
+ 
+#生产者生成的所有数据的压缩类型，此配置接受标准压缩编解码器（&#39;gzip&#39;，&#39;snappy&#39;，&#39;lz4&#39;），
+#它还接受&#39;uncompressed&#39;以及&#39;producer&#39;，分别表示没有压缩以及保留生产者设置的原始压缩编解码器，
+#默认值为producer
+spring.kafka.producer.compression-type=producer
+ 
+#key的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+ 
+#值的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+ 
+#如果该值大于零时，表示启用重试失败的发送次数
+spring.kafka.producer.retries
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;consumer的配置参数&#34;&gt;consumer的配置参数&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#当&#39;enable.auto.commit&#39;为true时，该配置表示消费者offset自动提交给Kafka的频率（以毫秒为单位），默认值为5000。
+spring.kafka.consumer.auto-commit-interval;
+ 
+#当Kafka中没有初始偏移量或者服务器上不再存在当前偏移量时该怎么办，默认值为latest，表示自动将偏移重置为最新的偏移量
+#可选的值为latest, earliest, none
+spring.kafka.consumer.auto-offset-reset=latest;
+ 
+#以逗号分隔的主机：端口对列表，用于建立与Kafka群集的初始连接。
+spring.kafka.consumer.bootstrap-servers;
+ 
+#ID在发出请求时传递给服务器;用于服务器端日志记录。
+spring.kafka.consumer.client-id;
+ 
+#如果为true，则消费者的偏移量将在后台定期提交，默认值为true(2.3后默认为false)
+spring.kafka.consumer.enable-auto-commit=true;
+ 
+#如果没有足够的数据立即满足“fetch.min.bytes”给出的要求，服务器在回答获取请求之前将阻塞的最长时间（以毫秒为单位）
+#默认值为500
+spring.kafka.consumer.fetch-max-wait;
+ 
+#服务器应以字节为单位返回获取请求的最小数据量，默认值为1，对应的kafka的参数为fetch.min.bytes。
+spring.kafka.consumer.fetch-min-size;
+ 
+#用于标识此使用者所属的使用者组的唯一字符串。
+spring.kafka.consumer.group-id;
+ 
+#心跳与消费者协调员之间的预期时间（以毫秒为单位），默认值为3000
+spring.kafka.consumer.heartbeat-interval;
+ 
+#密钥的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+ 
+#值的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
+spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+ 
+#一次调用poll()操作时返回的最大记录数，默认值为500
+spring.kafka.consumer.max-poll-records;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;listener的配置参数&#34;&gt;listener的配置参数&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#侦听器的AckMode
+#当enable.auto.commit的值设置为false时，该值会生效；为true时不会生效
+spring.kafka.listener.ack-mode;
+ 
+#在侦听器容器中运行的线程数
+spring.kafka.listener.concurrency;
+ 
+#轮询消费者时使用的超时（以毫秒为单位）
+spring.kafka.listener.poll-timeout;
+ 
+#当ackMode为“COUNT”或“COUNT_TIME”时，偏移提交之间的记录数
+spring.kafka.listener.ack-count;
+ 
+#当ackMode为“TIME”或“COUNT_TIME”时，偏移提交之间的时间（以毫秒为单位）
+spring.kafka.listener.ack-time;
+&lt;/code&gt;&lt;/pre&gt;
+">kafka安装&使用&配置</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/"" data-c="
@@ -5416,6 +5957,12 @@ sudo -i
 &lt;h2 id=&#34;rz传输文件&#34;&gt;RZ（传输文件）&lt;/h2&gt;
 &lt;p&gt;使用finalshell软件时，在命令窗口输入rz可以直接选择外部文件传入服务器。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;rz
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;df查看磁盘占用情况&#34;&gt;DF（查看磁盘占用情况）&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;df -hT
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;du查看目录占用空间&#34;&gt;DU（查看目录占用空间）&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;du -sh /* |sort -nr
 &lt;/code&gt;&lt;/pre&gt;
 &lt;h2 id=&#34;firewall防火墙&#34;&gt;Firewall（防火墙）&lt;/h2&gt;
 &lt;pre&gt;&lt;code&gt;# 安装防火墙

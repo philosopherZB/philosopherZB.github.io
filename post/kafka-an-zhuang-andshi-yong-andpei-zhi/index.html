@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Philosopher</title>
+<title>kafka安装&amp;使用&amp;配置 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678869195699">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,6 +41,8 @@
 
 
 
+  <meta name="description" content="kafka安装&使用&配置" />
+  <meta name="keywords" content="kafka" />
 </head>
 
 <body>
@@ -173,10 +175,26 @@
   <div class="main-continer">
     
     <div
-      class="section-layout  pisces">
+      class="section-layout pisces ">
       <div class="section-layout-wrapper">
-        <div id="sidebarMeta" class="sidebar">
-    
+        
+
+<div class="sidebar">
+  
+    <div class="sidebar-box box-shadow-wrapper bg-color right-motion" id="sidebar">
+      
+        <div class="post-list-sidebar">
+          <div class="sidebar-title">
+            <span id="tocSideBar" class="sidebar-title-item sidebar-title-active language" data-lan="index">文章目录</span>
+            <span id="metaSideBar" class="sidebar-title-item language" data-lan="preview">站点概览</span>
+          </div>
+        </div>
+      
+      <div class="sidebar-body pisces" id="sidebar_body">
+        
+          
+            <div class="post-side-meta" id="post_side_meta">
+              
 <div class="sidebar-wrapper box-shadow-wrapper bg-color">
   <div class="sidebar-item">
     <img class="site-author-image right-motion" src="/images/avatar.png"/>
@@ -228,195 +246,634 @@
 
 
 </div>
+            </div>
+            <div class="post-toc sidebar-body-active" id="post_toc" style="opacity: 1;">
+              <div class="toc-box right-motion">
+  <div class="toc-wrapper auto-number auto"
+    id="toc_wrapper">
+    <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
+<li><a href="#win10%E4%B8%8B%E9%83%A8%E7%BD%B2kafka">Win10下部署kafka</a>
+<ul>
+<li><a href="#java%E5%AE%89%E8%A3%85">Java安装</a></li>
+<li><a href="#zookeeper%E5%AE%89%E8%A3%85">zookeeper安装</a></li>
+<li><a href="#kafka%E5%AE%89%E8%A3%85">kafka安装</a></li>
+</ul>
+</li>
+<li><a href="#%E7%AE%80%E5%8D%95kafka%E5%91%BD%E4%BB%A4">简单kafka命令</a>
+<ul>
+<li><a href="#%E5%88%9B%E5%BB%BAtopic%E4%B8%A4%E4%B8%AA%E5%89%AF%E6%9C%AC-%E5%9B%9B%E4%B8%AA%E5%88%86%E5%8C%BA">创建topic（两个副本。四个分区）</a></li>
+<li><a href="#%E6%9F%A5%E7%9C%8Btopic">查看topic</a></li>
+<li><a href="#%E5%88%A0%E9%99%A4topic">删除topic</a></li>
+<li><a href="#%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF%E8%87%B3topic">发送消息至topic</a></li>
+<li><a href="#%E6%B6%88%E8%B4%B9topic%E6%B6%88%E6%81%AF">消费topic消息</a></li>
+</ul>
+</li>
+<li><a href="#spring-kafka%E5%B1%9E%E6%80%A7%E9%85%8D%E7%BD%AE">spring-kafka属性配置</a>
+<ul>
+<li><a href="#producer%E7%9A%84%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0">producer的配置参数</a></li>
+<li><a href="#consumer%E7%9A%84%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0">consumer的配置参数</a></li>
+<li><a href="#listener%E7%9A%84%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0">listener的配置参数</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
 </div>
+
 <script>
-  let sidebarMeta = document.querySelector('#sidebarMeta');
-  let scheme = 'pisces';
-  let sidebarWrapper = document.querySelector('.sidebar-wrapper');
-  if (sidebarMeta && (scheme === 'pisces' || scheme === 'gemini')) {
-    document.addEventListener('scroll', function(e) {
-      if (document.scrollingElement.scrollTop > parseInt(sidebarMeta.style.marginTop) + 10) {
-        sidebarWrapper.classList.add('home-sidebar-fixed')
-      } else {
-        sidebarWrapper.classList.remove('home-sidebar-fixed')
+
+  let lastTop = 0, lList = [], hList = [], postBody, lastIndex = -1;
+  let active = 'active-show', activeClass = 'active-current';
+  let tocWrapper = document.querySelector('#toc_wrapper');
+  let tocContent = tocWrapper.children[0];
+  let autoNumber = tocWrapper && tocWrapper.classList.contains('auto-number');
+
+  function addTocNumber(elem, deep) {
+    if (!elem) {
+      return;
+    }
+    let prop = elem.__proto__;
+
+    if (prop === HTMLUListElement.prototype) {
+      for (let i = 0; i < elem.children.length; i++) {
+        addTocNumber(elem.children[i], deep + (i + 1) + '.');
       }
+    } else if (prop === HTMLLIElement.prototype) {
+      // 保存li元素
+      if (elem.children[0] && elem.children[0].__proto__ === HTMLAnchorElement.prototype) {
+        lList.push(elem);
+      }
+      for (let i = 0; i < elem.children.length; i++) {
+        let cur = elem.children[i];
+        if (cur.__proto__ === HTMLAnchorElement.prototype) {
+          if (autoNumber) {
+            cur.text = deep + ' ' + cur.text;
+          }
+        } else if (cur.__proto__ === HTMLUListElement.prototype) {
+          addTocNumber(cur, deep);
+        }
+      }
+    }
+  }
+
+  function removeParentActiveClass() {
+    let parents = tocContent.querySelectorAll('.' + active)
+    parents.forEach(function (elem) {
+      elem.classList.remove(active);
     });
   }
-  </script>
-        <div class="section-box tag-line box-shadow-wrapper">
-          <section class="section tags-section posts-expand bg-color">
-            <div class="padding-wrapper">
-  <div class="tag-timeline-box">
-    <div class="tag-timeline-wrapper">
-      <div class="tag-timeline-title">
-        <h2>
-          jvm
-          <small class="language" data-lan="tag">标签</small>
-        </h2>
+
+  function addActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.add(activeClass);
+    }
+  }
+
+  function removeActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.remove(activeClass);
+    }
+  }
+
+  function addActiveLiElemment(elem, parent) {
+    if (!elem || elem === parent) {
+      return;
+    } else {
+      if (elem.__proto__ === HTMLLIElement.prototype) {
+        elem.classList.add(active);
+      }
+      addActiveLiElemment(elem.parentElement, parent);
+    }
+  }
+
+  function showToc() {
+    if (tocWrapper) {
+      postBody = document.querySelector('#post_body');
+      for (let i = 0; i < postBody.children.length; i++) {
+        if (postBody.children[i].__proto__ === HTMLHeadingElement.prototype) {
+          hList.push(postBody.children[i]);
+        }
+      }
+      if (tocWrapper.classList.contains('compress')) {
+        tocContent.classList.add('closed');
+      } else if (tocWrapper.classList.contains('no_compress')) {
+        tocContent.classList.add('expanded');
+      } else {
+        if (hList.length > 10) {
+          active = 'active-hidden'
+          tocContent.classList.add('closed');
+        } else {
+          tocContent.classList.add('expanded');
+        }
+      }
+    }
+  }
+
+  (function () {
+    // 处理不是从#一级标题开始目录
+    if (tocContent.children.length === 1 && tocContent.children[0].__proto__ === HTMLLIElement.prototype) {
+      let con = tocContent.children[0].children[0];
+      tocContent.innerHTML = con.innerHTML;
+    }
+    let markdownItTOC = document.querySelector('.markdownIt-TOC');
+    let innerHeight = window.innerHeight;
+    markdownItTOC.style = `max-height: ${innerHeight - 80 > 0 ? innerHeight - 80 : innerHeight}px`
+    addTocNumber(tocContent, '');
+  })();
+
+  document.addEventListener('scroll', function (e) {
+    if (lList.length <= 0) {
+      return;
+    }
+    let scrollTop = document.scrollingElement.scrollTop + 10;
+    let dir;
+
+    if (lastTop - scrollTop > 0) {
+      dir = 'up';
+    } else {
+      dir = 'down';
+    }
+
+    lastTop = scrollTop;
+    if (scrollTop <= 0) {
+      if (lastIndex >= 0 && lastIndex < hList.length) {
+        lList[lastIndex].classList.remove(activeClass);
+      }
+      return;
+    }
+
+    let current = 0, hasFind = false;
+    for (let i = 0; i < hList.length; i++) {
+      if (hList[i].offsetTop > scrollTop) {
+        current = i;
+        hasFind = true;
+        break;
+      }
+    }
+    if (!hasFind && scrollTop > lList[lList.length - 1].offsetTop) {
+      current = hList.length - 1;
+    } else {
+      current--;
+    }
+    if (dir === 'down') {
+      if (current > lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex)
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    } else {
+      if (current < lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex);
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    }
+  });
+
+
+  window.addEventListener('load', function () {
+    showToc();
+    document.querySelector('#sidebar').style = 'display: block;';
+    tocWrapper.classList.add('toc-active');
+    setTimeout(function () {
+      if ("createEvent" in document) {
+        let evt = document.createEvent("HTMLEvents");
+        evt.initEvent("scroll", false, true);
+        document.dispatchEvent(evt);
+      }
+      else {
+        document.fireEvent("scroll");
+      }
+    }, 500)
+  })
+
+</script>
+            </div>
+          
+        
       </div>
+    </div>
+  
+</div>
+<script>
+  const SIDEBAR_TITLE_ACTIVE = 'sidebar-title-active';
+  const SIDEBAR_BODY_ACTIVE = 'sidebar-body-active';
+  const SLIDE_UP_IN = 'slide-up-in';
+
+  let sidebar = document.querySelector('#sidebar'),
+  tocSideBar = document.querySelector('#tocSideBar'),
+  metaSideBar = document.querySelector('#metaSideBar'),
+  postToc = document.querySelector('#post_toc'),
+  postSiteMeta = document.querySelector('#post_side_meta'),
+  sidebarTitle = document.querySelector('.sidebar-title'),
+  sidebarBody = document.querySelector('#sidebar_body');
+
+  tocSideBar && tocSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  metaSideBar && metaSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  function toggleSidebar(e) {
+    let currentTitle = document.querySelector("."+SIDEBAR_TITLE_ACTIVE);
+    if (currentTitle == e.srcElement) {
+      return ;
+    }
+    let current, showElement, hideElement;
+    if (e.srcElement == metaSideBar) {
+      showElement = postSiteMeta;
+      hideElement = postToc;
+    } else if (e.srcElement == tocSideBar){
+      showElement = postToc;
+      hideElement = postSiteMeta;
+    }
+    currentTitle.classList.remove(SIDEBAR_TITLE_ACTIVE);
+    e.srcElement.classList.add(SIDEBAR_TITLE_ACTIVE);
+
+    window.Velocity(hideElement, 'stop');
+    window.Velocity(hideElement, 'transition.slideUpOut', {
+      display: 'none',
+      duration: 200,
+      complete: function () {
+        window.Velocity(showElement, 'transition.slideDownIn', {
+          duration: 200
+        });
+      }
+    })
+    hideElement.classList.remove(SIDEBAR_BODY_ACTIVE);
+    showElement.classList.add(SIDEBAR_BODY_ACTIVE);
+  }
+
+  postToc && postToc.addEventListener('transitionend', function() {
+    this.classList.remove(SLIDE_UP_IN);
+  });
+
+  if (sidebarBody) {
+    if (sidebarBody.classList.contains('pisces') || sidebarBody.classList.contains('gemini')) {
+      let hasFix = false;
+      let scrollEl = document.querySelector('.main-continer');
+      let limitTop = document.querySelector('#nav_ul').children.length * 42 + 162;
+      window.addEventListener('scroll', function(e) {
+        if (document.scrollingElement.scrollTop >= limitTop) {
+          if (!hasFix) {
+            sidebar.classList.add('sidebar-fixed');
+            hasFix = true;
+          }
+        } else {
+          if (hasFix) {
+            sidebar.classList.remove('sidebar-fixed');
+            hasFix = false;
+          }
+        }
+      });
+    }
+  }
+  
+</script>
+        <div class="section-box box-shadow-wrapper">
+          <div class="section bg-color post post-page">
+            <section class="post-header">
+  <h1 class="post-title">
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/">
+      kafka安装&amp;使用&amp;配置
+    </a>
+  </h1>
+  <div class="post-meta">
+    
+    <span class="meta-item pc-show">
+      <i class="fa fa-calendar-o"></i>
+      <span class="language" data-lan="publish">发布于</span>
+      <span class="publish-time" data-t="2022-06-04 16:42:31">2022-06-04</span>
+      <span class="post-meta-divider pc-show">|</span>
+    </span>
+    
+    <span class="meta-item">
+      <i class="fa fa-folder-o"></i>
+      <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      <a href="https://philosopherzb.github.io/post/cpu-biao-sheng-wen-ti-pai-cha/">
-        <div class="motion-warpper">
-          <div class="tag-post-node">
-            <h1>
-              02-05
-              <small>CPU飙升问题排查</small>
-            </h1>
-          </div>
-        </div>
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/">
+        <span>kafka</span>
       </a>
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      <a href="https://philosopherzb.github.io/post/jvm-xiang-jie/">
-        <div class="motion-warpper">
-          <div class="tag-post-node">
-            <h1>
-              02-27
-              <small>JVM详解</small>
-            </h1>
-          </div>
-        </div>
-      </a>
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+    </span>
+    <span class="post-meta-divider">|</span>
+    
+    <span class="meta-item">
+      <i class="fa fa-clock-o"></i>
+      <span>11<span class="language" data-lan="minute">分钟</span></span>
+    </span>
+    <span class="meta-item">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-file-word-o"></i>
+      <span>2495<span class="pc-show language" data-lan="words">字数</span></span>
+    </span>
+    
+    
+    
+    <span id="/post/kafka-an-zhuang-andshi-yong-andpei-zhi/" data-flag-title="kafka安装&amp;使用&amp;配置" class="meta-item pc-show leancloud_visitors">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-eye"></i>
+      <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
+    </span>
+    
+  </div>
+</section>
+            <div class="post-body next-md-body" id="post_body">
+              <h2 id="前言">前言</h2>
+<p>本章主要简述kafka安装，使用以及spring-kafka配置信息。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-6278825_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="win10下部署kafka">Win10下部署kafka</h2>
+<p>主要涉及Java，zookeeper，kafka，步骤如下。</p>
+<h3 id="java安装">Java安装</h3>
+<p>JDK下载：<a href="https://www.oracle.com/java/technologies/javase-downloads.html">点此此处跳转官网下载页面</a></p>
+<p>安装过程比较简单，基本都是下一步即可，唯一需要注意的是环境变量的设置；安装完后效果如下图所示（注意：Java安装路径不要太深（目录过多），同时文件夹命名不要存在空格，否则将导致kafka部署失败）</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314001.png" alt="" loading="lazy"></figure>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314002.png" alt="img" loading="lazy"></figure>
+<h3 id="zookeeper安装">zookeeper安装</h3>
+<p>下载地址：<a href="https://zookeeper.apache.org/releases.html">点击此处跳转官网下载页面</a></p>
+<p>找一个稳定的版本下载即可：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314003.png" alt="img" loading="lazy"></figure>
+<ol>
+<li>下载后解压到一个目录：eg: D:\Program\zookeeper\zookeeper-3.4.14</li>
+<li>在zookeeper-3.4.14目录下，新建两个文件夹，并命名(eg: data,log)，(路径：D:\Program\zookeeper\zookeeper-3.4.14\data,D:\Program\zookeeper\zookeeper-3.4.14\log)</li>
+<li>进入Zookeeper设置目录，eg: D:\Program\zookeeper\zookeeper-3.4.14\conf；复制“zoo_sample.cfg”副本并将副本重命名为“zoo.cfg”；在任意文本编辑器（eg：记事本）中打开zoo.cfg；找到并编辑dataDir=D:\Program\zookeeper\zookeeper-3.4.14\data；dataLogDir=D:\Program\zookeeper\zookeeper-3.4.14\log</li>
+<li>进入D:\Program\zookeeper\zookeeper-3.4.14\bin目录，双击zkServer.cmd即可运行zk。</li>
+</ol>
+<h3 id="kafka安装">kafka安装</h3>
+<p>下载地址：<a href="http://kafka.apache.org/downloads.html">点击此处跳转官网下载页面</a></p>
+<p>2.8之后kafka支持不依赖zookeeper启动：<a href="https://kafka.apache.org/quickstart">点击此处跳转详细说明页面</a></p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314004.png" alt="" loading="lazy"></figure>
+<ol>
+<li>
+<p>下载后解压缩。eg: D:\Program\kafka_2.13-2.7.0</p>
+</li>
+<li>
+<p>建立一个空文件夹 logs. eg: D:\Program\kafka_2.13-2.7.0\logs</p>
+</li>
+<li>
+<p>进入config目录，编辑 server.properties文件(eg: 用“写字板”打开)。；找到并编辑log.dirs=D:\Program\kafka_2.13-2.7.0\logs；找到并编辑zookeeper.connect=localhost:2181。表示本地运行。(Kafka会按照默认，在9092端口上运行，并连接zookeeper的默认端口：2181)</p>
+</li>
+<li>
+<p>运行：命令行下切入D:\Program\kafka_2.13-2.7.0目录，随后执行如下命令即可（注意先开启zookeeper）：.\bin\windows\kafka-server-start.bat .\config\server.properties</p>
+</li>
+<li>
+<p>可能存在的报错：</p>
+<p>输入行太长。 命令语法不正确：目录树太深了，减少几个目录即可。</p>
+<p>找不到或无法加载主类 Files\java\jdk8\lib;D:\Program：此错误由目录存在空格所导致。解决：找到D:\Program\kafka_2.13-2.7.0\bin\windows，用编辑器（eg：记事本）打开kafka-run-class.bat，查看配置是否有加上双引号</p>
+</li>
+</ol>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314005.png" alt="img" loading="lazy"></figure>
+<p>如果加了双引号仍然无法启动，那可以去查看java安装路径中的文件夹是否存在空格，如果存在，将空格去掉即可。</p>
+<p>启动图如下：</p>
+<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314006.png" alt="img" loading="lazy"></figure>
+<h2 id="简单kafka命令">简单kafka命令</h2>
+<p>部分kafka命令，基于win10（如果非win系统，使用bin目录下的.sh即可）</p>
+<h3 id="创建topic两个副本-四个分区">创建topic（两个副本。四个分区）</h3>
+<pre><code>kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 2 --partitions 4 --topic testTopic  
+$ bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --topic topic_test( Kafka 版本 &gt;= 2.2 支持此方式（推荐）)  
+$ bin/kafka-topics.sh --create --topic quickstart-events --bootstrap-server localhost:9092
+</code></pre>
+<h3 id="查看topic">查看topic</h3>
+<p>查看topic列表：kafka-topics.bat --list --zookeeper localhost:2181</p>
+<p>查看topic详情：bin/kafka-topics.sh --zookeeper host12:2181  --describe --topic ltopicName</p>
+<pre><code>$ bin/kafka-topics.sh --describe --topic quickstart-events --bootstrap-server localhost:9092
+Topic:quickstart-events  PartitionCount:1    ReplicationFactor:1 Configs:
+Topic: quickstart-events Partition: 0    Leader: 0   Replicas: 0 Isr: 0
+</code></pre>
+<p>清除Kafka topic下所有消息：kafka-topics.sh --zookeeper zookeeper地址:端口 --delete --topic topic_name</p>
+<h3 id="删除topic">删除topic</h3>
+<p>linux：./bin/kafka-topics  --delete --zookeeper 【zookeeper server】  --topic 【topic name】</p>
+<p>win：kafka-topics.bat --delete --zookeeper localhost:2181 --topic testTopic</p>
+<p>如果kafaka启动时加载的配置文件中server.properties没有配置delete.topic.enable=true，那么此时的删除并不是真正的删除，而是把topic标记为：marked for deletion</p>
+<p>彻底删除topic，可以如下操作：</p>
+<ol>
+<li>删除kafka存储目录（server.properties文件log.dirs配置，默认为&quot;/tmp/kafka-logs&quot;）相关topic目录</li>
+<li>登录zookeeper客户端：命令：./bin/zookeeper-client</li>
+<li>找到topic所在的目录：ls /brokers/topics</li>
+<li>找到要删除的topic，执行命令：rmr /brokers/topics/【topic name】即可，此时topic被彻底删除。</li>
+</ol>
+<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314007.png" alt="img" loading="lazy"></figure>
+<h3 id="发送消息至topic">发送消息至topic</h3>
+<pre><code>$ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+This is my first event
+This is my second event
+</code></pre>
+<h3 id="消费topic消息">消费topic消息</h3>
+<p>从头开始查看kafka topic下的数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --from-beginning</p>
+<p>按照偏移量查看topic下数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --offset latest --partition 0</p>
+<p>--offset设置偏移量 latest代表最后 ，可以设置区间，不设置结尾的话默认为查询到latest(最后)</p>
+<p>--partition 设置分区 使用偏移量查询时一定要设置分区才能查询</p>
+<pre><code>$ bin/kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap-server localhost:9092
+This is my first event
+This is my second event
+</code></pre>
+<h2 id="spring-kafka属性配置">spring-kafka属性配置</h2>
+<p>spring已经封装了kafka，所以在springboot项目中可以非常便捷的集成kafka，引入其依赖，如下：</p>
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.kafka&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-kafka&lt;/artifactId&gt;
+  &lt;version&gt;${last.version}&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>文档地址：<a href="https://docs.spring.io/spring-kafka/docs/current/reference/html/">点击此处跳转官网页面</a></p>
+<p>属性配置：<a href="https://docs.spring.io/spring-boot/docs/current/reference/html/appendix-application-properties.html#spring.kafka.admin.client-id">点击此处跳转说明页面</a></p>
+<h3 id="producer的配置参数">producer的配置参数</h3>
+<pre><code>#procedure要求leader在考虑完成请求之前收到的确认数，用于控制发送记录在服务端的持久化，其值可以为如下：
+#acks = 0 如果设置为零，则生产者将不会等待来自服务器的任何确认，该记录将立即添加到套接字缓冲区并视为已发送。在这种情况下，无法保证服务器已收到记录，并且重试配置将不会生效（因为客户端通常不会知道任何故障），为每条记录返回的偏移量始终设置为-1。
+#acks = 1 这意味着leader会将记录写入其本地日志，但无需等待所有副本服务器的完全确认即可做出回应，在这种情况下，如果leader在确认记录后立即失败，但在将数据复制到所有的副本服务器之前，则记录将会丢失。
+#acks = all 这意味着leader将等待完整的同步副本集以确认记录，这保证了只要至少一个同步副本服务器仍然存活，记录就不会丢失，这是最强有力的保证，这相当于acks = -1的设置。
+#可以设置的值为：all(-1), 0, 1
+spring.kafka.producer.acks=1
+ 
+#每当多个记录被发送到同一分区时，生产者将尝试将记录一起批量处理为更少的请求， 
+#这有助于提升客户端和服务器上的性能，此配置控制默认批量大小（以字节为单位），默认值为16384
+spring.kafka.producer.batch-size=16384
+ 
+#以逗号分隔的主机：端口对列表，用于建立与Kafka集群的初始连接
+spring.kafka.producer.bootstrap-servers
+ 
+#生产者可用于缓冲等待发送到服务器的记录的内存总字节数，默认值为33554432
+spring.kafka.producer.buffer-memory=33554432
+ 
+#ID在发出请求时传递给服务器，用于服务器端日志记录
+spring.kafka.producer.client-id
+ 
+#生产者生成的所有数据的压缩类型，此配置接受标准压缩编解码器（'gzip'，'snappy'，'lz4'），
+#它还接受'uncompressed'以及'producer'，分别表示没有压缩以及保留生产者设置的原始压缩编解码器，
+#默认值为producer
+spring.kafka.producer.compression-type=producer
+ 
+#key的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+ 
+#值的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+ 
+#如果该值大于零时，表示启用重试失败的发送次数
+spring.kafka.producer.retries
+</code></pre>
+<h3 id="consumer的配置参数">consumer的配置参数</h3>
+<pre><code>#当'enable.auto.commit'为true时，该配置表示消费者offset自动提交给Kafka的频率（以毫秒为单位），默认值为5000。
+spring.kafka.consumer.auto-commit-interval;
+ 
+#当Kafka中没有初始偏移量或者服务器上不再存在当前偏移量时该怎么办，默认值为latest，表示自动将偏移重置为最新的偏移量
+#可选的值为latest, earliest, none
+spring.kafka.consumer.auto-offset-reset=latest;
+ 
+#以逗号分隔的主机：端口对列表，用于建立与Kafka群集的初始连接。
+spring.kafka.consumer.bootstrap-servers;
+ 
+#ID在发出请求时传递给服务器;用于服务器端日志记录。
+spring.kafka.consumer.client-id;
+ 
+#如果为true，则消费者的偏移量将在后台定期提交，默认值为true(2.3后默认为false)
+spring.kafka.consumer.enable-auto-commit=true;
+ 
+#如果没有足够的数据立即满足“fetch.min.bytes”给出的要求，服务器在回答获取请求之前将阻塞的最长时间（以毫秒为单位）
+#默认值为500
+spring.kafka.consumer.fetch-max-wait;
+ 
+#服务器应以字节为单位返回获取请求的最小数据量，默认值为1，对应的kafka的参数为fetch.min.bytes。
+spring.kafka.consumer.fetch-min-size;
+ 
+#用于标识此使用者所属的使用者组的唯一字符串。
+spring.kafka.consumer.group-id;
+ 
+#心跳与消费者协调员之间的预期时间（以毫秒为单位），默认值为3000
+spring.kafka.consumer.heartbeat-interval;
+ 
+#密钥的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+ 
+#值的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
+spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+ 
+#一次调用poll()操作时返回的最大记录数，默认值为500
+spring.kafka.consumer.max-poll-records;
+</code></pre>
+<h3 id="listener的配置参数">listener的配置参数</h3>
+<pre><code>#侦听器的AckMode
+#当enable.auto.commit的值设置为false时，该值会生效；为true时不会生效
+spring.kafka.listener.ack-mode;
+ 
+#在侦听器容器中运行的线程数
+spring.kafka.listener.concurrency;
+ 
+#轮询消费者时使用的超时（以毫秒为单位）
+spring.kafka.listener.poll-timeout;
+ 
+#当ackMode为“COUNT”或“COUNT_TIME”时，偏移提交之间的记录数
+spring.kafka.listener.ack-count;
+ 
+#当ackMode为“TIME”或“COUNT_TIME”时，偏移提交之间的时间（以毫秒为单位）
+spring.kafka.listener.ack-time;
+</code></pre>
+
+            </div>
+            
+            
+              <div class="post-footer">
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong class="language" data-lan="author">本文作者：</strong>
+      Philosopher
+    </li>
+    <li class="post-copyright-link">
+      <strong class="language" data-lan="link">本文链接：</strong>
+      <a href="https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/" title="kafka安装&amp;使用&amp;配置">https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong class="language" data-lan="copyright">版权声明： </strong>
+      本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i> BY-NC-SA</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+  <div class="tags">
+    
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/"># kafka</a>
+    
+  </div>
+  <div class="nav">
+    <div class="nav-prev">
+      
+        <i class="fa fa-chevron-left"></i>
+        <a class="nav-pc-next" title="消息队列与kafka" href="https://philosopherzb.github.io/post/xiao-xi-dui-lie-yu-kafka/">消息队列与kafka</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="消息队列与kafka" href="https://philosopherzb.github.io/post/xiao-xi-dui-lie-yu-kafka/">上一篇</a>
+      
+    </div>
+    <div class="nav-next">
+      
+        <a class="nav-pc-next" title="敏感数据加密方案" href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/">敏感数据加密方案</a>
+        <a class="nav-mobile-next" title="敏感数据加密方案" href="https://philosopherzb.github.io/post/min-gan-shu-ju-jia-mi-fang-an/">下一篇</a>
+        <i class="fa fa-chevron-right"></i>
       
     </div>
   </div>
 </div>
-          </section>
+            
+            
+  <script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<div id="vcomments" style="padding: 10px 0px 0px 0px"></div>
+
+<style>
+  .v .veditor {
+    min-height: 10rem;
+    background-image: url('');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right;
+    background-color: rgba(255, 255, 255, 0);
+    resize: none;
+  }
+
+  .v .vwrap {
+    border: 1px solid #000 !important;
+  }
+
+  .v .vbtn {
+    padding: .4rem 1.2rem !important;
+    border-color: #fff !important;
+    background-color: #49b1f5 !important;
+    color: #fff !important;
+    font-size: .7rem !important;
+  }
+
+  .v .vcards .vcard .vh .vmeta .vat {
+    padding: 0 .8rem !important;
+    border: 1px solid #00c4b6 !important;
+    border-radius: 5px !important;
+    color: #00c4b6 !important;
+  }
+</style>
+<script>
+  new Valine({
+    el: '#vcomments',
+    appId: 'vTL9neewLgXcivf073tLdmIO-gzGzoHsz',
+    appKey: '6EMsHOzs5kmg8TqCyk0OI7qU',
+    avatar: 'mp',
+    placeholder: 'Comments welcome',
+    pageSize: '10',
+    lang: 'zh-cn',
+    enableQQ: 'true' === 'false',
+    visitor: 'true' === 'true',
+    highlight: 'true' === 'true',
+    avatarForce: 'true' === 'false',
+  });
+</script>
+
+          </div>
         </div>
       </div>
     </div>
@@ -631,6 +1088,223 @@
     aelem.appendChild(image);
     parent.insertBefore(aelem, next);
   })
+</script>
+
+    <div class="reward-mask" style="display: none;">
+  <div class="reward-relative">
+    <span class="close" aria-hidden="true">x</span>
+    <div class="reward-body">
+      <h2>感谢您的支持，我会继续努力的!</h2>
+      <div class="reward-img-box">
+        <div style="position: relative; width: 140px; height: 140px;">
+          
+          
+          
+        </div>
+      </div>
+      <p class="reward-word">扫码打赏，你说多少就多少</p>
+      <p class="reward-tip">打开微信扫一扫，即可进行扫码打赏哦</p>
+    </div>
+    <div class="bottom">
+      
+      
+    </div>
+  </div>
+</div>
+<style>
+  .reward-mask {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #00000054;
+  }
+
+  .reward-relative {
+    position: relative;
+    width: 480px;
+    text-align: center;
+    margin: 0 auto;
+    border-radius: 5px;
+    background-color: #fff;
+    top: 50%;
+    margin-top: -205px;
+  }
+
+  .reward-relative .close {
+    position: absolute;
+    right: 10px;
+    font-weight: normal;
+    font-size: 16px;
+    color: #929292;
+  }
+
+  .reward-body {
+    padding: 40px 20px 20px;
+  }
+
+  .bottom {
+    display: flex;
+  }
+
+  .reward-btn {
+    text-align: center;
+  }
+
+  .reward-btn-text {
+    display: inline-block;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    border-radius: 50%;
+    background-color: #ff9734;
+    color: #FFF;
+    margin-top: 20px;
+  }
+
+  .pay-text {
+    margin-top: 10px;
+    padding: 10px;
+    flex: 1;
+    transition: all .2s linear;
+  }
+
+  .pay-text:hover {
+    background-color: #a5a5a536;
+  }
+
+  .reward-body h2 {
+    padding-top: 10px;
+    text-align: center;
+    color: #a3a3a3;
+    font-size: 16px;
+    font-weight: normal;
+    margin: 0 0 20px;
+  }
+
+  .reward-body h2:after,
+  .reward-body h2:before {
+    font-family: Arial, Helvetica, sans-serif;
+    background: 0 0;
+    width: 0;
+    height: 0;
+    font-style: normal;
+    color: #eee;
+    font-size: 80px;
+    position: absolute;
+    top: 20px;
+  }
+
+  .reward-body h2:before {
+    content: '\201c';
+    left: 50px;
+  }
+
+  .reward-body h2:after {
+    content: '\201d';
+    right: 80px;
+  }
+
+  .reward-img-box {
+    display: inline-block;
+    padding: 10px;
+    border: 6px solid #ea5f00;
+    margin: 0 auto;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .reward-img {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .reward-relative {
+      height: 100%;
+      top: 0px;
+      margin-top: 0;
+      width: auto;
+    }
+
+    .reward-relative .bottom {
+      flex-direction: column;
+    }
+
+    .reward-relative .pay-text {
+      width: 80%;
+      margin: 5px auto;
+      border: 1px solid silver;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    .reward-body h2:after {
+      right: 40px;
+    }
+
+    .reward-body h2:after,
+    .reward-body h2:before {
+      font-size: 60px;
+    }
+
+    .reward-body h2:before {
+      left: 20px;
+    }
+  }
+</style>
+<script>
+  !function () {
+    var mask = document.querySelector('.reward-mask');
+    let close = document.querySelector('.reward-relative .close');
+    let rewardBtn = document.querySelector('.reward-btn');
+
+    let zfb = document.querySelector('#zfb'),
+      wx = document.querySelector('#wx'),
+      zfbBtn = document.querySelector('#zfbBtn'),
+      wxBtn = document.querySelector('#wxBtn');
+
+    if (zfbBtn && wxBtn) {
+      zfbBtn.addEventListener('click', () => {
+        window.Velocity(zfb, 'transition.slideLeftIn', {
+          duration: 400
+        });
+        window.Velocity(wx, 'transition.slideRightOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+
+      wxBtn.addEventListener('click', () => {
+        window.Velocity(wx, 'transition.slideRightIn', {
+          duration: 400
+        });
+        window.Velocity(zfb, 'transition.slideLeftOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+    }
+
+    rewardBtn.addEventListener('click', (e) => {
+      window.Velocity(mask, 'transition.slideDownIn', {
+        duration: 400
+      })
+    });
+
+    close.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.Velocity(mask, 'transition.slideUpOut', {
+        duration: 400
+      })
+    })
+  }()
 </script>
 
   </div>
@@ -9002,7 +9676,6 @@ gridea doc: &lt;a href=&#34;https://gridea.dev/gridea-start/&#34;&gt;https://gri
     speed: 200
   });
 </script>
-
 
 
 
