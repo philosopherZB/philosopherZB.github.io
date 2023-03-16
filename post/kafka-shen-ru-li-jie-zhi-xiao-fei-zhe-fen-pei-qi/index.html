@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>Java集合基础知识 | Philosopher</title>
+<title>kafka深入理解之消费者分配器 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678954682279">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="Java集合基础知识" />
-  <meta name="keywords" content="java" />
+  <meta name="description" content="kafka深入理解之消费者分配器" />
+  <meta name="keywords" content="kafka" />
 </head>
 
 <body>
@@ -255,15 +255,22 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E6%8E%A5%E5%8F%A3%E7%BB%A7%E6%89%BF%E5%85%B3%E7%B3%BB%E5%92%8C%E5%AE%9E%E7%8E%B0">接口继承关系和实现</a>
+<li><a href="#%E6%B6%88%E8%B4%B9%E8%80%85">消费者</a>
 <ul>
-<li><a href="#%E9%9B%86%E5%90%88%E7%B1%BB%E6%A6%82%E5%BF%B5">集合类概念</a></li>
-<li><a href="#list">List</a></li>
-<li><a href="#set">Set</a></li>
-<li><a href="#map">Map</a>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E6%B6%88%E8%B4%B9%E7%BB%84">消费组</a></li>
+<li><a href="#%E5%88%86%E5%8C%BA%E5%88%86%E9%85%8D%E5%99%A8">分区分配器</a>
 <ul>
-<li><a href="#hashmap">hashMap</a></li>
-<li><a href="#concurrenthashmap">ConcurrenthashMap</a></li>
+<li><a href="#rangeassignor">RangeAssignor</a></li>
+<li><a href="#roundrobinassignor">RoundRobinAssignor</a></li>
+<li><a href="#stickyassignor">StickyAssignor</a></li>
+<li><a href="#cooperativestickyassignor">CooperativeStickyAssignor</a></li>
+</ul>
+</li>
+<li><a href="#%E5%AE%9A%E5%88%B6%E5%8C%96%E5%88%86%E5%8C%BA%E5%88%86%E9%85%8D%E5%99%A8">定制化分区分配器</a>
+<ul>
+<li><a href="#failoverassignor">FailoverAssignor</a></li>
+<li><a href="#randomassignor">RandomAssignor</a></li>
 </ul>
 </li>
 </ul>
@@ -535,8 +542,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/">
-      Java集合基础知识
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/">
+      kafka深入理解之消费者分配器
     </a>
   </h1>
   <div class="post-meta">
@@ -544,7 +551,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2020-11-19 14:50:15">2020-11-19</span>
+      <span class="publish-time" data-t="2022-07-23 16:00:58">2022-07-23</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -553,8 +560,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
-        <span>java</span>
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/">
+        <span>kafka</span>
       </a>
       
       
@@ -563,17 +570,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>4<span class="language" data-lan="minute">分钟</span></span>
+      <span>25<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>1055<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>5297<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/java-ji-he-ji-chu-zhi-shi/" data-flag-title="Java集合基础知识" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/" data-flag-title="kafka深入理解之消费者分配器" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -583,50 +590,645 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Java中的集合，list，set，map等结构。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/beach-418742_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="接口继承关系和实现">接口继承关系和实现</h2>
-<h3 id="集合类概念">集合类概念</h3>
-<p>集合类存放于java.util包中，主要有三种，set（集），list（列表包含Queue），map（映射）。</p>
-<p>Collection：集合类的通用接口，直接继承接口有List和Set。</p>
-<p>Iterator：一个轻量级对象（创建代价小），主要用来对集合进行遍历移除等操作。</p>
-<p>Map：使用键值对存储的容器，映射表的基础接口。</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301010.png" alt="" loading="lazy"></figure>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301011.png" alt="img" loading="lazy"></figure>
-<h3 id="list">List</h3>
-<p>有序集合，是一个非常常用的数据类型，它的实现类有ArrayList，Vector以及LinkedList。</p>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301012.png" alt="img" loading="lazy"></figure>
-<p>ArrayList：底层数据结构是一个数组，查询效率比较高，添加删除较慢（默认添加在末尾，在指定位置添加元素效率比较低，因为需要将指定位置后续的元素都往后移位）。</p>
-<p>Vector：与ArrayList基本一致，唯一的差别就是其操作为同步（加了锁），即某一个时刻只有一个线程能够写Vector，这也导致其查询效率比ArrayList慢。</p>
-<p>LinkedList：底层数据结构是一个双向链表（prev指向前节点，next指向后节点），查询效率比较慢，添加删除比较快。另外，它还提供了List接口中没有定义的方法，专门用于操作表头和表尾元素，可以当做堆栈，队列和双向队列来使用。</p>
-<h3 id="set">Set</h3>
-<p>Set注重独一无二的性质，其特点是无序且不能出现重复值。对象的相等性本质是由对象的hashCode值（java是根据对象的内存地址计算出的此序号）判断的。如果两个对象相等，则其hashCode以及equals比较结果必然相等。</p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301013.png" alt="img" loading="lazy"></figure>
-<p>HashSet（hash表）：哈希表中存放的是哈希值，hashSet存储元素并不是按照存入时的顺序（无序），而是按照哈希值来存的，故其取数据也是依据哈希值。元素的哈希值是通过元素的hashCode方法获取的。</p>
-<p>hashSet判断两个元素相等：先判断两个元素的哈希值是否相等，如果哈希值一样，再比较equals方法，如果返回true则两个元素相等，否则不相等。</p>
-<p>hashSet通过hashCode值来确定元素在内存中的位置。一个hashCode位置上可以存放多个元素（equals结果为false）。</p>
-<p>TreeSet（二叉树）：会对插入的元素进行排序（依据二叉树）。如果是自定义的类需要进行排序，需要自定义类实现Comparable，覆写对应的compareTo()函数，并返回相应的值。</p>
-<p>LinkHashSet（hashSet+LinkedHashMap）：其继承于HashSet，底层使用LinkedHashMap保存数据。</p>
-<h3 id="map">Map</h3>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301014.png" alt="img" loading="lazy"></figure>
-<p>hashTable（线程安全）：是一个遗留类，与hashMap类似，只是加了全局锁，保证了多线程下的安全。现在已不建议使用，如果需要线程安全，推荐使用ConcurrentHashMap。</p>
-<p>TreeMap（可排序）：实现了SortedMap接口，能够将其保存的记录按键进行排序（默认升序）。</p>
-<p>LinkHashMap（有序）：hashMap+双向链表，是hashMap的一个子类，保存了记录的插入顺序，在使用Iterator遍历时，先得的数据必然是先插入的（有序），不过也可以对其进行设置，关键参数为accessOrder（true则是访问顺序，false则是插入顺序）。</p>
-<h4 id="hashmap">hashMap</h4>
-<p>hashMap（数组+链表+红黑树）：根据键的hashCode值存储数据。非线程安全（Collections的synchronizedMap以及ConcurrentHashMap可实现线程安全），允许空键值，执行效率相对较高。</p>
-<p>capacity：当前数组容量，始终保持2^n，可以扩容，扩容后数组大小为当前的2倍。</p>
-<p>loadFactor：负载因子，默认为0.75。其大小决定了散列表空间的稀密度（越大，越密集，链表越长，索引越慢；越小，越稀疏，链表越短，索引越快）。</p>
-<p>threshold：扩容阈值，等于capacity * loadFactor</p>
-<p>Java7中，hashMap结构如下：</p>
-<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301015.png" alt="" loading="lazy"></figure>
-<p>Java8中，hashMap结构如下：</p>
-<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301016.png" alt="" loading="lazy"></figure>
-<h4 id="concurrenthashmap">ConcurrenthashMap</h4>
-<p>ConcurrenthashMap：相比于hashMap而言，它是线程安全的，其余基本一致。java7中，使用的是分段锁（Segment，默认并行度16）；java8中使用的是节点锁（粒度更细，且引入了红黑树）。</p>
-<p>Java7中，ConcurrenthashMap结构如下：</p>
-<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301017.png" alt="" loading="lazy"></figure>
-<p>Java8中，ConcurrenthashMap结构如下：</p>
-<figure data-type="image" tabindex="10"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230301018.png" alt="" loading="lazy"></figure>
+<p>本章主要简述kafka 消费者，消费组以及分区分配器。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/forest-3287976_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="消费者">消费者</h2>
+<h3 id="简介">简介</h3>
+<p>kafka consumer 订阅感兴趣的主题，同时向其所在的主分区发送fetch请求，获取需要进行消费的消息；需要注意的是，此过程中，consumer的每个请求都需要在partition中指定offset，从而消费从offset处开始的message。因此，consumer对offset的控制便尤为重要，可以依此来进行回退重消费操作。</p>
+<h3 id="消费组">消费组</h3>
+<p>kafka中，每个consumer都会对应一个消费组（Consumer Group）；不同消费组可以消费同一个Topic中同一个分区的消息，但在一个消费组下，一个Topic中的一个或多个分区消息只能被一个消费者所消费。也就是说一个分区如果已跟一个消费者匹配，那么便不能再跟同一个消费组中的消费者继续匹配。</p>
+<p>在kafka集群中，一般会以GroupId（字符串）区分不同的消费组。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316006.png" alt="img" loading="lazy"></figure>
+<p>kafka中，消费者跟topic中的分区匹配模式，可以提供横向扩展功能，例如额外增加消费者来提高消费速率；不过需要注意的是，一味地增加消费者并不会带来高额收益。因为当分区数固定的前提下，如果消费组中的消费者大于分区数将会导致部分消费者处于空闲状态。如下图所示，C7便处于空闲状态。</p>
+<p>当然，这种情况是可以通过继承kafka的AbstractPartitionAssignor类（或者直接实现ConsumerPartitionAssignor接口）来规避的，只要将其中的分配逻辑修改为同一消费组中的消费者可以任意消费topic的所有分区即可。</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316007.png" alt="img" loading="lazy"></figure>
+<h3 id="分区分配器">分区分配器</h3>
+<p>分配器（Assignor）是ConsumerPartitionAssignor接口（也可直接继承AbstractPartitionAssignor类）的实现类。leader（消费者之一）使用分配器来根据消费者的订阅将分区分配给对应的Consumer实例。</p>
+<p>分配器是消费者逻辑处理的一部分，这种设计的好处是可以动态的更改分配算法，而无需修改kafka broker。</p>
+<p>assignor 获取有关消费者订阅的数据并为每个消费者返回具体的分区，具体流程如下：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316008.png" alt="img" loading="lazy"></figure>
+<p>kafka（2.4版本及之后）拥有四种可直接使用的分配器（可以直接通过属性 partition.assignment.strategy 来进行分配器配置）：</p>
+<ul>
+<li>RangeAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html</a></li>
+<li>RoundRobinAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html</a></li>
+<li>StickyAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html</a></li>
+<li>CooperativeStickyAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html</a></li>
+</ul>
+<pre><code>// 简单示例
+Properties props = new Properties();
+props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName());
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
+<p>同时，需要注意的是：属于同一ConsumerGroup的所有消费者必须声明一个共同的分配器。如果一个consumer尝试加入一个group，且其分配器与组内的其他成员不一致，那么将会出现如下异常：</p>
+<pre><code>org.apache.kafka.common.errors.InconsistentGroupProtocolException: The group member’s supported protocols are incompatible with those of existing members or first group member tried to join with empty protocol type or empty protocol list.
+
+</code></pre>
+<p>此属性（partition.assignment.strategy）接受以逗号分隔的分配器列表。例如，它允许使用者通过指定新分配器来更新一组消费者，同时暂时保留前一个分配器，作为再平衡协议的一部分，broker协调者将选择所有成员都支持的协议。</p>
+<p>kafka本身使用的默认分配器为：RangeAssignor及CooperativeStickyAssignor。</p>
+<pre><code>// 文件地址：org.apache.kafka.clients.consumer.ConsumerConfig
+.define(PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+        Type.LIST,
+        Arrays.asList(RangeAssignor.class, CooperativeStickyAssignor.class),
+        new ConfigDef.NonNullValidator(),
+        Importance.MEDIUM,
+        PARTITION_ASSIGNMENT_STRATEGY_DOC)
+
+</code></pre>
+<h4 id="rangeassignor">RangeAssignor</h4>
+<p>RangeAssignor 是基于每个topic进行工作的。针对每个Topic，kafka会依据数字顺序将可用分区进行排序(p0,p1,p2...)，同时按照字典顺序排序消费者(c0,c1,c2...)。之后，将分区数除以消费者总数，以确定分配给每个消费者的分区数。如果无法整除，那么额外的分区将会分配给排序靠前的消费者。</p>
+<p>数学模型：设主题分区数为x，消费者数为y，设分区数除以消费者数的商为n、余数为m。那么在一个消费组中，前m个消费者将分配到n+1个分区，剩余的消费者分配n个分区。</p>
+<p>例如：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：</p>
+<pre><code>// 依据上述数学模型，此处x=3，y=2，算出n=1，m=1，最终结果如下所示：
+C0: [t0p0, t0p1, t1p0, t1p1]
+C1: [t0p2, t1p2]
+
+</code></pre>
+<p>使用这种分配器的优势在于每个消费者都可以为每个主题获得一个分区，这对于某些负载均衡场景很有利。当然劣势也很明显，比如当遇到某个消费组订阅了多个Topic，那么可能会导致前几个消费者负载过重；又或者消费者数多于分区数时，将会有部分消费者处于空闲状态；且针对消费者进行扩缩容时，分配可能会发生较大的变化。</p>
+<pre><code>// 源码内容如下
+public class RangeAssignor extends AbstractPartitionAssignor {
+    public static final String RANGE_ASSIGNOR_NAME = &quot;range&quot;;
+
+    @Override
+    public String name() {
+        return RANGE_ASSIGNOR_NAME;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                // 以topic为key，为每个topic归总所有的消费者信息
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        // 获取每个topic的消费者信息，形如：t0:[c0,c1], t1:[c0,c1]                                         
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        // 将主题分区与订阅该主题的消费者绑定
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet())
+            // memberId 与消费者关联
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+
+        // 对每个主题分区及消费者信息组成的map进行遍历，由此可以看出 RangeAssignor 分配器是针对每个主题进行分配操作的。
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+
+            // 获取当前topic的分区数
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null)
+                continue;
+
+            // 将消费者按字典排序 
+            Collections.sort(consumersForTopic);
+            // 主题分区数除以消费者数得到分配给每个消费者的分区数
+            int numPartitionsPerConsumer = numPartitionsForTopic / consumersForTopic.size();
+            // 主题分区数对消费者数取余得到额外的消费者分区数
+            int consumersWithExtraPartition = numPartitionsForTopic % consumersForTopic.size();
+
+            // 将主题分区汇总为一个列表 
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 此处逻辑可参考上述数学模型
+            for (int i = 0, n = consumersForTopic.size(); i &lt; n; i++) {
+                // 截取主题分区列表的起始位置
+                int start = numPartitionsPerConsumer * i + Math.min(i, consumersWithExtraPartition);
+                // 截取主题分区列表的长度，如果有consumersWithExtraPartition不为0，那么排序靠前的消费者将会额外分配一个分区
+                int length = numPartitionsPerConsumer + (i + 1 &gt; consumersWithExtraPartition ? 0 : 1);
+                // 给消费者分配分区数
+                assignment.get(consumersForTopic.get(i).memberId).addAll(partitions.subList(start, start + length));
+            }
+        }
+        return assignment;
+    }
+}
+
+</code></pre>
+<h4 id="roundrobinassignor">RoundRobinAssignor</h4>
+<p>RoundRobinAssignor 会将消费组内的所有消费者及其订阅的所有主题的分区按照字典序排序，然后通过轮询方式逐个将分区依次分配给每个消费者。步骤如下：</p>
+<ol>
+<li>消费者按照字典排序，例如C0, C1, C2... ...，并构造环形迭代器。</li>
+<li>topic名称按照字典排序，并得到每个topic的所有分区，从而得到所有分区集合。</li>
+<li>遍历第2步所有分区集合，同时轮询消费者。</li>
+<li>如果轮询到的消费者订阅的topic不包括当前遍历的分区所属topic，则跳过；否则分配给当前消费者，并继续第3步。</li>
+</ol>
+<p>按照上述步骤来说，当同一个消费组内所有的消费者的订阅信息都是相同的，那么使用 RoundRobinAssignor 分配器进行分配操作时，结果会相对均匀。</p>
+<p>但当同一个消费组内的消费者订阅的信息是不相同的，那么在执行分区分配的时候就不是完全的轮询分配，有可能导致分区分配得不均匀。</p>
+<p>例1：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：</p>
+<pre><code>C0: [t0p0, t0p2, t1p1]
+C1: [t0p1, t1p0, t1p2]
+</code></pre>
+<p>例2：存在3个消费者C0、C1 和 C2，三个主题t0、t1、t2，且t0分区数为1，t1分区数为2，t2分区数为3，那么分区结果为：t0p0, t1p0，t1p1, t2p0, t2p1, t2p2。最终分配结果将如下所示：</p>
+<pre><code>C0: [t0p0]
+C1: [t1p0]
+C2: [t1p1, t2p0, t2p1, t2p2]
+</code></pre>
+<p>这种分配器最大化的利用了消费者的数量优势，某种情况下可以达到统一分配的效果；但这种分配器也有一个主要的缺点，那就是在消费者数量发生变化时（重平衡），会导致分区也重分配。这可能会由于分区更改其所有者而导致额外的处理（额外的性能影响）。</p>
+<pre><code>public class RoundRobinAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        List&lt;MemberInfo&gt; memberInfoList = new ArrayList&lt;&gt;();
+        // 取到所有的消费者信息
+        for (Map.Entry&lt;String, Subscription&gt; memberSubscription : subscriptions.entrySet()) {
+            assignment.put(memberSubscription.getKey(), new ArrayList&lt;&gt;());
+            memberInfoList.add(new MemberInfo(memberSubscription.getKey(),
+                                              memberSubscription.getValue().groupInstanceId()));
+        }
+
+        // 排序消费者列表，同时将其转化为环形迭代器（主要用于循环取值）
+        CircularIterator&lt;MemberInfo&gt; assigner = new CircularIterator&lt;&gt;(Utils.sorted(memberInfoList));
+
+        // 遍历排序后的分区列表
+        for (TopicPartition partition : allPartitionsSorted(partitionsPerTopic, subscriptions)) {
+            final String topic = partition.topic();
+            // 遍历环形迭代器获取消费者信息，并判断其是否订阅相关的topic，如果没有则跳过，否则分配分区给该消费者
+            while (!subscriptions.get(assigner.peek().memberId).topics().contains(topic))
+                assigner.next();
+            // 分配分区给该消费者
+            assignment.get(assigner.next().memberId).add(partition);
+        }
+        return assignment;
+    }
+
+    // 将所有的分区汇总并进行排序操作
+    private List&lt;TopicPartition&gt; allPartitionsSorted(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                     Map&lt;String, Subscription&gt; subscriptions) {
+        SortedSet&lt;String&gt; topics = new TreeSet&lt;&gt;();
+        for (Subscription subscription : subscriptions.values())
+            topics.addAll(subscription.topics());
+
+        List&lt;TopicPartition&gt; allPartitions = new ArrayList&lt;&gt;();
+        for (String topic : topics) {
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic != null)
+                // 分区中包含topic信息，用于匹配对应的消费者
+                allPartitions.addAll(AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic));
+        }
+        return allPartitions;
+    }
+
+    @Override
+    public String name() {
+        return &quot;roundrobin&quot;;
+    }
+
+}
+
+</code></pre>
+<h4 id="stickyassignor">StickyAssignor</h4>
+<p>StickyAssignor 分配器除了让分区分配得更加均匀外，在重平衡期间还会尽可能的减少分区移动（如果两者发生冲突，第一种特性优先于第二种特性）。相对于RoundRobinAssignor 重平衡期间需要重分配分区的操作而言，此特性减少了资源消耗，提升了消费者性能。</p>
+<p>相对于前两种分配器，StickyAssignor 实现更为复杂，简单例子如下：</p>
+<p>例1：订阅的主题拥有相同分区的场景：假设有3个Consumer（C0、C1和C2），他们都订阅了4个主题（t0、t1、t2、t3），每个主题有2个分区。也就是说，整个消费者组订阅了 t0p0、t0p1、t1p0、t1p1、t2p0、t2p1、t3p0、t3p1 这 8 个 分区。最终分发结果如下：</p>
+<pre><code>C0：t0p0、t1p1、t3p0
+C1：t0p1、t2p0、t3p1
+C2：t1p0、t2p1
+
+</code></pre>
+<p>乍一看，似乎与采用 RoundRobinAssignor 分配策略分配的结果是一样的，但真的是这样吗？我们假设消费者 C1 退出了消费者组，那么消费者组会执行再平衡操作，再分配消费区。如果是 RoundRobinAssignor 分配策略，那么分配结果如下：</p>
+<pre><code>// 分区发生了移动
+C0：t0p0、t1p0、t2p0、t3p0
+C2：t0p1、t1p1、t2p1、t3p1
+</code></pre>
+<p>正如分配结果所示，RoundRobinAssignor 的分配策略将基于消费者 C0 和 C2 重新轮询分配。如果你使用的是 StickyAssignor 分配策略，那么分配结果是：</p>
+<pre><code>// 上次分区结果将会被保留，以尽量减少分区移动
+C0：t0p0、t1p1、t3p0、t2p0
+C2：t1p0、t2p1、t0p1、t3p1
+</code></pre>
+<p>例2：订阅的主题拥有不同分区的场景：同样有3个Consumer（C0、C1和C2），集群中有3个主题（t0、t1和t2），这3个主题分别有1、2、3个分区。也就是说，集群中有 t0p0、t1p0、t1p1、t2p0、t2p1、t2p2 这 6 个 分区。消费者 C0 订阅了主题 t0，消费者 C1 订阅了主题 t0 和 t1，消费者 C2 订阅了主题 t0、t1 和 t2。RoundRobinAssignor 分配器结果如下：</p>
+<pre><code>// 显然结果不并不是最优解
+C0：t0p0
+C1：t1p0
+C2：t1p1、t2p0、t2p1、t2p2
+
+</code></pre>
+<p>StickyAssignor 分配器结果如下：</p>
+<pre><code>// 可以看出此种分配方式更充分地利用了消费者。
+C0：t0p0
+C1：t1p0、t1p1
+C2：t2p0、t2p1、t2p2
+
+</code></pre>
+<p>此时，如果C0从消费组中移除，那么依照 RoundRobinAssignor 分配器的重平衡结果如下：</p>
+<pre><code>// 分区重新开始轮询分配
+C1：t0p0、t1p1
+C2：t1p0、t2p0、t2p1、t2p2
+
+</code></pre>
+<p>StickyAssignor 分配器的重平衡结果如下：</p>
+<pre><code>// 原有分区结果被保留
+C1：t1p0、t1p1、t0p0
+C2：t2p0、t2p1、t2p2
+
+</code></pre>
+<p>这种分配器最小化了消费者之间的分区移动，节省了额外的开销处理，且分配结果会尽量平衡。不足之处在于经过多次迭代后，某个消费者可能会拥有其所订阅主题的所有分区，即使最终结果仍然平衡。这将导致某个消费者必须完成所有的消费工作（负载不再均衡）。</p>
+<pre><code>public class StickyAssignor extends AbstractStickyAssignor {
+
+    // these schemas are used for preserving consumer's previously assigned partitions
+    // list and sending it as user data to the leader during a rebalance
+    static final String TOPIC_PARTITIONS_KEY_NAME = &quot;previous_assignment&quot;;
+    static final String TOPIC_KEY_NAME = &quot;topic&quot;;
+    static final String PARTITIONS_KEY_NAME = &quot;partitions&quot;;
+    private static final String GENERATION_KEY_NAME = &quot;generation&quot;;
+
+    static final Schema TOPIC_ASSIGNMENT = new Schema(
+        new Field(TOPIC_KEY_NAME, Type.STRING),
+        new Field(PARTITIONS_KEY_NAME, new ArrayOf(Type.INT32)));
+    static final Schema STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)));
+    private static final Schema STICKY_ASSIGNOR_USER_DATA_V1 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)),
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private List&lt;TopicPartition&gt; memberAssignment = null;
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return &quot;sticky&quot;;
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        memberAssignment = assignment.partitions();
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        if (memberAssignment == null)
+            return null;
+
+        return serializeTopicPartitionAssignment(new MemberData(memberAssignment, Optional.of(generation)));
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer userData = subscription.userData();
+        if (userData == null || !userData.hasRemaining()) {
+            return new MemberData(Collections.emptyList(), Optional.empty());
+        }
+        return deserializeTopicPartitionAssignment(userData);
+    }
+
+    // visible for testing
+    static ByteBuffer serializeTopicPartitionAssignment(MemberData memberData) {
+        Struct struct = new Struct(STICKY_ASSIGNOR_USER_DATA_V1);
+        List&lt;Struct&gt; topicAssignments = new ArrayList&lt;&gt;();
+        // 获取每个主题的分区并分组
+        for (Map.Entry&lt;String, List&lt;Integer&gt;&gt; topicEntry : CollectionUtils.groupPartitionsByTopic(memberData.partitions).entrySet()) {
+            Struct topicAssignment = new Struct(TOPIC_ASSIGNMENT);
+            topicAssignment.set(TOPIC_KEY_NAME, topicEntry.getKey());
+            topicAssignment.set(PARTITIONS_KEY_NAME, topicEntry.getValue().toArray());
+            topicAssignments.add(topicAssignment);
+        }
+        struct.set(TOPIC_PARTITIONS_KEY_NAME, topicAssignments.toArray());
+        if (memberData.generation.isPresent())
+            struct.set(GENERATION_KEY_NAME, memberData.generation.get());
+        ByteBuffer buffer = ByteBuffer.allocate(STICKY_ASSIGNOR_USER_DATA_V1.sizeOf(struct));
+        STICKY_ASSIGNOR_USER_DATA_V1.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    private static MemberData deserializeTopicPartitionAssignment(ByteBuffer buffer) {
+        Struct struct;
+        ByteBuffer copy = buffer.duplicate();
+        try {
+            struct = STICKY_ASSIGNOR_USER_DATA_V1.read(buffer);
+        } catch (Exception e1) {
+            try {
+                // fall back to older schema
+                struct = STICKY_ASSIGNOR_USER_DATA_V0.read(copy);
+            } catch (Exception e2) {
+                // ignore the consumer's previous assignment if it cannot be parsed
+                return new MemberData(Collections.emptyList(), Optional.of(DEFAULT_GENERATION));
+            }
+        }
+
+        List&lt;TopicPartition&gt; partitions = new ArrayList&lt;&gt;();
+        for (Object structObj : struct.getArray(TOPIC_PARTITIONS_KEY_NAME)) {
+            Struct assignment = (Struct) structObj;
+            String topic = assignment.getString(TOPIC_KEY_NAME);
+            for (Object partitionObj : assignment.getArray(PARTITIONS_KEY_NAME)) {
+                Integer partition = (Integer) partitionObj;
+                partitions.add(new TopicPartition(topic, partition));
+            }
+        }
+        // make sure this is backward compatible
+        Optional&lt;Integer&gt; generation = struct.hasField(GENERATION_KEY_NAME) ? Optional.of(struct.getInt(GENERATION_KEY_NAME)) : Optional.empty();
+        return new MemberData(partitions, generation);
+    }
+}
+
+</code></pre>
+<h4 id="cooperativestickyassignor">CooperativeStickyAssignor</h4>
+<p>CooperativeStickyAssignor 逻辑基本与 StickyAssignor 一致，不过在重平衡期间此分配器采用了一种全新的协议：RebalanceProtocol.COOPERATIVE：在这个协议中，每个消费者不会在加入重新平衡之前撤销所有分区，而是尽可能地保留它们并且仅在被告知可以撤销之后才会这样做。</p>
+<p>其优劣势与StickyAssignor基本一致，但重平衡更加轻量化，并且不会阻止消费者从分区中消费。</p>
+<pre><code>public class CooperativeStickyAssignor extends AbstractStickyAssignor {
+    public static final String COOPERATIVE_STICKY_ASSIGNOR_NAME = &quot;cooperative-sticky&quot;;
+
+    // these schemas are used for preserving useful metadata for the assignment, such as the last stable generation
+    private static final String GENERATION_KEY_NAME = &quot;generation&quot;;
+    private static final Schema COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return COOPERATIVE_STICKY_ASSIGNOR_NAME;
+    }
+
+    // 使用 COOPERATIVE 协议进行重平衡操作
+    @Override
+    public List&lt;RebalanceProtocol&gt; supportedProtocols() {
+        return Arrays.asList(RebalanceProtocol.COOPERATIVE, RebalanceProtocol.EAGER);
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        Struct struct = new Struct(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0);
+
+        struct.set(GENERATION_KEY_NAME, generation);
+        ByteBuffer buffer = ByteBuffer.allocate(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.sizeOf(struct));
+        COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer buffer = subscription.userData();
+        Optional&lt;Integer&gt; encodedGeneration;
+        if (buffer == null) {
+            encodedGeneration = Optional.empty();
+        } else {
+            try {
+                Struct struct = COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.read(buffer);
+                encodedGeneration = Optional.of(struct.getInt(GENERATION_KEY_NAME));
+            } catch (Exception e) {
+                encodedGeneration = Optional.of(DEFAULT_GENERATION);
+            }
+        }
+        return new MemberData(subscription.ownedPartitions(), encodedGeneration);
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments = super.assign(partitionsPerTopic, subscriptions);
+
+        Map&lt;TopicPartition, String&gt; partitionsTransferringOwnership = super.partitionsTransferringOwnership == null ?
+            computePartitionsTransferringOwnership(subscriptions, assignments) :
+            super.partitionsTransferringOwnership;
+
+        // 调整主题分区并返回
+        adjustAssignment(assignments, partitionsTransferringOwnership);
+        return assignments;
+    }
+
+    // Following the cooperative rebalancing protocol requires removing partitions that must first be revoked from the assignment
+    // 协作重平衡协议的前提是分区已经从分配中废除。
+    private void adjustAssignment(Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments,
+                                  Map&lt;TopicPartition, String&gt; partitionsTransferringOwnership) {
+        for (Map.Entry&lt;TopicPartition, String&gt; partitionEntry : partitionsTransferringOwnership.entrySet()) {
+            assignments.get(partitionEntry.getValue()).remove(partitionEntry.getKey());
+        }
+    }
+
+    private Map&lt;TopicPartition, String&gt; computePartitionsTransferringOwnership(Map&lt;String, Subscription&gt; subscriptions,
+                                                                               Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments) {
+        Map&lt;TopicPartition, String&gt; allAddedPartitions = new HashMap&lt;&gt;();
+        Set&lt;TopicPartition&gt; allRevokedPartitions = new HashSet&lt;&gt;();
+
+        for (final Map.Entry&lt;String, List&lt;TopicPartition&gt;&gt; entry : assignments.entrySet()) {
+            String consumer = entry.getKey();
+
+            List&lt;TopicPartition&gt; ownedPartitions = subscriptions.get(consumer).ownedPartitions();
+            List&lt;TopicPartition&gt; assignedPartitions = entry.getValue();
+
+            Set&lt;TopicPartition&gt; ownedPartitionsSet = new HashSet&lt;&gt;(ownedPartitions);
+            for (TopicPartition tp : assignedPartitions) {
+                if (!ownedPartitionsSet.contains(tp))
+                    allAddedPartitions.put(tp, consumer);
+            }
+
+            Set&lt;TopicPartition&gt; assignedPartitionsSet = new HashSet&lt;&gt;(assignedPartitions);
+            for (TopicPartition tp : ownedPartitions) {
+                if (!assignedPartitionsSet.contains(tp))
+                    allRevokedPartitions.add(tp);
+            }
+        }
+
+        allAddedPartitions.keySet().retainAll(allRevokedPartitions);
+        return allAddedPartitions;
+    }
+}
+
+</code></pre>
+<h3 id="定制化分区分配器">定制化分区分配器</h3>
+<p>除了kafka提供的几种分配器之外，还可以通过继承kafka的AbstractPartitionAssignor类或者直接实现ConsumerPartitionAssignor接口来自定义分区分配器。</p>
+<pre><code>public interface ConsumerPartitionAssignor {
+     // 所有消费者都将调用此函数，此函数会将订阅的主题发送给broker coordinator
+    default ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        return null;
+    }
+    // 消费组leader收到消费者的订阅信息，并开始进行分区分配
+    GroupAssignment assign(Cluster metadata, GroupSubscription groupSubscription);
+
+    // 当消费者收到leader的分配消息时会执行此回调函数
+    default void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+    }
+  
+    // 重平衡协议
+    default List&lt;RebalanceProtocol&gt; supportedProtocols() {
+        return Collections.singletonList(RebalanceProtocol.EAGER);
+    }
+
+    // 分配器版本号
+    default short version() {
+        return (short) 0;
+    }
+  
+    // 分配器的唯一名称，非必传 (e.g. &quot;range&quot; or &quot;roundrobin&quot; or &quot;sticky&quot;). 
+    String name();
+}  
+
+</code></pre>
+<h4 id="failoverassignor">FailoverAssignor</h4>
+<p>FailoverAssignor 主要针对一些需要故障转移的场景，其中的基本逻辑是：让多个消费者加入同一个组。但是，所有分区一次都分配给一个消费者。如果该消费者shutdown，则所有的分区将分配给下一个可用的消费者。通常，分区会被分配给第一个可用的消费者。此例子将会对消费者进行排序。</p>
+<pre><code>import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author philosopherZB
+ */
+public class FailoverAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &quot;failover&quot;;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic, Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+        }
+
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 按字典排序
+            Collections.sort(consumersForTopic);
+
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 没有消费者则跳过
+            if (consumersForTopic.isEmpty()) {
+                continue;
+            }
+            // 取排序列表中的第一个消费者
+            String consumerMemberId = consumersForTopic.stream().findFirst().get().memberId;
+            assignment.get(consumerMemberId).addAll(partitions);
+        }
+        return assignment;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+</code></pre>
+<pre><code>// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    FailoverAssignor.class.getName()
+);
+
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
+<h4 id="randomassignor">RandomAssignor</h4>
+<p>RandomAssignor 主要针对的是消费者数大于分区数的场景。采用随机分配可以让所有的消费者都参与消费动作，而不是处于空闲状态。</p>
+<pre><code>import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * @author philosopherZB
+ */
+public class RandomAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &quot;random&quot;;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic, Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+        }
+
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+            int consumerSize = consumersForTopic.size();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 可不排序
+            Collections.sort(consumersForTopic);
+
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            partitions.forEach(partition -&gt; {
+                String randomConsumer = consumersForTopic.get(ThreadLocalRandom.current().nextInt(consumerSize)).memberId;
+                assignment.get(randomConsumer).add(partition);
+            });
+        }
+        return assignment;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+</code></pre>
+<pre><code>// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    RandomAssignor.class.getName()
+);
+
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
 
             </div>
             
@@ -639,7 +1241,7 @@
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/" title="Java集合基础知识">https://philosopherzb.github.io/post/java-ji-he-ji-chu-zhi-shi/</a>
+      <a href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/" title="kafka深入理解之消费者分配器">https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -648,21 +1250,17 @@
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/"># kafka</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
-        <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="Java多线程基础" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">Java多线程基础</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="Java多线程基础" href="https://philosopherzb.github.io/post/java-duo-xian-cheng-ji-chu/">上一篇</a>
-      
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="Java基础知识" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/">Java基础知识</a>
-        <a class="nav-mobile-next" title="Java基础知识" href="https://philosopherzb.github.io/post/java-ji-chu-zhi-shi/">下一篇</a>
+        <a class="nav-pc-next" title="kafka深入理解之Broker控制器" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-kong-zhi-qi/">kafka深入理解之Broker控制器</a>
+        <a class="nav-mobile-next" title="kafka深入理解之Broker控制器" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-kong-zhi-qi/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>

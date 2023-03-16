@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>IDEA属性及插件配置 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1678949797844">
+<link rel="shortcut icon" href="/favicon.ico?v=1678954682279">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">31</span>
+        <span class="site-item-stat-count">33</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -1224,6 +1224,1691 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述kafka 消费者，消费组以及分区分配器。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/forest-3287976_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;消费者&#34;&gt;消费者&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;kafka consumer 订阅感兴趣的主题，同时向其所在的主分区发送fetch请求，获取需要进行消费的消息；需要注意的是，此过程中，consumer的每个请求都需要在partition中指定offset，从而消费从offset处开始的message。因此，consumer对offset的控制便尤为重要，可以依此来进行回退重消费操作。&lt;/p&gt;
+&lt;h3 id=&#34;消费组&#34;&gt;消费组&lt;/h3&gt;
+&lt;p&gt;kafka中，每个consumer都会对应一个消费组（Consumer Group）；不同消费组可以消费同一个Topic中同一个分区的消息，但在一个消费组下，一个Topic中的一个或多个分区消息只能被一个消费者所消费。也就是说一个分区如果已跟一个消费者匹配，那么便不能再跟同一个消费组中的消费者继续匹配。&lt;/p&gt;
+&lt;p&gt;在kafka集群中，一般会以GroupId（字符串）区分不同的消费组。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316006.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;kafka中，消费者跟topic中的分区匹配模式，可以提供横向扩展功能，例如额外增加消费者来提高消费速率；不过需要注意的是，一味地增加消费者并不会带来高额收益。因为当分区数固定的前提下，如果消费组中的消费者大于分区数将会导致部分消费者处于空闲状态。如下图所示，C7便处于空闲状态。&lt;/p&gt;
+&lt;p&gt;当然，这种情况是可以通过继承kafka的AbstractPartitionAssignor类（或者直接实现ConsumerPartitionAssignor接口）来规避的，只要将其中的分配逻辑修改为同一消费组中的消费者可以任意消费topic的所有分区即可。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316007.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;分区分配器&#34;&gt;分区分配器&lt;/h3&gt;
+&lt;p&gt;分配器（Assignor）是ConsumerPartitionAssignor接口（也可直接继承AbstractPartitionAssignor类）的实现类。leader（消费者之一）使用分配器来根据消费者的订阅将分区分配给对应的Consumer实例。&lt;/p&gt;
+&lt;p&gt;分配器是消费者逻辑处理的一部分，这种设计的好处是可以动态的更改分配算法，而无需修改kafka broker。&lt;/p&gt;
+&lt;p&gt;assignor 获取有关消费者订阅的数据并为每个消费者返回具体的分区，具体流程如下：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316008.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;kafka（2.4版本及之后）拥有四种可直接使用的分配器（可以直接通过属性 partition.assignment.strategy 来进行分配器配置）：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RangeAssignor：&lt;a href=&#34;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html&#34;&gt;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;RoundRobinAssignor：&lt;a href=&#34;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html&#34;&gt;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;StickyAssignor：&lt;a href=&#34;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html&#34;&gt;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;CooperativeStickyAssignor：&lt;a href=&#34;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html&#34;&gt;https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// 简单示例
+Properties props = new Properties();
+props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName());
+KafkaConsumer&amp;lt;String, String&amp;gt; consumer = new KafkaConsumer&amp;lt;&amp;gt;(props);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;同时，需要注意的是：属于同一ConsumerGroup的所有消费者必须声明一个共同的分配器。如果一个consumer尝试加入一个group，且其分配器与组内的其他成员不一致，那么将会出现如下异常：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;org.apache.kafka.common.errors.InconsistentGroupProtocolException: The group member’s supported protocols are incompatible with those of existing members or first group member tried to join with empty protocol type or empty protocol list.
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此属性（partition.assignment.strategy）接受以逗号分隔的分配器列表。例如，它允许使用者通过指定新分配器来更新一组消费者，同时暂时保留前一个分配器，作为再平衡协议的一部分，broker协调者将选择所有成员都支持的协议。&lt;/p&gt;
+&lt;p&gt;kafka本身使用的默认分配器为：RangeAssignor及CooperativeStickyAssignor。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：org.apache.kafka.clients.consumer.ConsumerConfig
+.define(PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+        Type.LIST,
+        Arrays.asList(RangeAssignor.class, CooperativeStickyAssignor.class),
+        new ConfigDef.NonNullValidator(),
+        Importance.MEDIUM,
+        PARTITION_ASSIGNMENT_STRATEGY_DOC)
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;rangeassignor&#34;&gt;RangeAssignor&lt;/h4&gt;
+&lt;p&gt;RangeAssignor 是基于每个topic进行工作的。针对每个Topic，kafka会依据数字顺序将可用分区进行排序(p0,p1,p2...)，同时按照字典顺序排序消费者(c0,c1,c2...)。之后，将分区数除以消费者总数，以确定分配给每个消费者的分区数。如果无法整除，那么额外的分区将会分配给排序靠前的消费者。&lt;/p&gt;
+&lt;p&gt;数学模型：设主题分区数为x，消费者数为y，设分区数除以消费者数的商为n、余数为m。那么在一个消费组中，前m个消费者将分配到n+1个分区，剩余的消费者分配n个分区。&lt;/p&gt;
+&lt;p&gt;例如：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 依据上述数学模型，此处x=3，y=2，算出n=1，m=1，最终结果如下所示：
+C0: [t0p0, t0p1, t1p0, t1p1]
+C1: [t0p2, t1p2]
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;使用这种分配器的优势在于每个消费者都可以为每个主题获得一个分区，这对于某些负载均衡场景很有利。当然劣势也很明显，比如当遇到某个消费组订阅了多个Topic，那么可能会导致前几个消费者负载过重；又或者消费者数多于分区数时，将会有部分消费者处于空闲状态；且针对消费者进行扩缩容时，分配可能会发生较大的变化。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 源码内容如下
+public class RangeAssignor extends AbstractPartitionAssignor {
+    public static final String RANGE_ASSIGNOR_NAME = &amp;quot;range&amp;quot;;
+
+    @Override
+    public String name() {
+        return RANGE_ASSIGNOR_NAME;
+    }
+
+    private Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic(Map&amp;lt;String, Subscription&amp;gt; consumerMetadata) {
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicToConsumers = new HashMap&amp;lt;&amp;gt;();
+        for (Map.Entry&amp;lt;String, Subscription&amp;gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                // 以topic为key，为每个topic归总所有的消费者信息
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+
+    @Override
+    public Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assign(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic,
+                                                    Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        // 获取每个topic的消费者信息，形如：t0:[c0,c1], t1:[c0,c1]                                         
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        // 将主题分区与订阅该主题的消费者绑定
+        Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignment = new HashMap&amp;lt;&amp;gt;();
+        for (String memberId : subscriptions.keySet())
+            // memberId 与消费者关联
+            assignment.put(memberId, new ArrayList&amp;lt;&amp;gt;());
+
+        // 对每个主题分区及消费者信息组成的map进行遍历，由此可以看出 RangeAssignor 分配器是针对每个主题进行分配操作的。
+        for (Map.Entry&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&amp;lt;MemberInfo&amp;gt; consumersForTopic = topicEntry.getValue();
+
+            // 获取当前topic的分区数
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null)
+                continue;
+
+            // 将消费者按字典排序 
+            Collections.sort(consumersForTopic);
+            // 主题分区数除以消费者数得到分配给每个消费者的分区数
+            int numPartitionsPerConsumer = numPartitionsForTopic / consumersForTopic.size();
+            // 主题分区数对消费者数取余得到额外的消费者分区数
+            int consumersWithExtraPartition = numPartitionsForTopic % consumersForTopic.size();
+
+            // 将主题分区汇总为一个列表 
+            List&amp;lt;TopicPartition&amp;gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 此处逻辑可参考上述数学模型
+            for (int i = 0, n = consumersForTopic.size(); i &amp;lt; n; i++) {
+                // 截取主题分区列表的起始位置
+                int start = numPartitionsPerConsumer * i + Math.min(i, consumersWithExtraPartition);
+                // 截取主题分区列表的长度，如果有consumersWithExtraPartition不为0，那么排序靠前的消费者将会额外分配一个分区
+                int length = numPartitionsPerConsumer + (i + 1 &amp;gt; consumersWithExtraPartition ? 0 : 1);
+                // 给消费者分配分区数
+                assignment.get(consumersForTopic.get(i).memberId).addAll(partitions.subList(start, start + length));
+            }
+        }
+        return assignment;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;roundrobinassignor&#34;&gt;RoundRobinAssignor&lt;/h4&gt;
+&lt;p&gt;RoundRobinAssignor 会将消费组内的所有消费者及其订阅的所有主题的分区按照字典序排序，然后通过轮询方式逐个将分区依次分配给每个消费者。步骤如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;消费者按照字典排序，例如C0, C1, C2... ...，并构造环形迭代器。&lt;/li&gt;
+&lt;li&gt;topic名称按照字典排序，并得到每个topic的所有分区，从而得到所有分区集合。&lt;/li&gt;
+&lt;li&gt;遍历第2步所有分区集合，同时轮询消费者。&lt;/li&gt;
+&lt;li&gt;如果轮询到的消费者订阅的topic不包括当前遍历的分区所属topic，则跳过；否则分配给当前消费者，并继续第3步。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;按照上述步骤来说，当同一个消费组内所有的消费者的订阅信息都是相同的，那么使用 RoundRobinAssignor 分配器进行分配操作时，结果会相对均匀。&lt;/p&gt;
+&lt;p&gt;但当同一个消费组内的消费者订阅的信息是不相同的，那么在执行分区分配的时候就不是完全的轮询分配，有可能导致分区分配得不均匀。&lt;/p&gt;
+&lt;p&gt;例1：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C0: [t0p0, t0p2, t1p1]
+C1: [t0p1, t1p0, t1p2]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;例2：存在3个消费者C0、C1 和 C2，三个主题t0、t1、t2，且t0分区数为1，t1分区数为2，t2分区数为3，那么分区结果为：t0p0, t1p0，t1p1, t2p0, t2p1, t2p2。最终分配结果将如下所示：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C0: [t0p0]
+C1: [t1p0]
+C2: [t1p1, t2p0, t2p1, t2p2]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这种分配器最大化的利用了消费者的数量优势，某种情况下可以达到统一分配的效果；但这种分配器也有一个主要的缺点，那就是在消费者数量发生变化时（重平衡），会导致分区也重分配。这可能会由于分区更改其所有者而导致额外的处理（额外的性能影响）。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class RoundRobinAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assign(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic,
+                                                    Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignment = new HashMap&amp;lt;&amp;gt;();
+        List&amp;lt;MemberInfo&amp;gt; memberInfoList = new ArrayList&amp;lt;&amp;gt;();
+        // 取到所有的消费者信息
+        for (Map.Entry&amp;lt;String, Subscription&amp;gt; memberSubscription : subscriptions.entrySet()) {
+            assignment.put(memberSubscription.getKey(), new ArrayList&amp;lt;&amp;gt;());
+            memberInfoList.add(new MemberInfo(memberSubscription.getKey(),
+                                              memberSubscription.getValue().groupInstanceId()));
+        }
+
+        // 排序消费者列表，同时将其转化为环形迭代器（主要用于循环取值）
+        CircularIterator&amp;lt;MemberInfo&amp;gt; assigner = new CircularIterator&amp;lt;&amp;gt;(Utils.sorted(memberInfoList));
+
+        // 遍历排序后的分区列表
+        for (TopicPartition partition : allPartitionsSorted(partitionsPerTopic, subscriptions)) {
+            final String topic = partition.topic();
+            // 遍历环形迭代器获取消费者信息，并判断其是否订阅相关的topic，如果没有则跳过，否则分配分区给该消费者
+            while (!subscriptions.get(assigner.peek().memberId).topics().contains(topic))
+                assigner.next();
+            // 分配分区给该消费者
+            assignment.get(assigner.next().memberId).add(partition);
+        }
+        return assignment;
+    }
+
+    // 将所有的分区汇总并进行排序操作
+    private List&amp;lt;TopicPartition&amp;gt; allPartitionsSorted(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic,
+                                                     Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        SortedSet&amp;lt;String&amp;gt; topics = new TreeSet&amp;lt;&amp;gt;();
+        for (Subscription subscription : subscriptions.values())
+            topics.addAll(subscription.topics());
+
+        List&amp;lt;TopicPartition&amp;gt; allPartitions = new ArrayList&amp;lt;&amp;gt;();
+        for (String topic : topics) {
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic != null)
+                // 分区中包含topic信息，用于匹配对应的消费者
+                allPartitions.addAll(AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic));
+        }
+        return allPartitions;
+    }
+
+    @Override
+    public String name() {
+        return &amp;quot;roundrobin&amp;quot;;
+    }
+
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;stickyassignor&#34;&gt;StickyAssignor&lt;/h4&gt;
+&lt;p&gt;StickyAssignor 分配器除了让分区分配得更加均匀外，在重平衡期间还会尽可能的减少分区移动（如果两者发生冲突，第一种特性优先于第二种特性）。相对于RoundRobinAssignor 重平衡期间需要重分配分区的操作而言，此特性减少了资源消耗，提升了消费者性能。&lt;/p&gt;
+&lt;p&gt;相对于前两种分配器，StickyAssignor 实现更为复杂，简单例子如下：&lt;/p&gt;
+&lt;p&gt;例1：订阅的主题拥有相同分区的场景：假设有3个Consumer（C0、C1和C2），他们都订阅了4个主题（t0、t1、t2、t3），每个主题有2个分区。也就是说，整个消费者组订阅了 t0p0、t0p1、t1p0、t1p1、t2p0、t2p1、t3p0、t3p1 这 8 个 分区。最终分发结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C0：t0p0、t1p1、t3p0
+C1：t0p1、t2p0、t3p1
+C2：t1p0、t2p1
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;乍一看，似乎与采用 RoundRobinAssignor 分配策略分配的结果是一样的，但真的是这样吗？我们假设消费者 C1 退出了消费者组，那么消费者组会执行再平衡操作，再分配消费区。如果是 RoundRobinAssignor 分配策略，那么分配结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 分区发生了移动
+C0：t0p0、t1p0、t2p0、t3p0
+C2：t0p1、t1p1、t2p1、t3p1
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;正如分配结果所示，RoundRobinAssignor 的分配策略将基于消费者 C0 和 C2 重新轮询分配。如果你使用的是 StickyAssignor 分配策略，那么分配结果是：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 上次分区结果将会被保留，以尽量减少分区移动
+C0：t0p0、t1p1、t3p0、t2p0
+C2：t1p0、t2p1、t0p1、t3p1
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;例2：订阅的主题拥有不同分区的场景：同样有3个Consumer（C0、C1和C2），集群中有3个主题（t0、t1和t2），这3个主题分别有1、2、3个分区。也就是说，集群中有 t0p0、t1p0、t1p1、t2p0、t2p1、t2p2 这 6 个 分区。消费者 C0 订阅了主题 t0，消费者 C1 订阅了主题 t0 和 t1，消费者 C2 订阅了主题 t0、t1 和 t2。RoundRobinAssignor 分配器结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 显然结果不并不是最优解
+C0：t0p0
+C1：t1p0
+C2：t1p1、t2p0、t2p1、t2p2
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;StickyAssignor 分配器结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 可以看出此种分配方式更充分地利用了消费者。
+C0：t0p0
+C1：t1p0、t1p1
+C2：t2p0、t2p1、t2p2
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此时，如果C0从消费组中移除，那么依照 RoundRobinAssignor 分配器的重平衡结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 分区重新开始轮询分配
+C1：t0p0、t1p1
+C2：t1p0、t2p0、t2p1、t2p2
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;StickyAssignor 分配器的重平衡结果如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 原有分区结果被保留
+C1：t1p0、t1p1、t0p0
+C2：t2p0、t2p1、t2p2
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这种分配器最小化了消费者之间的分区移动，节省了额外的开销处理，且分配结果会尽量平衡。不足之处在于经过多次迭代后，某个消费者可能会拥有其所订阅主题的所有分区，即使最终结果仍然平衡。这将导致某个消费者必须完成所有的消费工作（负载不再均衡）。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class StickyAssignor extends AbstractStickyAssignor {
+
+    // these schemas are used for preserving consumer&#39;s previously assigned partitions
+    // list and sending it as user data to the leader during a rebalance
+    static final String TOPIC_PARTITIONS_KEY_NAME = &amp;quot;previous_assignment&amp;quot;;
+    static final String TOPIC_KEY_NAME = &amp;quot;topic&amp;quot;;
+    static final String PARTITIONS_KEY_NAME = &amp;quot;partitions&amp;quot;;
+    private static final String GENERATION_KEY_NAME = &amp;quot;generation&amp;quot;;
+
+    static final Schema TOPIC_ASSIGNMENT = new Schema(
+        new Field(TOPIC_KEY_NAME, Type.STRING),
+        new Field(PARTITIONS_KEY_NAME, new ArrayOf(Type.INT32)));
+    static final Schema STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)));
+    private static final Schema STICKY_ASSIGNOR_USER_DATA_V1 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)),
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private List&amp;lt;TopicPartition&amp;gt; memberAssignment = null;
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return &amp;quot;sticky&amp;quot;;
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        memberAssignment = assignment.partitions();
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&amp;lt;String&amp;gt; topics) {
+        if (memberAssignment == null)
+            return null;
+
+        return serializeTopicPartitionAssignment(new MemberData(memberAssignment, Optional.of(generation)));
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer userData = subscription.userData();
+        if (userData == null || !userData.hasRemaining()) {
+            return new MemberData(Collections.emptyList(), Optional.empty());
+        }
+        return deserializeTopicPartitionAssignment(userData);
+    }
+
+    // visible for testing
+    static ByteBuffer serializeTopicPartitionAssignment(MemberData memberData) {
+        Struct struct = new Struct(STICKY_ASSIGNOR_USER_DATA_V1);
+        List&amp;lt;Struct&amp;gt; topicAssignments = new ArrayList&amp;lt;&amp;gt;();
+        // 获取每个主题的分区并分组
+        for (Map.Entry&amp;lt;String, List&amp;lt;Integer&amp;gt;&amp;gt; topicEntry : CollectionUtils.groupPartitionsByTopic(memberData.partitions).entrySet()) {
+            Struct topicAssignment = new Struct(TOPIC_ASSIGNMENT);
+            topicAssignment.set(TOPIC_KEY_NAME, topicEntry.getKey());
+            topicAssignment.set(PARTITIONS_KEY_NAME, topicEntry.getValue().toArray());
+            topicAssignments.add(topicAssignment);
+        }
+        struct.set(TOPIC_PARTITIONS_KEY_NAME, topicAssignments.toArray());
+        if (memberData.generation.isPresent())
+            struct.set(GENERATION_KEY_NAME, memberData.generation.get());
+        ByteBuffer buffer = ByteBuffer.allocate(STICKY_ASSIGNOR_USER_DATA_V1.sizeOf(struct));
+        STICKY_ASSIGNOR_USER_DATA_V1.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    private static MemberData deserializeTopicPartitionAssignment(ByteBuffer buffer) {
+        Struct struct;
+        ByteBuffer copy = buffer.duplicate();
+        try {
+            struct = STICKY_ASSIGNOR_USER_DATA_V1.read(buffer);
+        } catch (Exception e1) {
+            try {
+                // fall back to older schema
+                struct = STICKY_ASSIGNOR_USER_DATA_V0.read(copy);
+            } catch (Exception e2) {
+                // ignore the consumer&#39;s previous assignment if it cannot be parsed
+                return new MemberData(Collections.emptyList(), Optional.of(DEFAULT_GENERATION));
+            }
+        }
+
+        List&amp;lt;TopicPartition&amp;gt; partitions = new ArrayList&amp;lt;&amp;gt;();
+        for (Object structObj : struct.getArray(TOPIC_PARTITIONS_KEY_NAME)) {
+            Struct assignment = (Struct) structObj;
+            String topic = assignment.getString(TOPIC_KEY_NAME);
+            for (Object partitionObj : assignment.getArray(PARTITIONS_KEY_NAME)) {
+                Integer partition = (Integer) partitionObj;
+                partitions.add(new TopicPartition(topic, partition));
+            }
+        }
+        // make sure this is backward compatible
+        Optional&amp;lt;Integer&amp;gt; generation = struct.hasField(GENERATION_KEY_NAME) ? Optional.of(struct.getInt(GENERATION_KEY_NAME)) : Optional.empty();
+        return new MemberData(partitions, generation);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;cooperativestickyassignor&#34;&gt;CooperativeStickyAssignor&lt;/h4&gt;
+&lt;p&gt;CooperativeStickyAssignor 逻辑基本与 StickyAssignor 一致，不过在重平衡期间此分配器采用了一种全新的协议：RebalanceProtocol.COOPERATIVE：在这个协议中，每个消费者不会在加入重新平衡之前撤销所有分区，而是尽可能地保留它们并且仅在被告知可以撤销之后才会这样做。&lt;/p&gt;
+&lt;p&gt;其优劣势与StickyAssignor基本一致，但重平衡更加轻量化，并且不会阻止消费者从分区中消费。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class CooperativeStickyAssignor extends AbstractStickyAssignor {
+    public static final String COOPERATIVE_STICKY_ASSIGNOR_NAME = &amp;quot;cooperative-sticky&amp;quot;;
+
+    // these schemas are used for preserving useful metadata for the assignment, such as the last stable generation
+    private static final String GENERATION_KEY_NAME = &amp;quot;generation&amp;quot;;
+    private static final Schema COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return COOPERATIVE_STICKY_ASSIGNOR_NAME;
+    }
+
+    // 使用 COOPERATIVE 协议进行重平衡操作
+    @Override
+    public List&amp;lt;RebalanceProtocol&amp;gt; supportedProtocols() {
+        return Arrays.asList(RebalanceProtocol.COOPERATIVE, RebalanceProtocol.EAGER);
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&amp;lt;String&amp;gt; topics) {
+        Struct struct = new Struct(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0);
+
+        struct.set(GENERATION_KEY_NAME, generation);
+        ByteBuffer buffer = ByteBuffer.allocate(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.sizeOf(struct));
+        COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer buffer = subscription.userData();
+        Optional&amp;lt;Integer&amp;gt; encodedGeneration;
+        if (buffer == null) {
+            encodedGeneration = Optional.empty();
+        } else {
+            try {
+                Struct struct = COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.read(buffer);
+                encodedGeneration = Optional.of(struct.getInt(GENERATION_KEY_NAME));
+            } catch (Exception e) {
+                encodedGeneration = Optional.of(DEFAULT_GENERATION);
+            }
+        }
+        return new MemberData(subscription.ownedPartitions(), encodedGeneration);
+    }
+
+    @Override
+    public Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assign(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic,
+                                                    Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignments = super.assign(partitionsPerTopic, subscriptions);
+
+        Map&amp;lt;TopicPartition, String&amp;gt; partitionsTransferringOwnership = super.partitionsTransferringOwnership == null ?
+            computePartitionsTransferringOwnership(subscriptions, assignments) :
+            super.partitionsTransferringOwnership;
+
+        // 调整主题分区并返回
+        adjustAssignment(assignments, partitionsTransferringOwnership);
+        return assignments;
+    }
+
+    // Following the cooperative rebalancing protocol requires removing partitions that must first be revoked from the assignment
+    // 协作重平衡协议的前提是分区已经从分配中废除。
+    private void adjustAssignment(Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignments,
+                                  Map&amp;lt;TopicPartition, String&amp;gt; partitionsTransferringOwnership) {
+        for (Map.Entry&amp;lt;TopicPartition, String&amp;gt; partitionEntry : partitionsTransferringOwnership.entrySet()) {
+            assignments.get(partitionEntry.getValue()).remove(partitionEntry.getKey());
+        }
+    }
+
+    private Map&amp;lt;TopicPartition, String&amp;gt; computePartitionsTransferringOwnership(Map&amp;lt;String, Subscription&amp;gt; subscriptions,
+                                                                               Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignments) {
+        Map&amp;lt;TopicPartition, String&amp;gt; allAddedPartitions = new HashMap&amp;lt;&amp;gt;();
+        Set&amp;lt;TopicPartition&amp;gt; allRevokedPartitions = new HashSet&amp;lt;&amp;gt;();
+
+        for (final Map.Entry&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; entry : assignments.entrySet()) {
+            String consumer = entry.getKey();
+
+            List&amp;lt;TopicPartition&amp;gt; ownedPartitions = subscriptions.get(consumer).ownedPartitions();
+            List&amp;lt;TopicPartition&amp;gt; assignedPartitions = entry.getValue();
+
+            Set&amp;lt;TopicPartition&amp;gt; ownedPartitionsSet = new HashSet&amp;lt;&amp;gt;(ownedPartitions);
+            for (TopicPartition tp : assignedPartitions) {
+                if (!ownedPartitionsSet.contains(tp))
+                    allAddedPartitions.put(tp, consumer);
+            }
+
+            Set&amp;lt;TopicPartition&amp;gt; assignedPartitionsSet = new HashSet&amp;lt;&amp;gt;(assignedPartitions);
+            for (TopicPartition tp : ownedPartitions) {
+                if (!assignedPartitionsSet.contains(tp))
+                    allRevokedPartitions.add(tp);
+            }
+        }
+
+        allAddedPartitions.keySet().retainAll(allRevokedPartitions);
+        return allAddedPartitions;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;定制化分区分配器&#34;&gt;定制化分区分配器&lt;/h3&gt;
+&lt;p&gt;除了kafka提供的几种分配器之外，还可以通过继承kafka的AbstractPartitionAssignor类或者直接实现ConsumerPartitionAssignor接口来自定义分区分配器。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public interface ConsumerPartitionAssignor {
+     // 所有消费者都将调用此函数，此函数会将订阅的主题发送给broker coordinator
+    default ByteBuffer subscriptionUserData(Set&amp;lt;String&amp;gt; topics) {
+        return null;
+    }
+    // 消费组leader收到消费者的订阅信息，并开始进行分区分配
+    GroupAssignment assign(Cluster metadata, GroupSubscription groupSubscription);
+
+    // 当消费者收到leader的分配消息时会执行此回调函数
+    default void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+    }
+  
+    // 重平衡协议
+    default List&amp;lt;RebalanceProtocol&amp;gt; supportedProtocols() {
+        return Collections.singletonList(RebalanceProtocol.EAGER);
+    }
+
+    // 分配器版本号
+    default short version() {
+        return (short) 0;
+    }
+  
+    // 分配器的唯一名称，非必传 (e.g. &amp;quot;range&amp;quot; or &amp;quot;roundrobin&amp;quot; or &amp;quot;sticky&amp;quot;). 
+    String name();
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;failoverassignor&#34;&gt;FailoverAssignor&lt;/h4&gt;
+&lt;p&gt;FailoverAssignor 主要针对一些需要故障转移的场景，其中的基本逻辑是：让多个消费者加入同一个组。但是，所有分区一次都分配给一个消费者。如果该消费者shutdown，则所有的分区将分配给下一个可用的消费者。通常，分区会被分配给第一个可用的消费者。此例子将会对消费者进行排序。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author philosopherZB
+ */
+public class FailoverAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &amp;quot;failover&amp;quot;;
+    }
+
+    @Override
+    public Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assign(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic, Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignment = new HashMap&amp;lt;&amp;gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&amp;lt;&amp;gt;());
+        }
+
+        for (Map.Entry&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&amp;lt;MemberInfo&amp;gt; consumersForTopic = topicEntry.getValue();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 按字典排序
+            Collections.sort(consumersForTopic);
+
+            List&amp;lt;TopicPartition&amp;gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 没有消费者则跳过
+            if (consumersForTopic.isEmpty()) {
+                continue;
+            }
+            // 取排序列表中的第一个消费者
+            String consumerMemberId = consumersForTopic.stream().findFirst().get().memberId;
+            assignment.get(consumerMemberId).addAll(partitions);
+        }
+        return assignment;
+    }
+
+    private Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic(Map&amp;lt;String, Subscription&amp;gt; consumerMetadata) {
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicToConsumers = new HashMap&amp;lt;&amp;gt;();
+        for (Map.Entry&amp;lt;String, Subscription&amp;gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    FailoverAssignor.class.getName()
+);
+
+KafkaConsumer&amp;lt;String, String&amp;gt; consumer = new KafkaConsumer&amp;lt;&amp;gt;(props);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;randomassignor&#34;&gt;RandomAssignor&lt;/h4&gt;
+&lt;p&gt;RandomAssignor 主要针对的是消费者数大于分区数的场景。采用随机分配可以让所有的消费者都参与消费动作，而不是处于空闲状态。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * @author philosopherZB
+ */
+public class RandomAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &amp;quot;random&amp;quot;;
+    }
+
+    @Override
+    public Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assign(Map&amp;lt;String, Integer&amp;gt; partitionsPerTopic, Map&amp;lt;String, Subscription&amp;gt; subscriptions) {
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&amp;lt;String, List&amp;lt;TopicPartition&amp;gt;&amp;gt; assignment = new HashMap&amp;lt;&amp;gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&amp;lt;&amp;gt;());
+        }
+
+        for (Map.Entry&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&amp;lt;MemberInfo&amp;gt; consumersForTopic = topicEntry.getValue();
+            int consumerSize = consumersForTopic.size();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 可不排序
+            Collections.sort(consumersForTopic);
+
+            List&amp;lt;TopicPartition&amp;gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            partitions.forEach(partition -&amp;gt; {
+                String randomConsumer = consumersForTopic.get(ThreadLocalRandom.current().nextInt(consumerSize)).memberId;
+                assignment.get(randomConsumer).add(partition);
+            });
+        }
+        return assignment;
+    }
+
+    private Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; consumersPerTopic(Map&amp;lt;String, Subscription&amp;gt; consumerMetadata) {
+        Map&amp;lt;String, List&amp;lt;MemberInfo&amp;gt;&amp;gt; topicToConsumers = new HashMap&amp;lt;&amp;gt;();
+        for (Map.Entry&amp;lt;String, Subscription&amp;gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    RandomAssignor.class.getName()
+);
+
+KafkaConsumer&amp;lt;String, String&amp;gt; consumer = new KafkaConsumer&amp;lt;&amp;gt;(props);
+
+&lt;/code&gt;&lt;/pre&gt;
+">kafka深入理解之消费者分配器</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-kong-zhi-qi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述kafka broker控制器。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/neuschwanstein-701732_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;broker控制器&#34;&gt;Broker控制器&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;在 Kafka 集群中会有一个或多个 broker，其中有一个 broker 会被选举为控制器（Kafka Controller），它负责管理整个集群中所有分区和副本的状态以及执行管理任务，例如主题管理，重分配分区，broker管理，数据管理等。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316005.png&#34; alt=&#34;img&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h3 id=&#34;控制器选举与failover&#34;&gt;控制器选举与Failover&lt;/h3&gt;
+&lt;p&gt;Broker 在启动时，会尝试去 ZooKeeper 中创建 /controller 节点。第一个创建/controller节点成功的broker将会成为控制器。根据源码来看具体流程如下：&lt;/p&gt;
+&lt;p&gt;获取 zk 的 /cotroller 节点中的 controllerId，如果该节点不存在（比如集群刚创建时），那么controllerId 将会返回-1；&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;如果 controller id 不为-1，即 controller 已经存在，直接结束流程；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果 controller id 为-1，证明 controller 还不存在，这时候当前 broker 开始在 zk 注册 controller同时递增epoch值；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果注册成功，那么当前 broker 就成为了 controller，这时候开始调用 onControllerFailover() 方法，正式初始化 controller（注意：controller 节点是临时节点，如果当前 controller 与 zk 的 session 断开，那么 controller 的临时节点会消失，会触发 controller 的重新选举）；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果注册失败（刚好 controller 被其他 broker 创建了、抛出异常等），那么直接返回。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Zookeeper leader elector 在选举当前broker作为新控制器时调用onControllerFailover函数。&lt;/p&gt;
+&lt;p&gt;它在成为控制器状态更改时执行以下操作 -&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;初始化控制器的上下文对象，该对象包含当前主题的缓存对象、存活的broker及所有已存在分区的leaders&lt;/li&gt;
+&lt;li&gt;启动控制器的channel管理器，建立与其他 broker 的连接的,负责与其他 broker 之间的通信;&lt;/li&gt;
+&lt;li&gt;启动replicaStateMachine，副本状态机,管理副本的状态&lt;/li&gt;
+&lt;li&gt;启动partitionStateMachine，分区状态机,管理分区的状态&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;如果在 Controller 服务初始化的过程中，出现了任何不可预期的 异常/错误，它将会退出当前的进程，这确保了可以再次触发 controller 的选举。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;关于epoch值：其是存放在ZooKeeper中 /controller_epoch 节点上的一个整型值。controller_epoch 用于记录控制器发生变更的次数，即记录当前的控制器是第几代控制器，直译可以称之为“控制器的纪元”。&lt;/p&gt;
+&lt;p&gt;controller_epoch 的初始值为1，即集群中第一个控制器的纪元为1，当控制器发生变更时，每选出一个新的控制器就将该字段值加1。Kafka 通过 controller_epoch 来保证控制器的唯一性，进而保证相关操作的一致性。&lt;/p&gt;
+&lt;p&gt;每个和控制器交互的请求都会携带 controller_epoch 这个字段，如果请求的 controller_epoch 值小于内存中的 controller_epoch 值，则认为这个请求是向已经过期的控制器所发送的请求，那么这个请求会被认定为无效的请求。&lt;/p&gt;
+&lt;p&gt;如果请求的 controller_epoch 值大于内存中的 controller_epoch 值，那么说明已经有新的控制器当选了。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/server/KafkaServer.scala
+override def startup(): Unit = {
+    info(&amp;quot;starting&amp;quot;)
+    if (isShuttingDown.get)
+      throw new IllegalStateException(&amp;quot;Kafka server is still shutting down, cannot re-start!&amp;quot;)
+
+    if (startupComplete.get)
+      return
+
+   val canStartup = isStartingUp.compareAndSet(false, true)
+   if (canStartup) {
+       /* start kafka controller --- 启动 kafka 控制器 */
+       _kafkaController = new KafkaController(config, zkClient, time, metrics, brokerInfo, brokerEpoch, tokenManager, brokerFeatures, featureCache, threadNamePrefix)
+       kafkaController.startup()
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/controller/KafkaController.scala
+/**
+ * Invoked when the controller module of a Kafka server is started up. This does not assume that the current broker
+ * is the controller. It merely registers the session expiration listener and starts the controller leader
+ * elector
+ * kafka服务的控制器模块启动时调用此函数。调用此函数的broker并不一定是最终的controller（取决于是否选举成功）。
+ * 此函数仅仅只是注册一个会话过期监听器并开始进行controller选举。
+ */
+def startup() = {
+  zkClient.registerStateChangeHandler(new StateChangeHandler {
+    override val name: String = StateChangeHandlers.ControllerHandler
+    override def afterInitializingSession(): Unit = {
+      eventManager.put(RegisterBrokerAndReelect)
+    }
+    override def beforeInitializingSession(): Unit = {
+      val queuedEvent = eventManager.clearAndPut(Expire)
+
+      // Block initialization of the new session until the expiration event is being handled,
+      // which ensures that all pending events have been processed before creating the new session
+      // 在过期事件被处理掉之前，不允许初始化新会话。这确保了所有的待处理事件在新会话之前能够得到处理。
+      queuedEvent.awaitProcessing()
+    }
+  })
+  // 事件状态为启动
+  // 文件地址：core/src/main/scala/kafka/controller/ControllerEventManager.scala
+  // ControllerEventManager 中的 ControllerEventProcessor 会被 KafkaController 继承，同时重写了其中的process函数
+  // process 便是线程具体执行的逻辑函数
+  eventManager.put(Startup)
+  // 启动事件线程开始进行controller选举
+  eventManager.start()
+}
+
+// 重写 ControllerEventProcessor 的process函数
+override def process(event: ControllerEvent): Unit = {
+  try {
+    event match {
+      ......
+      case BrokerChange =&amp;gt;
+        // broker 发生改变时，执行此函数。主要用于监听zk节点变化。
+        processBrokerChange()
+      case Startup =&amp;gt;
+        // 执行启动操作
+        processStartup()
+    }
+  } catch {
+    case e: ControllerMovedException =&amp;gt;
+      info(s&amp;quot;Controller moved to another broker when processing $event.&amp;quot;, e)
+      maybeResign()
+    case e: Throwable =&amp;gt;
+      error(s&amp;quot;Error processing event $event&amp;quot;, e)
+  } finally {
+    updateMetrics()
+  }
+}
+
+// 执行启动函数
+private def processStartup(): Unit = {
+  //  注册zk节点改变处理器，与此同时也会注册一个ExistsRequest观察者
+  zkClient.registerZNodeChangeHandlerAndCheckExistence(controllerChangeHandler)
+  // 选举controller
+  elect()
+}
+
+// 文件地址：core/src/main/scala/kafka/zk/KafkaZkClient.scala
+def registerZNodeChangeHandlerAndCheckExistence(zNodeChangeHandler: ZNodeChangeHandler): Boolean = {
+  zooKeeperClient.registerZNodeChangeHandler(zNodeChangeHandler)
+  val existsResponse = retryRequestUntilConnected(ExistsRequest(zNodeChangeHandler.path))
+  existsResponse.resultCode match {
+    case Code.OK =&amp;gt; true
+    case Code.NONODE =&amp;gt; false
+    case _ =&amp;gt; throw existsResponse.resultException.get
+  }
+}
+
+// 选举函数
+private def elect(): Unit = {
+  // 获取活跃的controllerId  
+  activeControllerId = zkClient.getControllerId.getOrElse(-1)
+  /*
+   * We can get here during the initial startup and the handleDeleted ZK callback. Because of the potential race condition,
+   * it&#39;s possible that the controller has already been elected when we get here. This check will prevent the following
+   * createEphemeralPath method from getting into an infinite loop if this broker is already the controller.
+   */
+  // 如果存在controller，那么直接返回，不进行选举操作 
+  if (activeControllerId != -1) {
+    debug(s&amp;quot;Broker $activeControllerId has been elected as the controller, so stopping the election process.&amp;quot;)
+    return
+  }
+
+  try {
+    // 注册controller节点并递增epoch值  
+    val (epoch, epochZkVersion) = zkClient.registerControllerAndIncrementControllerEpoch(config.brokerId)
+    controllerContext.epoch = epoch
+    controllerContext.epochZkVersion = epochZkVersion
+    activeControllerId = config.brokerId
+
+    info(s&amp;quot;${config.brokerId} successfully elected as the controller. Epoch incremented to ${controllerContext.epoch} &amp;quot; +
+      s&amp;quot;and epoch zk version is now ${controllerContext.epochZkVersion}&amp;quot;)
+     // 执行controller快速恢复
+    // Zookeeper leader elector 在选举当前broker作为新控制器时调用此callback。
+    // 它在成为控制器状态更改时执行以下操作 -
+    // 1. 初始化控制器的上下文对象，该对象包含当前主题的缓存对象、存活的broker及所有已存在分区的leaders
+    // 2. 启动控制器的channel管理器，建立与其他 broker 的连接的,负责与其他 broker 之间的通信;
+    // 3. 启动replicaStateMachine，副本状态机,管理副本的状态
+    // 4. 启动partitionStateMachine，分区状态机,管理分区的状态
+    // 如果在 Controller 服务初始化的过程中，出现了任何不可预期的 异常/错误，它将会退出当前的进程，这确保了可以再次触发 controller 的选举
+    onControllerFailover()
+  } catch {
+    case e: ControllerMovedException =&amp;gt;
+      maybeResign()
+
+      if (activeControllerId != -1)
+        debug(s&amp;quot;Broker $activeControllerId was elected as controller instead of broker ${config.brokerId}&amp;quot;, e)
+      else
+        warn(&amp;quot;A controller has been elected but just resigned, this will result in another round of election&amp;quot;, e)
+    case t: Throwable =&amp;gt;
+      error(s&amp;quot;Error while electing or becoming controller on broker ${config.brokerId}. &amp;quot; +
+        s&amp;quot;Trigger controller movement immediately&amp;quot;, t)
+      triggerControllerMove()
+  }
+}
+
+// 快速恢复
+/**
+ * This callback is invoked by the zookeeper leader elector on electing the current broker as the new controller.
+ * It does the following things on the become-controller state change -
+ * 1. Initializes the controller&#39;s context object that holds cache objects for current topics, live brokers and
+ *    leaders for all existing partitions.
+ * 2. Starts the controller&#39;s channel manager
+ * 3. Starts the replica state machine
+ * 4. Starts the partition state machine
+ * If it encounters any unexpected exception/error while becoming controller, it resigns as the current controller.
+ * This ensures another controller election will be triggered and there will always be an actively serving controller
+ */
+private def onControllerFailover(): Unit = {
+  maybeSetupFeatureVersioning()
+
+  info(&amp;quot;Registering handlers&amp;quot;)
+
+  // before reading source of truth from zookeeper, register the listeners to get broker/topic callbacks
+  val childChangeHandlers = Seq(brokerChangeHandler, topicChangeHandler, topicDeletionHandler, logDirEventNotificationHandler,
+    isrChangeNotificationHandler)
+  childChangeHandlers.foreach(zkClient.registerZNodeChildChangeHandler)
+
+  val nodeChangeHandlers = Seq(preferredReplicaElectionHandler, partitionReassignmentHandler)
+  nodeChangeHandlers.foreach(zkClient.registerZNodeChangeHandlerAndCheckExistence)
+
+  info(&amp;quot;Deleting log dir event notifications&amp;quot;)
+  zkClient.deleteLogDirEventNotifications(controllerContext.epochZkVersion)
+  info(&amp;quot;Deleting isr change notifications&amp;quot;)
+  zkClient.deleteIsrChangeNotifications(controllerContext.epochZkVersion)
+  info(&amp;quot;Initializing controller context&amp;quot;)
+  initializeControllerContext()
+  info(&amp;quot;Fetching topic deletions in progress&amp;quot;)
+  val (topicsToBeDeleted, topicsIneligibleForDeletion) = fetchTopicDeletionsInProgress()
+  info(&amp;quot;Initializing topic deletion manager&amp;quot;)
+  topicDeletionManager.init(topicsToBeDeleted, topicsIneligibleForDeletion)
+
+  // We need to send UpdateMetadataRequest after the controller context is initialized and before the state machines
+  // are started. The is because brokers need to receive the list of live brokers from UpdateMetadataRequest before
+  // they can process the LeaderAndIsrRequests that are generated by replicaStateMachine.startup() and
+  // partitionStateMachine.startup().
+  info(&amp;quot;Sending update metadata request&amp;quot;)
+  sendUpdateMetadataRequest(controllerContext.liveOrShuttingDownBrokerIds.toSeq, Set.empty)
+
+  replicaStateMachine.startup()
+  partitionStateMachine.startup()
+
+  info(s&amp;quot;Ready to serve as the new controller with epoch $epoch&amp;quot;)
+
+  initializePartitionReassignments()
+  topicDeletionManager.tryTopicDeletion()
+  val pendingPreferredReplicaElections = fetchPendingPreferredReplicaElections()
+  onReplicaElection(pendingPreferredReplicaElections, ElectionType.PREFERRED, ZkTriggered)
+  info(&amp;quot;Starting the controller scheduler&amp;quot;)
+  kafkaScheduler.startup()
+  if (config.autoLeaderRebalanceEnable) {
+    scheduleAutoLeaderRebalanceTask(delay = 5, unit = TimeUnit.SECONDS)
+  }
+
+  if (config.tokenAuthEnabled) {
+    info(&amp;quot;starting the token expiry check scheduler&amp;quot;)
+    tokenCleanScheduler.startup()
+    tokenCleanScheduler.schedule(name = &amp;quot;delete-expired-tokens&amp;quot;,
+      fun = () =&amp;gt; tokenManager.expireTokens(),
+      period = config.delegationTokenExpiryCheckIntervalMs,
+      unit = TimeUnit.MILLISECONDS)
+  }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;控制器之分区选举&#34;&gt;控制器之分区选举&lt;/h3&gt;
+&lt;p&gt;controller负责分区的重分配。目前主要有四种选举机制。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sealed trait PartitionLeaderElectionStrategy
+// leader 掉线或新分区出现时触发
+final case class OfflinePartitionLeaderElectionStrategy(allowUnclean: Boolean) extends PartitionLeaderElectionStrategy
+// 分区的副本重新分配数据同步完成后触发的
+final case object ReassignPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+// 最优 leader 选举，手动触发或自动 leader 均衡调度时触发
+final case object PreferredReplicaPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+// controller 发送 ShutDown 请求主动关闭服务时触发
+final case object ControlledShutdownPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/controller/PartitionStateMachine.scala
+/**
+ * Invoked on successful controller election.
+ * controller 选举成功后调用此函数
+ */
+def startup(): Unit = {
+  info(&amp;quot;Initializing partition state&amp;quot;)
+  initializePartitionState()
+  info(&amp;quot;Triggering online partition state changes&amp;quot;)
+  // 分区函数入口
+  triggerOnlinePartitionStateChange()
+  debug(s&amp;quot;Started partition state machine with initial state -&amp;gt; ${controllerContext.partitionStates}&amp;quot;)
+}
+
+// 选举分区leader
+private def doElectLeaderForPartitions(
+  partitions: Seq[TopicPartition],
+  partitionLeaderElectionStrategy: PartitionLeaderElectionStrategy
+): (Map[TopicPartition, Either[Exception, LeaderAndIsr]], Seq[TopicPartition]) = {
+    val (partitionsWithoutLeaders, partitionsWithLeaders) = partitionLeaderElectionStrategy match {
+      case OfflinePartitionLeaderElectionStrategy(allowUnclean) =&amp;gt;
+        val partitionsWithUncleanLeaderElectionState = collectUncleanLeaderElectionState(
+          validLeaderAndIsrs,
+          allowUnclean
+        )
+        // 离线/新分区选举
+        leaderForOffline(controllerContext, partitionsWithUncleanLeaderElectionState).partition(_.leaderAndIsr.isEmpty)
+      case ReassignPartitionLeaderElectionStrategy =&amp;gt;
+        // 重分配选举
+        leaderForReassign(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+      case PreferredReplicaPartitionLeaderElectionStrategy =&amp;gt;
+        // 最优选举
+        leaderForPreferredReplica(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+      case ControlledShutdownPartitionLeaderElectionStrategy =&amp;gt;
+        // shutdown 时选举
+        leaderForControlledShutdown(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+    }
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/controller/Election.scala
+// 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。
+private def leaderForOffline(partition: TopicPartition,
+                             leaderAndIsrOpt: Option[LeaderAndIsr],
+                             uncleanLeaderElectionEnabled: Boolean,
+                             controllerContext: ControllerContext): ElectionResult = {
+
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  val liveReplicas = assignment.filter(replica =&amp;gt; controllerContext.isReplicaOnline(replica, partition))
+  leaderAndIsrOpt match {
+    case Some(leaderAndIsr) =&amp;gt;
+      val isr = leaderAndIsr.isr
+      // 选举操作
+      // 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。
+      val leaderOpt = PartitionLeaderElectionAlgorithms.offlinePartitionLeaderElection(
+        assignment, isr, liveReplicas.toSet, uncleanLeaderElectionEnabled, controllerContext)
+      val newLeaderAndIsrOpt = leaderOpt.map { leader =&amp;gt;
+        val newIsr = if (isr.contains(leader)) isr.filter(replica =&amp;gt; controllerContext.isReplicaOnline(replica, partition))
+        else List(leader)
+        // 生成新的ISR
+        leaderAndIsr.newLeaderAndIsr(leader, newIsr)
+      }
+      ElectionResult(partition, newLeaderAndIsrOpt, liveReplicas)
+
+    case None =&amp;gt;
+      // 返回无可用副本
+      ElectionResult(partition, None, liveReplicas)
+  }
+}
+
+// 分区重分配时选举，例如新增分区时，重新选举leader
+private def leaderForReassign(partition: TopicPartition,
+                              leaderAndIsr: LeaderAndIsr,
+                              controllerContext: ControllerContext): ElectionResult = {
+  val targetReplicas = controllerContext.partitionFullReplicaAssignment(partition).targetReplicas
+  // 获取所有在线的副本
+  val liveReplicas = targetReplicas.filter(replica =&amp;gt; controllerContext.isReplicaOnline(replica, partition))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择一个作为新的leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.reassignPartitionLeaderElection(targetReplicas, isr, liveReplicas.toSet)
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&amp;gt; leaderAndIsr.newLeader(leader))
+  ElectionResult(partition, newLeaderAndIsrOpt, targetReplicas)
+}
+
+// 副本优选选举leader
+private def leaderForPreferredReplica(partition: TopicPartition,
+                                      leaderAndIsr: LeaderAndIsr,
+                                      controllerContext: ControllerContext): ElectionResult = {
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  // 获取所有在线的副本
+  val liveReplicas = assignment.filter(replica =&amp;gt; controllerContext.isReplicaOnline(replica, partition))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择第一个作为新的leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.preferredReplicaPartitionLeaderElection(assignment, isr, liveReplicas.toSet)
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&amp;gt; leaderAndIsr.newLeader(leader))
+  ElectionResult(partition, newLeaderAndIsrOpt, assignment)
+}
+
+// controller shutdown时，选举新的leader
+private def leaderForControlledShutdown(partition: TopicPartition,
+                                        leaderAndIsr: LeaderAndIsr,
+                                        shuttingDownBrokerIds: Set[Int],
+                                        controllerContext: ControllerContext): ElectionResult = {
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  // 获取所有副本，包括shutdown状态的
+  val liveOrShuttingDownReplicas = assignment.filter(replica =&amp;gt;
+    controllerContext.isReplicaOnline(replica, partition, includeShuttingDownBrokers = true))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择一个状态不为shutdown的作为新leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.controlledShutdownPartitionLeaderElection(assignment, isr,
+    liveOrShuttingDownReplicas.toSet, shuttingDownBrokerIds)
+  val newIsr = isr.filter(replica =&amp;gt; !shuttingDownBrokerIds.contains(replica))
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&amp;gt; leaderAndIsr.newLeaderAndIsr(leader, newIsr))
+  ElectionResult(partition, newLeaderAndIsrOpt, liveOrShuttingDownReplicas)
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/controller/PartitionStateMachine.scala
+object PartitionLeaderElectionAlgorithms {
+  // 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。  
+  def offlinePartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int], uncleanLeaderElectionEnabled: Boolean, controllerContext: ControllerContext): Option[Int] = {
+    assignment.find(id =&amp;gt; liveReplicas.contains(id) &amp;amp;&amp;amp; isr.contains(id)).orElse {
+      if (uncleanLeaderElectionEnabled) {
+        val leaderOpt = assignment.find(liveReplicas.contains)
+        if (leaderOpt.isDefined)
+          controllerContext.stats.uncleanLeaderElectionRate.mark()
+        leaderOpt
+      } else {
+        None
+      }
+    }
+  }
+
+  // 从存活的ISR副本中选择一个作为新的leader
+  def reassignPartitionLeaderElection(reassignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int]): Option[Int] = {
+    reassignment.find(id =&amp;gt; liveReplicas.contains(id) &amp;amp;&amp;amp; isr.contains(id))
+  }
+
+  // 从存活的ISR副本中选择第一个作为新的leader
+  def preferredReplicaPartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int]): Option[Int] = {
+    assignment.headOption.filter(id =&amp;gt; liveReplicas.contains(id) &amp;amp;&amp;amp; isr.contains(id))
+  }
+
+  // 从存活的ISR副本中选择一个状态不为shutdown的作为新leader
+  def controlledShutdownPartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int], shuttingDownBrokers: Set[Int]): Option[Int] = {
+    assignment.find(id =&amp;gt; liveReplicas.contains(id) &amp;amp;&amp;amp; isr.contains(id) &amp;amp;&amp;amp; !shuttingDownBrokers.contains(id))
+  }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;控制器之管理topic&#34;&gt;控制器之管理Topic&lt;/h3&gt;
+&lt;p&gt;负责topic的创建、删除，增加分区等操作。以sh命令创建topic为例，流程如下（源码）：&lt;/p&gt;
+&lt;h4 id=&#34;启动命令&#34;&gt;启动命令&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --topic topic_test( Kafka 版本 &amp;gt;= 2.2 支持此方式（推荐）)。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：/bin/kafka-topics.sh
+#!/bin/bash
+exec $(dirname $0)/kafka-run-class.sh kafka.admin.TopicCommand &amp;quot;$@&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;topiccommand接受请求参数执行创建请求操作&#34;&gt;TopicCommand接受请求参数，执行创建请求操作&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/admin/TopicCommand.scala
+object TopicCommand extends Logging {
+
+  def main(args: Array[String]): Unit = {
+    val opts = new TopicCommandOptions(args)
+    // 检查必填参数
+    opts.checkArgs()
+
+    // 创建topic服务
+    val topicService = TopicService(opts.commandConfig, opts.bootstrapServer)
+
+    var exitCode = 0
+    try {
+      if (opts.hasCreateOption)
+        // 根据传入的参数判断判断是否有 --create 参数，有的话走创建主题逻辑。
+        topicService.createTopic(opts)
+      else if (opts.hasAlterOption)
+        topicService.alterTopic(opts)
+      else if (opts.hasListOption)
+        topicService.listTopics(opts)
+      else if (opts.hasDescribeOption)
+        topicService.describeTopic(opts)
+      else if (opts.hasDeleteOption)
+        topicService.deleteTopic(opts)
+    } catch {
+      case e: ExecutionException =&amp;gt;
+        if (e.getCause != null)
+          printException(e.getCause)
+        else
+          printException(e)
+        exitCode = 1
+      case e: Throwable =&amp;gt;
+        printException(e)
+        exitCode = 1
+    } finally {
+      topicService.close()
+      Exit.exit(exitCode)
+    }
+  }
+  
+    object TopicService {
+    // 如果传入的参数有 --command-config，则将这个文件里的参数放到 commandConfig 一个 map 里，假如配置文件里面已经有了bootstrap.servers配置，那么会将其覆盖。  
+    def createAdminClient(commandConfig: Properties, bootstrapServer: Option[String]): Admin = {
+      bootstrapServer match {
+        case Some(serverList) =&amp;gt; commandConfig.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, serverList)
+        case None =&amp;gt;
+      }
+      // 生成一个客户端创建topic
+      // Admin文件地址； clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+      Admin.create(commandConfig)
+    }
+
+    def apply(commandConfig: Properties, bootstrapServer: Option[String]): TopicService =
+      new TopicService(createAdminClient(commandConfig, bootstrapServer))
+  }
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址: clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+@InterfaceStability.Evolving
+public interface Admin extends AutoCloseable {
+
+    /**
+     * Create a new Admin with the given configuration.
+     *
+     * @param props The configuration.
+     * @return The new KafkaAdminClient.
+     */
+    static Admin create(Properties props) {
+        // 文件地址: clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.javas
+        // 创建了一个客户端，用此客户端来管理topic
+        return KafkaAdminClient.createInternal(new AdminClientConfig(props, true), null);
+    }
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;  // 文件地址：core/src/main/scala/kafka/admin/TopicCommand.scala
+  case class TopicService private (adminClient: Admin) extends AutoCloseable {
+
+    def createTopic(opts: TopicCommandOptions): Unit = {
+      val topic = new CommandTopicPartition(opts)
+      if (Topic.hasCollisionChars(topic.name))
+        println(&amp;quot;WARNING: Due to limitations in metric names, topics with a period (&#39;.&#39;) or underscore (&#39;_&#39;) could &amp;quot; +
+          &amp;quot;collide. To avoid issues it is best to use either, but not both.&amp;quot;)
+      createTopic(topic)
+    }
+
+    def createTopic(topic: CommandTopicPartition): Unit = {
+      //  假如配置了副本数，--replication-factor 需在1和32767之间。  
+      if (topic.replicationFactor.exists(rf =&amp;gt; rf &amp;gt; Short.MaxValue || rf &amp;lt; 1))
+        throw new IllegalArgumentException(s&amp;quot;The replication factor must be between 1 and ${Short.MaxValue} inclusive&amp;quot;)
+      // // 假如配置了分区数，--partitions 必须大于0。
+      if (topic.partitions.exists(partitions =&amp;gt; partitions &amp;lt; 1))
+        throw new IllegalArgumentException(s&amp;quot;The partitions must be greater than 0&amp;quot;)
+
+      try {
+        // 假如指定了 --replica-assignment 参数，则按照指定的方式来分配副本。  
+        val newTopic = if (topic.hasReplicaAssignment)
+          new NewTopic(topic.name, asJavaReplicaReassignment(topic.replicaAssignment.get))
+        else {
+          new NewTopic(
+            topic.name,
+            topic.partitions.asJava,
+            topic.replicationFactor.map(_.toShort).map(Short.box).asJava)
+        }
+
+        // 将配置 --config 解析成一个配置 map
+        val configsMap = topic.configsToAdd.stringPropertyNames()
+          .asScala
+          .map(name =&amp;gt; name -&amp;gt; topic.configsToAdd.getProperty(name))
+          .toMap.asJava
+
+        newTopic.configs(configsMap)
+        //  调用 KafkaAdminClient.createTopics 创建 Topic
+        val createResult = adminClient.createTopics(Collections.singleton(newTopic),
+          new CreateTopicsOptions().retryOnQuotaViolation(false))
+        // 获取创建结果  
+        createResult.all().get()
+        println(s&amp;quot;Created topic ${topic.name}.&amp;quot;)
+      } catch {
+        case e : ExecutionException =&amp;gt;
+          if (e.getCause == null)
+            throw e
+          if (!(e.getCause.isInstanceOf[TopicExistsException] &amp;amp;&amp;amp; topic.ifTopicDoesntExist()))
+            throw e.getCause
+      }
+    }
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java
+@Override
+public CreateTopicsResult createTopics(final Collection&amp;lt;NewTopic&amp;gt; newTopics,
+                                       final CreateTopicsOptions options) {
+    final Map&amp;lt;String, KafkaFutureImpl&amp;lt;TopicMetadataAndConfig&amp;gt;&amp;gt; topicFutures = new HashMap&amp;lt;&amp;gt;(newTopics.size());
+    final CreatableTopicCollection topics = new CreatableTopicCollection();
+    for (NewTopic newTopic : newTopics) {
+        if (topicNameIsUnrepresentable(newTopic.name())) {
+            KafkaFutureImpl&amp;lt;TopicMetadataAndConfig&amp;gt; future = new KafkaFutureImpl&amp;lt;&amp;gt;();
+            future.completeExceptionally(new InvalidTopicException(&amp;quot;The given topic name &#39;&amp;quot; +
+                newTopic.name() + &amp;quot;&#39; cannot be represented in a request.&amp;quot;));
+            topicFutures.put(newTopic.name(), future);
+        } else if (!topicFutures.containsKey(newTopic.name())) {
+            topicFutures.put(newTopic.name(), new KafkaFutureImpl&amp;lt;&amp;gt;());
+            topics.add(newTopic.convertToCreatableTopic());
+        }
+    }
+    if (!topics.isEmpty()) {
+        final long now = time.milliseconds();
+        final long deadline = calcDeadlineMs(now, options.timeoutMs());
+        // 远程调用执行创建操作
+        final Call call = getCreateTopicsCall(options, topicFutures, topics,
+            Collections.emptyMap(), now, deadline);
+        runnable.call(call, now);
+    }
+    return new CreateTopicsResult(new HashMap&amp;lt;&amp;gt;(topicFutures));
+}
+
+private Call getCreateTopicsCall(final CreateTopicsOptions options,
+                                 final Map&amp;lt;String, KafkaFutureImpl&amp;lt;TopicMetadataAndConfig&amp;gt;&amp;gt; futures,
+                                 final CreatableTopicCollection topics,
+                                 final Map&amp;lt;String, ThrottlingQuotaExceededException&amp;gt; quotaExceededExceptions,
+                                 final long now,
+                                 final long deadline) {
+    //  使用ControllerNodeProvider选择controller进行远程调用，从此也可以看出，topic的创建是由controller控制                              
+    return new Call(&amp;quot;createTopics&amp;quot;, deadline, new ControllerNodeProvider()) {
+        @Override
+        public CreateTopicsRequest.Builder createRequest(int timeoutMs) {
+            return new CreateTopicsRequest.Builder(
+                new CreateTopicsRequestData()
+                    .setTopics(topics)
+                    .setTimeoutMs(timeoutMs)
+                    .setValidateOnly(options.shouldValidateOnly()));
+        }
+
+        @Override
+        public void handleResponse(AbstractResponse abstractResponse) {
+            // 处理响应结果
+        }
+
+        @Override
+        void handleFailure(Throwable throwable) {
+           // 处理失败
+        }
+    };
+}
+
+/**
+ * Provides the controller node.
+ */
+private class ControllerNodeProvider implements NodeProvider {
+    @Override
+    public Node provide() {
+        if (metadataManager.isReady() &amp;amp;&amp;amp;
+                (metadataManager.controller() != null)) {
+            // 返回集群中的broker控制器    
+            return metadataManager.controller();
+        }
+        metadataManager.requestUpdate();
+        return null;
+    }
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;服务端接受请求并执行创建操作&#34;&gt;服务端接受请求，并执行创建操作&lt;/h4&gt;
+&lt;p&gt;可参考上篇&lt;a href=&#34;https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng&#34;&gt;《kafka深入理解之Broker请求流程》&lt;/a&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：/core/src/main/scala/kafka/server/KafkaRequestHandler.scala
+// 核心函数是def run()中的 apis.handle(request, requestLocal)
+// 文件地址：/core/src/main/scala/kafka/server/KafkaApis.scala
+class KafkaApis(val requestChannel: RequestChannel,
+                val metadataSupport: MetadataSupport,
+                val replicaManager: ReplicaManager,
+                val groupCoordinator: GroupCoordinator,
+                val txnCoordinator: TransactionCoordinator,
+                val autoTopicCreationManager: AutoTopicCreationManager,
+                val brokerId: Int,
+                val config: KafkaConfig,
+                val configRepository: ConfigRepository,
+                val metadataCache: MetadataCache,
+                val metrics: Metrics,
+                val authorizer: Option[Authorizer],
+                val quotas: QuotaManagers,
+                val fetchManager: FetchManager,
+                brokerTopicStats: BrokerTopicStats,
+                val clusterId: String,
+                time: Time,
+                val tokenManager: DelegationTokenManager,
+                val apiVersionManager: ApiVersionManager) extends ApiRequestHandler with Logging {
+
+  type FetchResponseStats = Map[TopicPartition, RecordConversionStats]
+  this.logIdent = &amp;quot;[KafkaApi-%d] &amp;quot;.format(brokerId)
+  val configHelper = new ConfigHelper(metadataCache, config, configRepository)
+  val authHelper = new AuthHelper(authorizer)
+  val requestHelper = new RequestHandlerHelper(requestChannel, quotas, time)
+  val aclApis = new AclApis(authHelper, authorizer, requestHelper, &amp;quot;broker&amp;quot;, config)
+  val configManager = new ConfigAdminManager(brokerId, config, configRepository)
+
+  // 根据处理类型执行相关操作 
+  private def maybeForwardToController(
+    request: RequestChannel.Request,
+    handler: RequestChannel.Request =&amp;gt; Unit
+  ): Unit = {
+    def responseCallback(responseOpt: Option[AbstractResponse]): Unit = {
+      responseOpt match {
+        case Some(response) =&amp;gt; requestHelper.sendForwardedResponse(request, response)
+        case None =&amp;gt; handleInvalidVersionsDuringForwarding(request)
+      }
+    }
+    metadataSupport.maybeForward(request, handler, responseCallback)
+  }
+
+  /**
+   * Top-level method that handles all requests and multiplexes to the right api
+   */
+  override def handle(request: RequestChannel.Request, requestLocal: RequestLocal): Unit = {
+    try {
+      trace(s&amp;quot;Handling request:${request.requestDesc(true)} from connection ${request.context.connectionId};&amp;quot; +
+        s&amp;quot;securityProtocol:${request.context.securityProtocol},principal:${request.context.principal}&amp;quot;)
+
+      if (!apiVersionManager.isApiEnabled(request.header.apiKey)) {
+        // The socket server will reject APIs which are not exposed in this scope and close the connection
+        // before handing them to the request handler, so this path should not be exercised in practice
+        throw new IllegalStateException(s&amp;quot;API ${request.header.apiKey} is not enabled&amp;quot;)
+      }
+
+      // 根据api key匹配执行不同的操作
+      request.header.apiKey match {
+        ......  
+        // 创建topic
+        case ApiKeys.CREATE_TOPICS =&amp;gt; maybeForwardToController(request, handleCreateTopicsRequest)
+        ......
+        case _ =&amp;gt; throw new IllegalStateException(s&amp;quot;No handler for request api key ${request.header.apiKey}&amp;quot;)
+      }
+    } catch {
+      case e: FatalExitError =&amp;gt; throw e
+      case e: Throwable =&amp;gt;
+        error(s&amp;quot;Unexpected error handling request ${request.requestDesc(true)} &amp;quot; +
+          s&amp;quot;with context ${request.context}&amp;quot;, e)
+        requestHelper.handleError(request, e)
+    } finally {
+      // try to complete delayed action. In order to avoid conflicting locking, the actions to complete delayed requests
+      // are kept in a queue. We add the logic to check the ReplicaManager queue at the end of KafkaApis.handle() and the
+      // expiration thread for certain delayed operations (e.g. DelayedJoin)
+      replicaManager.tryCompleteActions()
+      // The local completion time may be set while processing the request. Only record it if it&#39;s unset.
+      if (request.apiLocalCompleteTimeNanos &amp;lt; 0)
+        request.apiLocalCompleteTimeNanos = time.nanoseconds
+    }
+  }
+
+// 执行创建topic的请求  
+def handleCreateTopicsRequest(request: RequestChannel.Request): Unit = {
+  // 获取zookeeper支持器，用于在zookeeper上创建对应的topic节点
+  val zkSupport = metadataSupport.requireZkOrThrow(KafkaApis.shouldAlwaysForward(request))
+  val controllerMutationQuota = quotas.controllerMutation.newQuotaFor(request, strictSinceVersion = 6)
+  
+  // 响应结果回调
+  def sendResponseCallback(results: CreatableTopicResultCollection): Unit = {
+    def createResponse(requestThrottleMs: Int): AbstractResponse = {
+      val responseData = new CreateTopicsResponseData()
+        .setThrottleTimeMs(requestThrottleMs)
+        .setTopics(results)
+      val responseBody = new CreateTopicsResponse(responseData)
+      trace(s&amp;quot;Sending create topics response $responseData for correlation id &amp;quot; +
+        s&amp;quot;${request.header.correlationId} to client ${request.header.clientId}.&amp;quot;)
+      responseBody
+    }
+    requestHelper.sendResponseMaybeThrottleWithControllerQuota(controllerMutationQuota, request, createResponse)
+  }
+
+  val createTopicsRequest = request.body[CreateTopicsRequest]
+  val results = new CreatableTopicResultCollection(createTopicsRequest.data.topics.size)
+  // 判断当前broker是否为controller，只有controller才能创建topic----创建topic过程中，可能出现controller变更
+  if (!zkSupport.controller.isActive) {
+    createTopicsRequest.data.topics.forEach { topic =&amp;gt;
+      results.add(new CreatableTopicResult().setName(topic.name)
+        .setErrorCode(Errors.NOT_CONTROLLER.code))
+    }
+    sendResponseCallback(results)
+  } else {
+    createTopicsRequest.data.topics.forEach { topic =&amp;gt;
+      results.add(new CreatableTopicResult().setName(topic.name))
+    }
+    ......
+    // 处理创建topic响应结果
+    def handleCreateTopicsResults(errors: Map[String, ApiError]): Unit = {
+      errors.foreach { case (topicName, error) =&amp;gt;
+        val result = results.find(topicName)
+        result.setErrorCode(error.error.code)
+          .setErrorMessage(error.message)
+        // Reset any configs in the response if Create failed
+        if (error != ApiError.NONE) {
+          result.setConfigs(List.empty.asJava)
+            .setNumPartitions(-1)
+            .setReplicationFactor(-1)
+            .setTopicConfigErrorCode(Errors.NONE.code)
+        }
+      }
+      sendResponseCallback(results)
+    }
+    // 在zookeeper上创建topic节点
+    zkSupport.adminManager.createTopics(
+      createTopicsRequest.data.timeoutMs,
+      createTopicsRequest.data.validateOnly,
+      toCreate,
+      authorizedForDescribeConfigs,
+      controllerMutationQuota,
+      handleCreateTopicsResults)
+  }
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;写入zk的参数信息&#34;&gt;写入zk的参数信息&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/server/ZkAdminManager.scala
+/**
+  * Create topics and wait until the topics have been completely created.
+  * The callback function will be triggered either when timeout, error or the topics are created.
+  */
+def createTopics(timeout: Int,
+                 validateOnly: Boolean,
+                 toCreate: Map[String, CreatableTopic],
+                 includeConfigsAndMetadata: Map[String, CreatableTopicResult],
+                 controllerMutationQuota: ControllerMutationQuota,
+                 responseCallback: Map[String, ApiError] =&amp;gt; Unit): Unit = {
+
+  // 1. map over topics creating assignment and calling zookeeper
+  val brokers = metadataCache.getAliveBrokers()
+  val metadata = toCreate.values.map(topic =&amp;gt;
+    try {
+      ......
+
+      if (validateOnly) {
+        CreatePartitionsMetadata(topic.name, assignments.keySet)
+      } else {
+        controllerMutationQuota.record(assignments.size)
+        // 创建topic时把相关参数也写入zk中
+        adminZkClient.createTopicWithAssignment(topic.name, configs, assignments, validate = false, config.usesTopicId)
+        populateIds(includeConfigsAndMetadata, topic.name)
+        CreatePartitionsMetadata(topic.name, assignments.keySet)
+      }
+    } catch {
+      // Log client errors at a lower level than unexpected exceptions
+      ......
+    }).toBuffer
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/zk/ZkAdminManager.scala
+/**
+ * Create topic and optionally validate its parameters. Note that this method is used by the
+ * TopicCommand as well.
+ *
+ * @param topic The name of the topic
+ * @param config The config of the topic
+ * @param partitionReplicaAssignment The assignments of the topic
+ * @param validate Boolean indicating if parameters must be validated or not (true by default)
+ * @param usesTopicId Boolean indicating whether the topic ID will be created
+ */
+def createTopicWithAssignment(topic: String,
+                              config: Properties,
+                              partitionReplicaAssignment: Map[Int, Seq[Int]],
+                              validate: Boolean = true,
+                              usesTopicId: Boolean = false): Unit = {
+  if (validate)
+    validateTopicCreate(topic, partitionReplicaAssignment, config)
+
+  info(s&amp;quot;Creating topic $topic with configuration $config and initial partition &amp;quot; +
+    s&amp;quot;assignment $partitionReplicaAssignment&amp;quot;)
+
+  // write out the config if there is any, this isn&#39;t transactional with the partition assignments
+  // 将topic配置信息写入zk，不包含分区参数
+  zkClient.setOrCreateEntityConfigs(ConfigType.Topic, topic, config)
+
+  // create the partition assignment
+  // 写入分区参数
+  writeTopicPartitionAssignment(topic, partitionReplicaAssignment.map { case (k, v) =&amp;gt; k -&amp;gt; ReplicaAssignment(v) },
+    isUpdate = false, usesTopicId)
+}
+
+// 写入分区参数信息
+// 对应的参数写入znode路径--TopicZNode.path(topic)----/brokers/topics/&amp;lt;topic_name&amp;gt;  
+private def writeTopicPartitionAssignment(topic: String, replicaAssignment: Map[Int, ReplicaAssignment],
+                                          isUpdate: Boolean, usesTopicId: Boolean = false): Unit = {
+  try {
+    val assignment = replicaAssignment.map { case (partitionId, replicas) =&amp;gt; (new TopicPartition(topic,partitionId), replicas) }.toMap
+
+    if (!isUpdate) {
+      val topicIdOpt = if (usesTopicId) Some(Uuid.randomUuid()) else None
+      // 不存在则创建
+      zkClient.createTopicAssignment(topic, topicIdOpt, assignment.map { case (k, v) =&amp;gt; k -&amp;gt; v.replicas })
+    } else {
+      val topicIds = zkClient.getTopicIdsForTopics(Set(topic))
+      // 存在就更新参数信息
+      zkClient.setTopicAssignment(topic, topicIds.get(topic), assignment)
+    }
+    debug(&amp;quot;Updated path %s with %s for replica assignment&amp;quot;.format(TopicZNode.path(topic), assignment))
+  } catch {
+    case _: NodeExistsException =&amp;gt; throw new TopicExistsException(s&amp;quot;Topic &#39;$topic&#39; already exists.&amp;quot;)
+    case e2: Throwable =&amp;gt; throw new AdminOperationException(e2.toString)
+  }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/zk/KafkaZkClient.scala
+/**
+ * Sets or creates the entity znode path with the given configs depending
+ * on whether it already exists or not.
+ * 根据给定的路径创建znode节点（如果不存在则创建，topic节点）---/config/topics/&amp;lt;topic_name&amp;gt;  
+ *
+ * If this is method is called concurrently, the last writer wins. In cases where we update configs and then
+ * partition assignment (i.e. create topic), it&#39;s possible for one thread to set this and the other to set the
+ * partition assignment. As such, the recommendation is to never call create topic for the same topic with different
+ * configs/partition assignment concurrently.
+ *
+ * @param rootEntityType entity type
+ * @param sanitizedEntityName entity name
+ * @throws KeeperException if there is an error while setting or creating the znode
+ */
+def setOrCreateEntityConfigs(rootEntityType: String, sanitizedEntityName: String, config: Properties) = {
+
+  def set(configData: Array[Byte]): SetDataResponse = {
+    val setDataRequest = SetDataRequest(ConfigEntityZNode.path(rootEntityType, sanitizedEntityName),
+      configData, ZkVersion.MatchAnyVersion)
+    retryRequestUntilConnected(setDataRequest)
+  }
+
+  def createOrSet(configData: Array[Byte]): Unit = {
+    // znode 节点路径名：/config/topics/&amp;lt;topic_name&amp;gt;  
+    val path = ConfigEntityZNode.path(rootEntityType, sanitizedEntityName)
+    try createRecursive(path, configData)
+    catch {
+      case _: NodeExistsException =&amp;gt; set(configData).maybeThrow()
+    }
+  }
+
+  val configData = ConfigEntityZNode.encode(config)
+
+  val setDataResponse = set(configData)
+  setDataResponse.resultCode match {
+    case Code.NONODE =&amp;gt; createOrSet(configData)
+    case _ =&amp;gt; setDataResponse.maybeThrow()
+  }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;controller监听brokerstopicstopic_name-如果节点有变化则会通知controller进行处理&#34;&gt;Controller监听/brokers/topics/&amp;lt;topic_name&amp;gt; ，如果节点有变化，则会通知Controller进行处理&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/controller/KafkaController.scala
+override def process(event: ControllerEvent): Unit = {
+  try {
+    event match {
+      case event: MockEvent =&amp;gt;
+        // Used only in test cases
+        event.process()
+      ......
+      // 处理topic改变
+      case TopicChange =&amp;gt;
+        processTopicChange()
+      ...... 
+    }
+  } catch {
+    case e: ControllerMovedException =&amp;gt;
+      info(s&amp;quot;Controller moved to another broker when processing $event.&amp;quot;, e)
+      maybeResign()
+    case e: Throwable =&amp;gt;
+      error(s&amp;quot;Error processing event $event&amp;quot;, e)
+  } finally {
+    updateMetrics()
+  }
+}
+
+private def processTopicChange(): Unit = {
+  // 非 controller 角色则直接返回，不作任何处理  
+  if (!isActive) return
+  // 获取zk集群中的所有topic信息---即/brokers/topics节点下的信息
+  val topics = zkClient.getAllTopicsInCluster(true)
+  // 获取新增状态的topic
+  val newTopics = topics -- controllerContext.allTopics
+  // 获取删除状态的topic
+  val deletedTopics = controllerContext.allTopics.diff(topics)
+  // 所有的topic都放入控制器上下文中
+  controllerContext.setAllTopics(topics)
+
+  // 注册分区变动处理器
+  registerPartitionModificationsHandlers(newTopics.toSeq)
+  // 对于新增topic，获取其可分配的副本及主题id
+  val addedPartitionReplicaAssignment = zkClient.getReplicaAssignmentAndTopicIdForTopics(newTopics)
+  // 从控制器上下文中移除已删除的topic
+  deletedTopics.foreach(controllerContext.removeTopic)
+  processTopicIds(addedPartitionReplicaAssignment)
+
+  addedPartitionReplicaAssignment.foreach { case TopicIdReplicaAssignment(_, _, newAssignments) =&amp;gt;
+    newAssignments.foreach { case (topicAndPartition, newReplicaAssignment) =&amp;gt;
+      controllerContext.updatePartitionFullReplicaAssignment(topicAndPartition, newReplicaAssignment)
+    }
+  }
+  info(s&amp;quot;New topics: [$newTopics], deleted topics: [$deletedTopics], new partition replica assignment &amp;quot; +
+    s&amp;quot;[$addedPartitionReplicaAssignment]&amp;quot;)
+  if (addedPartitionReplicaAssignment.nonEmpty) {
+    val partitionAssignments = addedPartitionReplicaAssignment
+      .map { case TopicIdReplicaAssignment(_, _, partitionsReplicas) =&amp;gt; partitionsReplicas.keySet }
+      .reduce((s1, s2) =&amp;gt; s1.union(s2))
+    // 处理新的可分配分区的状态  
+    onNewPartitionCreation(partitionAssignments)
+  }
+}
+
+/**
+ * This callback is invoked by the topic change callback with the list of failed brokers as input.
+ * It does the following -
+ * 1. Move the newly created partitions to the NewPartition state--新创建的分区修改状态为NewPartition 
+ * 2. Move the newly created partitions from NewPartition-&amp;gt;OnlinePartition state--新创建的分区修改状态NewPartition为OnlinePartition 
+ */
+private def onNewPartitionCreation(newPartitions: Set[TopicPartition]): Unit = {
+  info(s&amp;quot;New partition creation callback for ${newPartitions.mkString(&amp;quot;,&amp;quot;)}&amp;quot;)
+  // 修改状态为 NewPartition
+  partitionStateMachine.handleStateChanges(newPartitions.toSeq, NewPartition)
+  // 修改状态为 NewReplica
+  replicaStateMachine.handleStateChanges(controllerContext.replicasForPartition(newPartitions).toSeq, NewReplica)
+  // 修改状态为 OnlinePartition
+  partitionStateMachine.handleStateChanges(
+    newPartitions.toSeq,
+    OnlinePartition,
+    Some(OfflinePartitionLeaderElectionStrategy(false))
+  )
+  // 修改状态为 OnlineReplica
+  replicaStateMachine.handleStateChanges(controllerContext.replicasForPartition(newPartitions).toSeq, OnlineReplica)
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+def handleLeaderAndIsrRequest(request: RequestChannel.Request): Unit = {
+  val zkSupport = metadataSupport.requireZkOrThrow(KafkaApis.shouldNeverReceive(request))
+  // ensureTopicExists is only for client facing requests
+  // We can&#39;t have the ensureTopicExists check here since the controller sends it as an advisory to all brokers so they
+  // stop serving data to clients for the topic being deleted
+  val correlationId = request.header.correlationId
+  val leaderAndIsrRequest = request.body[LeaderAndIsrRequest]
+
+  authHelper.authorizeClusterOperation(request, CLUSTER_ACTION)
+  if (isBrokerEpochStale(zkSupport, leaderAndIsrRequest.brokerEpoch)) {
+    // When the broker restarts very quickly, it is possible for this broker to receive request intended
+    // for its previous generation so the broker should skip the stale request.
+    info(&amp;quot;Received LeaderAndIsr request with broker epoch &amp;quot; +
+      s&amp;quot;${leaderAndIsrRequest.brokerEpoch} smaller than the current broker epoch ${zkSupport.controller.brokerEpoch}&amp;quot;)
+    requestHelper.sendResponseExemptThrottle(request, leaderAndIsrRequest.getErrorResponse(0, Errors.STALE_BROKER_EPOCH.exception))
+  } else {
+    // 创建本地log，如果日志已经存在，只返回现有日志的副本，否则如果 isNew=true 或者如果没有离线日志目录，则为给定的主题和给定的分区创建日志，否则抛出 KafkaStorageException。
+    // 源码调用链：kafka.server.ReplicaManager#becomeLeaderOrFollower -&amp;gt; kafka.server.ReplicaManager#makeLeaders 
+    // -&amp;gt; kafka.cluster.Partition#makeLeader -&amp;gt; kafka.cluster.Partition#createLogIfNotExists
+    // -&amp;gt; kafka.cluster.Partition#createLog-&amp;gt; kafka.log.LogManager#getOrCreateLog
+    val response = replicaManager.becomeLeaderOrFollower(correlationId, leaderAndIsrRequest,
+      RequestHandlerHelper.onLeadershipChange(groupCoordinator, txnCoordinator, _, _))
+    requestHelper.sendResponseExemptThrottle(request, response)
+  }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：core/src/main/scala/kafka/cluster/Partition.scala
+def createLogIfNotExists(isNew: Boolean, isFutureReplica: Boolean, offsetCheckpoints: OffsetCheckpoints, topicId: Option[Uuid]): Unit = {
+  def maybeCreate(logOpt: Option[UnifiedLog]): UnifiedLog = {
+    logOpt match {
+      case Some(log) =&amp;gt;
+        trace(s&amp;quot;${if (isFutureReplica) &amp;quot;Future UnifiedLog&amp;quot; else &amp;quot;UnifiedLog&amp;quot;} already exists.&amp;quot;)
+        if (log.topicId.isEmpty)
+          topicId.foreach(log.assignTopicId)
+        log
+      case None =&amp;gt;
+        // 不存在才创建
+        createLog(isNew, isFutureReplica, offsetCheckpoints, topicId)
+    }
+  }
+
+&lt;/code&gt;&lt;/pre&gt;
+">kafka深入理解之Broker控制器</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/"" data-c="
@@ -2371,6 +4056,8 @@ spring.kafka.listener.ack-time;
 &lt;h3 id=&#34;需求描述&#34;&gt;需求描述&lt;/h3&gt;
 &lt;p&gt;为了防止敏感数据泄露，造成资产损失，故需要对相关数据进行加密处理；同时，允许部分加密数据支持模糊搜索。&lt;/p&gt;
 &lt;h2 id=&#34;详细设计&#34;&gt;详细设计&lt;/h2&gt;
+&lt;h3 id=&#34;源码地址&#34;&gt;源码地址&lt;/h3&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/philosopherZB/demo-all/tree/master/secret&#34;&gt;点击此处跳转源码地址&lt;/a&gt;&lt;/p&gt;
 &lt;h3 id=&#34;总体设计&#34;&gt;总体设计&lt;/h3&gt;
 &lt;p&gt;加密服务提供针对敏感数据存储的加密能力，用于防止因外部或内部安全威胁所导致的数据泄露问题，从而提高数据安全的防护水平。&lt;/p&gt;
 &lt;p&gt;基本功能：&lt;/p&gt;

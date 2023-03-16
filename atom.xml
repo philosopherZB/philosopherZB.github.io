@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-03-16T06:56:54.205Z</updated>
+    <updated>2023-03-16T08:18:30.049Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,1697 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[kafka深入理解之消费者分配器]]></title>
+        <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/</id>
+        <link href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/">
+        </link>
+        <updated>2022-07-23T08:00:58.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述kafka 消费者，消费组以及分区分配器。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/forest-3287976_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="消费者">消费者</h2>
+<h3 id="简介">简介</h3>
+<p>kafka consumer 订阅感兴趣的主题，同时向其所在的主分区发送fetch请求，获取需要进行消费的消息；需要注意的是，此过程中，consumer的每个请求都需要在partition中指定offset，从而消费从offset处开始的message。因此，consumer对offset的控制便尤为重要，可以依此来进行回退重消费操作。</p>
+<h3 id="消费组">消费组</h3>
+<p>kafka中，每个consumer都会对应一个消费组（Consumer Group）；不同消费组可以消费同一个Topic中同一个分区的消息，但在一个消费组下，一个Topic中的一个或多个分区消息只能被一个消费者所消费。也就是说一个分区如果已跟一个消费者匹配，那么便不能再跟同一个消费组中的消费者继续匹配。</p>
+<p>在kafka集群中，一般会以GroupId（字符串）区分不同的消费组。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316006.png" alt="img" loading="lazy"></figure>
+<p>kafka中，消费者跟topic中的分区匹配模式，可以提供横向扩展功能，例如额外增加消费者来提高消费速率；不过需要注意的是，一味地增加消费者并不会带来高额收益。因为当分区数固定的前提下，如果消费组中的消费者大于分区数将会导致部分消费者处于空闲状态。如下图所示，C7便处于空闲状态。</p>
+<p>当然，这种情况是可以通过继承kafka的AbstractPartitionAssignor类（或者直接实现ConsumerPartitionAssignor接口）来规避的，只要将其中的分配逻辑修改为同一消费组中的消费者可以任意消费topic的所有分区即可。</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316007.png" alt="img" loading="lazy"></figure>
+<h3 id="分区分配器">分区分配器</h3>
+<p>分配器（Assignor）是ConsumerPartitionAssignor接口（也可直接继承AbstractPartitionAssignor类）的实现类。leader（消费者之一）使用分配器来根据消费者的订阅将分区分配给对应的Consumer实例。</p>
+<p>分配器是消费者逻辑处理的一部分，这种设计的好处是可以动态的更改分配算法，而无需修改kafka broker。</p>
+<p>assignor 获取有关消费者订阅的数据并为每个消费者返回具体的分区，具体流程如下：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316008.png" alt="img" loading="lazy"></figure>
+<p>kafka（2.4版本及之后）拥有四种可直接使用的分配器（可以直接通过属性 partition.assignment.strategy 来进行分配器配置）：</p>
+<ul>
+<li>RangeAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RangeAssignor.html</a></li>
+<li>RoundRobinAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/RoundRobinAssignor.html</a></li>
+<li>StickyAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/StickyAssignor.html</a></li>
+<li>CooperativeStickyAssignor：<a href="https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html">https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html</a></li>
+</ul>
+<pre><code>// 简单示例
+Properties props = new Properties();
+props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName());
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
+<p>同时，需要注意的是：属于同一ConsumerGroup的所有消费者必须声明一个共同的分配器。如果一个consumer尝试加入一个group，且其分配器与组内的其他成员不一致，那么将会出现如下异常：</p>
+<pre><code>org.apache.kafka.common.errors.InconsistentGroupProtocolException: The group member’s supported protocols are incompatible with those of existing members or first group member tried to join with empty protocol type or empty protocol list.
+
+</code></pre>
+<p>此属性（partition.assignment.strategy）接受以逗号分隔的分配器列表。例如，它允许使用者通过指定新分配器来更新一组消费者，同时暂时保留前一个分配器，作为再平衡协议的一部分，broker协调者将选择所有成员都支持的协议。</p>
+<p>kafka本身使用的默认分配器为：RangeAssignor及CooperativeStickyAssignor。</p>
+<pre><code>// 文件地址：org.apache.kafka.clients.consumer.ConsumerConfig
+.define(PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+        Type.LIST,
+        Arrays.asList(RangeAssignor.class, CooperativeStickyAssignor.class),
+        new ConfigDef.NonNullValidator(),
+        Importance.MEDIUM,
+        PARTITION_ASSIGNMENT_STRATEGY_DOC)
+
+</code></pre>
+<h4 id="rangeassignor">RangeAssignor</h4>
+<p>RangeAssignor 是基于每个topic进行工作的。针对每个Topic，kafka会依据数字顺序将可用分区进行排序(p0,p1,p2...)，同时按照字典顺序排序消费者(c0,c1,c2...)。之后，将分区数除以消费者总数，以确定分配给每个消费者的分区数。如果无法整除，那么额外的分区将会分配给排序靠前的消费者。</p>
+<p>数学模型：设主题分区数为x，消费者数为y，设分区数除以消费者数的商为n、余数为m。那么在一个消费组中，前m个消费者将分配到n+1个分区，剩余的消费者分配n个分区。</p>
+<p>例如：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：</p>
+<pre><code>// 依据上述数学模型，此处x=3，y=2，算出n=1，m=1，最终结果如下所示：
+C0: [t0p0, t0p1, t1p0, t1p1]
+C1: [t0p2, t1p2]
+
+</code></pre>
+<p>使用这种分配器的优势在于每个消费者都可以为每个主题获得一个分区，这对于某些负载均衡场景很有利。当然劣势也很明显，比如当遇到某个消费组订阅了多个Topic，那么可能会导致前几个消费者负载过重；又或者消费者数多于分区数时，将会有部分消费者处于空闲状态；且针对消费者进行扩缩容时，分配可能会发生较大的变化。</p>
+<pre><code>// 源码内容如下
+public class RangeAssignor extends AbstractPartitionAssignor {
+    public static final String RANGE_ASSIGNOR_NAME = &quot;range&quot;;
+
+    @Override
+    public String name() {
+        return RANGE_ASSIGNOR_NAME;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                // 以topic为key，为每个topic归总所有的消费者信息
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        // 获取每个topic的消费者信息，形如：t0:[c0,c1], t1:[c0,c1]                                         
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        // 将主题分区与订阅该主题的消费者绑定
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet())
+            // memberId 与消费者关联
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+
+        // 对每个主题分区及消费者信息组成的map进行遍历，由此可以看出 RangeAssignor 分配器是针对每个主题进行分配操作的。
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+
+            // 获取当前topic的分区数
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null)
+                continue;
+
+            // 将消费者按字典排序 
+            Collections.sort(consumersForTopic);
+            // 主题分区数除以消费者数得到分配给每个消费者的分区数
+            int numPartitionsPerConsumer = numPartitionsForTopic / consumersForTopic.size();
+            // 主题分区数对消费者数取余得到额外的消费者分区数
+            int consumersWithExtraPartition = numPartitionsForTopic % consumersForTopic.size();
+
+            // 将主题分区汇总为一个列表 
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 此处逻辑可参考上述数学模型
+            for (int i = 0, n = consumersForTopic.size(); i &lt; n; i++) {
+                // 截取主题分区列表的起始位置
+                int start = numPartitionsPerConsumer * i + Math.min(i, consumersWithExtraPartition);
+                // 截取主题分区列表的长度，如果有consumersWithExtraPartition不为0，那么排序靠前的消费者将会额外分配一个分区
+                int length = numPartitionsPerConsumer + (i + 1 &gt; consumersWithExtraPartition ? 0 : 1);
+                // 给消费者分配分区数
+                assignment.get(consumersForTopic.get(i).memberId).addAll(partitions.subList(start, start + length));
+            }
+        }
+        return assignment;
+    }
+}
+
+</code></pre>
+<h4 id="roundrobinassignor">RoundRobinAssignor</h4>
+<p>RoundRobinAssignor 会将消费组内的所有消费者及其订阅的所有主题的分区按照字典序排序，然后通过轮询方式逐个将分区依次分配给每个消费者。步骤如下：</p>
+<ol>
+<li>消费者按照字典排序，例如C0, C1, C2... ...，并构造环形迭代器。</li>
+<li>topic名称按照字典排序，并得到每个topic的所有分区，从而得到所有分区集合。</li>
+<li>遍历第2步所有分区集合，同时轮询消费者。</li>
+<li>如果轮询到的消费者订阅的topic不包括当前遍历的分区所属topic，则跳过；否则分配给当前消费者，并继续第3步。</li>
+</ol>
+<p>按照上述步骤来说，当同一个消费组内所有的消费者的订阅信息都是相同的，那么使用 RoundRobinAssignor 分配器进行分配操作时，结果会相对均匀。</p>
+<p>但当同一个消费组内的消费者订阅的信息是不相同的，那么在执行分区分配的时候就不是完全的轮询分配，有可能导致分区分配得不均匀。</p>
+<p>例1：存在两个消费者C0，C1，两个主题t0，t1，且每个主题拥有三个分区，那么分区结果为：t0p0，t0p1，t0p2，t1p0，t1p1，t1p2。最终分配结果如下所示：</p>
+<pre><code>C0: [t0p0, t0p2, t1p1]
+C1: [t0p1, t1p0, t1p2]
+</code></pre>
+<p>例2：存在3个消费者C0、C1 和 C2，三个主题t0、t1、t2，且t0分区数为1，t1分区数为2，t2分区数为3，那么分区结果为：t0p0, t1p0，t1p1, t2p0, t2p1, t2p2。最终分配结果将如下所示：</p>
+<pre><code>C0: [t0p0]
+C1: [t1p0]
+C2: [t1p1, t2p0, t2p1, t2p2]
+</code></pre>
+<p>这种分配器最大化的利用了消费者的数量优势，某种情况下可以达到统一分配的效果；但这种分配器也有一个主要的缺点，那就是在消费者数量发生变化时（重平衡），会导致分区也重分配。这可能会由于分区更改其所有者而导致额外的处理（额外的性能影响）。</p>
+<pre><code>public class RoundRobinAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        List&lt;MemberInfo&gt; memberInfoList = new ArrayList&lt;&gt;();
+        // 取到所有的消费者信息
+        for (Map.Entry&lt;String, Subscription&gt; memberSubscription : subscriptions.entrySet()) {
+            assignment.put(memberSubscription.getKey(), new ArrayList&lt;&gt;());
+            memberInfoList.add(new MemberInfo(memberSubscription.getKey(),
+                                              memberSubscription.getValue().groupInstanceId()));
+        }
+
+        // 排序消费者列表，同时将其转化为环形迭代器（主要用于循环取值）
+        CircularIterator&lt;MemberInfo&gt; assigner = new CircularIterator&lt;&gt;(Utils.sorted(memberInfoList));
+
+        // 遍历排序后的分区列表
+        for (TopicPartition partition : allPartitionsSorted(partitionsPerTopic, subscriptions)) {
+            final String topic = partition.topic();
+            // 遍历环形迭代器获取消费者信息，并判断其是否订阅相关的topic，如果没有则跳过，否则分配分区给该消费者
+            while (!subscriptions.get(assigner.peek().memberId).topics().contains(topic))
+                assigner.next();
+            // 分配分区给该消费者
+            assignment.get(assigner.next().memberId).add(partition);
+        }
+        return assignment;
+    }
+
+    // 将所有的分区汇总并进行排序操作
+    private List&lt;TopicPartition&gt; allPartitionsSorted(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                     Map&lt;String, Subscription&gt; subscriptions) {
+        SortedSet&lt;String&gt; topics = new TreeSet&lt;&gt;();
+        for (Subscription subscription : subscriptions.values())
+            topics.addAll(subscription.topics());
+
+        List&lt;TopicPartition&gt; allPartitions = new ArrayList&lt;&gt;();
+        for (String topic : topics) {
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic != null)
+                // 分区中包含topic信息，用于匹配对应的消费者
+                allPartitions.addAll(AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic));
+        }
+        return allPartitions;
+    }
+
+    @Override
+    public String name() {
+        return &quot;roundrobin&quot;;
+    }
+
+}
+
+</code></pre>
+<h4 id="stickyassignor">StickyAssignor</h4>
+<p>StickyAssignor 分配器除了让分区分配得更加均匀外，在重平衡期间还会尽可能的减少分区移动（如果两者发生冲突，第一种特性优先于第二种特性）。相对于RoundRobinAssignor 重平衡期间需要重分配分区的操作而言，此特性减少了资源消耗，提升了消费者性能。</p>
+<p>相对于前两种分配器，StickyAssignor 实现更为复杂，简单例子如下：</p>
+<p>例1：订阅的主题拥有相同分区的场景：假设有3个Consumer（C0、C1和C2），他们都订阅了4个主题（t0、t1、t2、t3），每个主题有2个分区。也就是说，整个消费者组订阅了 t0p0、t0p1、t1p0、t1p1、t2p0、t2p1、t3p0、t3p1 这 8 个 分区。最终分发结果如下：</p>
+<pre><code>C0：t0p0、t1p1、t3p0
+C1：t0p1、t2p0、t3p1
+C2：t1p0、t2p1
+
+</code></pre>
+<p>乍一看，似乎与采用 RoundRobinAssignor 分配策略分配的结果是一样的，但真的是这样吗？我们假设消费者 C1 退出了消费者组，那么消费者组会执行再平衡操作，再分配消费区。如果是 RoundRobinAssignor 分配策略，那么分配结果如下：</p>
+<pre><code>// 分区发生了移动
+C0：t0p0、t1p0、t2p0、t3p0
+C2：t0p1、t1p1、t2p1、t3p1
+</code></pre>
+<p>正如分配结果所示，RoundRobinAssignor 的分配策略将基于消费者 C0 和 C2 重新轮询分配。如果你使用的是 StickyAssignor 分配策略，那么分配结果是：</p>
+<pre><code>// 上次分区结果将会被保留，以尽量减少分区移动
+C0：t0p0、t1p1、t3p0、t2p0
+C2：t1p0、t2p1、t0p1、t3p1
+</code></pre>
+<p>例2：订阅的主题拥有不同分区的场景：同样有3个Consumer（C0、C1和C2），集群中有3个主题（t0、t1和t2），这3个主题分别有1、2、3个分区。也就是说，集群中有 t0p0、t1p0、t1p1、t2p0、t2p1、t2p2 这 6 个 分区。消费者 C0 订阅了主题 t0，消费者 C1 订阅了主题 t0 和 t1，消费者 C2 订阅了主题 t0、t1 和 t2。RoundRobinAssignor 分配器结果如下：</p>
+<pre><code>// 显然结果不并不是最优解
+C0：t0p0
+C1：t1p0
+C2：t1p1、t2p0、t2p1、t2p2
+
+</code></pre>
+<p>StickyAssignor 分配器结果如下：</p>
+<pre><code>// 可以看出此种分配方式更充分地利用了消费者。
+C0：t0p0
+C1：t1p0、t1p1
+C2：t2p0、t2p1、t2p2
+
+</code></pre>
+<p>此时，如果C0从消费组中移除，那么依照 RoundRobinAssignor 分配器的重平衡结果如下：</p>
+<pre><code>// 分区重新开始轮询分配
+C1：t0p0、t1p1
+C2：t1p0、t2p0、t2p1、t2p2
+
+</code></pre>
+<p>StickyAssignor 分配器的重平衡结果如下：</p>
+<pre><code>// 原有分区结果被保留
+C1：t1p0、t1p1、t0p0
+C2：t2p0、t2p1、t2p2
+
+</code></pre>
+<p>这种分配器最小化了消费者之间的分区移动，节省了额外的开销处理，且分配结果会尽量平衡。不足之处在于经过多次迭代后，某个消费者可能会拥有其所订阅主题的所有分区，即使最终结果仍然平衡。这将导致某个消费者必须完成所有的消费工作（负载不再均衡）。</p>
+<pre><code>public class StickyAssignor extends AbstractStickyAssignor {
+
+    // these schemas are used for preserving consumer's previously assigned partitions
+    // list and sending it as user data to the leader during a rebalance
+    static final String TOPIC_PARTITIONS_KEY_NAME = &quot;previous_assignment&quot;;
+    static final String TOPIC_KEY_NAME = &quot;topic&quot;;
+    static final String PARTITIONS_KEY_NAME = &quot;partitions&quot;;
+    private static final String GENERATION_KEY_NAME = &quot;generation&quot;;
+
+    static final Schema TOPIC_ASSIGNMENT = new Schema(
+        new Field(TOPIC_KEY_NAME, Type.STRING),
+        new Field(PARTITIONS_KEY_NAME, new ArrayOf(Type.INT32)));
+    static final Schema STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)));
+    private static final Schema STICKY_ASSIGNOR_USER_DATA_V1 = new Schema(
+        new Field(TOPIC_PARTITIONS_KEY_NAME, new ArrayOf(TOPIC_ASSIGNMENT)),
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private List&lt;TopicPartition&gt; memberAssignment = null;
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return &quot;sticky&quot;;
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        memberAssignment = assignment.partitions();
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        if (memberAssignment == null)
+            return null;
+
+        return serializeTopicPartitionAssignment(new MemberData(memberAssignment, Optional.of(generation)));
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer userData = subscription.userData();
+        if (userData == null || !userData.hasRemaining()) {
+            return new MemberData(Collections.emptyList(), Optional.empty());
+        }
+        return deserializeTopicPartitionAssignment(userData);
+    }
+
+    // visible for testing
+    static ByteBuffer serializeTopicPartitionAssignment(MemberData memberData) {
+        Struct struct = new Struct(STICKY_ASSIGNOR_USER_DATA_V1);
+        List&lt;Struct&gt; topicAssignments = new ArrayList&lt;&gt;();
+        // 获取每个主题的分区并分组
+        for (Map.Entry&lt;String, List&lt;Integer&gt;&gt; topicEntry : CollectionUtils.groupPartitionsByTopic(memberData.partitions).entrySet()) {
+            Struct topicAssignment = new Struct(TOPIC_ASSIGNMENT);
+            topicAssignment.set(TOPIC_KEY_NAME, topicEntry.getKey());
+            topicAssignment.set(PARTITIONS_KEY_NAME, topicEntry.getValue().toArray());
+            topicAssignments.add(topicAssignment);
+        }
+        struct.set(TOPIC_PARTITIONS_KEY_NAME, topicAssignments.toArray());
+        if (memberData.generation.isPresent())
+            struct.set(GENERATION_KEY_NAME, memberData.generation.get());
+        ByteBuffer buffer = ByteBuffer.allocate(STICKY_ASSIGNOR_USER_DATA_V1.sizeOf(struct));
+        STICKY_ASSIGNOR_USER_DATA_V1.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    private static MemberData deserializeTopicPartitionAssignment(ByteBuffer buffer) {
+        Struct struct;
+        ByteBuffer copy = buffer.duplicate();
+        try {
+            struct = STICKY_ASSIGNOR_USER_DATA_V1.read(buffer);
+        } catch (Exception e1) {
+            try {
+                // fall back to older schema
+                struct = STICKY_ASSIGNOR_USER_DATA_V0.read(copy);
+            } catch (Exception e2) {
+                // ignore the consumer's previous assignment if it cannot be parsed
+                return new MemberData(Collections.emptyList(), Optional.of(DEFAULT_GENERATION));
+            }
+        }
+
+        List&lt;TopicPartition&gt; partitions = new ArrayList&lt;&gt;();
+        for (Object structObj : struct.getArray(TOPIC_PARTITIONS_KEY_NAME)) {
+            Struct assignment = (Struct) structObj;
+            String topic = assignment.getString(TOPIC_KEY_NAME);
+            for (Object partitionObj : assignment.getArray(PARTITIONS_KEY_NAME)) {
+                Integer partition = (Integer) partitionObj;
+                partitions.add(new TopicPartition(topic, partition));
+            }
+        }
+        // make sure this is backward compatible
+        Optional&lt;Integer&gt; generation = struct.hasField(GENERATION_KEY_NAME) ? Optional.of(struct.getInt(GENERATION_KEY_NAME)) : Optional.empty();
+        return new MemberData(partitions, generation);
+    }
+}
+
+</code></pre>
+<h4 id="cooperativestickyassignor">CooperativeStickyAssignor</h4>
+<p>CooperativeStickyAssignor 逻辑基本与 StickyAssignor 一致，不过在重平衡期间此分配器采用了一种全新的协议：RebalanceProtocol.COOPERATIVE：在这个协议中，每个消费者不会在加入重新平衡之前撤销所有分区，而是尽可能地保留它们并且仅在被告知可以撤销之后才会这样做。</p>
+<p>其优劣势与StickyAssignor基本一致，但重平衡更加轻量化，并且不会阻止消费者从分区中消费。</p>
+<pre><code>public class CooperativeStickyAssignor extends AbstractStickyAssignor {
+    public static final String COOPERATIVE_STICKY_ASSIGNOR_NAME = &quot;cooperative-sticky&quot;;
+
+    // these schemas are used for preserving useful metadata for the assignment, such as the last stable generation
+    private static final String GENERATION_KEY_NAME = &quot;generation&quot;;
+    private static final Schema COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0 = new Schema(
+        new Field(GENERATION_KEY_NAME, Type.INT32));
+
+    private int generation = DEFAULT_GENERATION; // consumer group generation
+
+    @Override
+    public String name() {
+        return COOPERATIVE_STICKY_ASSIGNOR_NAME;
+    }
+
+    // 使用 COOPERATIVE 协议进行重平衡操作
+    @Override
+    public List&lt;RebalanceProtocol&gt; supportedProtocols() {
+        return Arrays.asList(RebalanceProtocol.COOPERATIVE, RebalanceProtocol.EAGER);
+    }
+
+    @Override
+    public void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+        this.generation = metadata.generationId();
+    }
+
+    @Override
+    public ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        Struct struct = new Struct(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0);
+
+        struct.set(GENERATION_KEY_NAME, generation);
+        ByteBuffer buffer = ByteBuffer.allocate(COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.sizeOf(struct));
+        COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.write(buffer, struct);
+        buffer.flip();
+        return buffer;
+    }
+
+    @Override
+    protected MemberData memberData(Subscription subscription) {
+        ByteBuffer buffer = subscription.userData();
+        Optional&lt;Integer&gt; encodedGeneration;
+        if (buffer == null) {
+            encodedGeneration = Optional.empty();
+        } else {
+            try {
+                Struct struct = COOPERATIVE_STICKY_ASSIGNOR_USER_DATA_V0.read(buffer);
+                encodedGeneration = Optional.of(struct.getInt(GENERATION_KEY_NAME));
+            } catch (Exception e) {
+                encodedGeneration = Optional.of(DEFAULT_GENERATION);
+            }
+        }
+        return new MemberData(subscription.ownedPartitions(), encodedGeneration);
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic,
+                                                    Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments = super.assign(partitionsPerTopic, subscriptions);
+
+        Map&lt;TopicPartition, String&gt; partitionsTransferringOwnership = super.partitionsTransferringOwnership == null ?
+            computePartitionsTransferringOwnership(subscriptions, assignments) :
+            super.partitionsTransferringOwnership;
+
+        // 调整主题分区并返回
+        adjustAssignment(assignments, partitionsTransferringOwnership);
+        return assignments;
+    }
+
+    // Following the cooperative rebalancing protocol requires removing partitions that must first be revoked from the assignment
+    // 协作重平衡协议的前提是分区已经从分配中废除。
+    private void adjustAssignment(Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments,
+                                  Map&lt;TopicPartition, String&gt; partitionsTransferringOwnership) {
+        for (Map.Entry&lt;TopicPartition, String&gt; partitionEntry : partitionsTransferringOwnership.entrySet()) {
+            assignments.get(partitionEntry.getValue()).remove(partitionEntry.getKey());
+        }
+    }
+
+    private Map&lt;TopicPartition, String&gt; computePartitionsTransferringOwnership(Map&lt;String, Subscription&gt; subscriptions,
+                                                                               Map&lt;String, List&lt;TopicPartition&gt;&gt; assignments) {
+        Map&lt;TopicPartition, String&gt; allAddedPartitions = new HashMap&lt;&gt;();
+        Set&lt;TopicPartition&gt; allRevokedPartitions = new HashSet&lt;&gt;();
+
+        for (final Map.Entry&lt;String, List&lt;TopicPartition&gt;&gt; entry : assignments.entrySet()) {
+            String consumer = entry.getKey();
+
+            List&lt;TopicPartition&gt; ownedPartitions = subscriptions.get(consumer).ownedPartitions();
+            List&lt;TopicPartition&gt; assignedPartitions = entry.getValue();
+
+            Set&lt;TopicPartition&gt; ownedPartitionsSet = new HashSet&lt;&gt;(ownedPartitions);
+            for (TopicPartition tp : assignedPartitions) {
+                if (!ownedPartitionsSet.contains(tp))
+                    allAddedPartitions.put(tp, consumer);
+            }
+
+            Set&lt;TopicPartition&gt; assignedPartitionsSet = new HashSet&lt;&gt;(assignedPartitions);
+            for (TopicPartition tp : ownedPartitions) {
+                if (!assignedPartitionsSet.contains(tp))
+                    allRevokedPartitions.add(tp);
+            }
+        }
+
+        allAddedPartitions.keySet().retainAll(allRevokedPartitions);
+        return allAddedPartitions;
+    }
+}
+
+</code></pre>
+<h3 id="定制化分区分配器">定制化分区分配器</h3>
+<p>除了kafka提供的几种分配器之外，还可以通过继承kafka的AbstractPartitionAssignor类或者直接实现ConsumerPartitionAssignor接口来自定义分区分配器。</p>
+<pre><code>public interface ConsumerPartitionAssignor {
+     // 所有消费者都将调用此函数，此函数会将订阅的主题发送给broker coordinator
+    default ByteBuffer subscriptionUserData(Set&lt;String&gt; topics) {
+        return null;
+    }
+    // 消费组leader收到消费者的订阅信息，并开始进行分区分配
+    GroupAssignment assign(Cluster metadata, GroupSubscription groupSubscription);
+
+    // 当消费者收到leader的分配消息时会执行此回调函数
+    default void onAssignment(Assignment assignment, ConsumerGroupMetadata metadata) {
+    }
+  
+    // 重平衡协议
+    default List&lt;RebalanceProtocol&gt; supportedProtocols() {
+        return Collections.singletonList(RebalanceProtocol.EAGER);
+    }
+
+    // 分配器版本号
+    default short version() {
+        return (short) 0;
+    }
+  
+    // 分配器的唯一名称，非必传 (e.g. &quot;range&quot; or &quot;roundrobin&quot; or &quot;sticky&quot;). 
+    String name();
+}  
+
+</code></pre>
+<h4 id="failoverassignor">FailoverAssignor</h4>
+<p>FailoverAssignor 主要针对一些需要故障转移的场景，其中的基本逻辑是：让多个消费者加入同一个组。但是，所有分区一次都分配给一个消费者。如果该消费者shutdown，则所有的分区将分配给下一个可用的消费者。通常，分区会被分配给第一个可用的消费者。此例子将会对消费者进行排序。</p>
+<pre><code>import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author philosopherZB
+ */
+public class FailoverAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &quot;failover&quot;;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic, Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+        }
+
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 按字典排序
+            Collections.sort(consumersForTopic);
+
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            // 没有消费者则跳过
+            if (consumersForTopic.isEmpty()) {
+                continue;
+            }
+            // 取排序列表中的第一个消费者
+            String consumerMemberId = consumersForTopic.stream().findFirst().get().memberId;
+            assignment.get(consumerMemberId).addAll(partitions);
+        }
+        return assignment;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+</code></pre>
+<pre><code>// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    FailoverAssignor.class.getName()
+);
+
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
+<h4 id="randomassignor">RandomAssignor</h4>
+<p>RandomAssignor 主要针对的是消费者数大于分区数的场景。采用随机分配可以让所有的消费者都参与消费动作，而不是处于空闲状态。</p>
+<pre><code>import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
+import org.apache.kafka.common.TopicPartition;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * @author philosopherZB
+ */
+public class RandomAssignor extends AbstractPartitionAssignor {
+
+    @Override
+    public String name() {
+        return &quot;random&quot;;
+    }
+
+    @Override
+    public Map&lt;String, List&lt;TopicPartition&gt;&gt; assign(Map&lt;String, Integer&gt; partitionsPerTopic, Map&lt;String, Subscription&gt; subscriptions) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic = consumersPerTopic(subscriptions);
+
+        Map&lt;String, List&lt;TopicPartition&gt;&gt; assignment = new HashMap&lt;&gt;();
+        for (String memberId : subscriptions.keySet()) {
+            assignment.put(memberId, new ArrayList&lt;&gt;());
+        }
+
+        for (Map.Entry&lt;String, List&lt;MemberInfo&gt;&gt; topicEntry : consumersPerTopic.entrySet()) {
+            String topic = topicEntry.getKey();
+            List&lt;MemberInfo&gt; consumersForTopic = topicEntry.getValue();
+            int consumerSize = consumersForTopic.size();
+
+            Integer numPartitionsForTopic = partitionsPerTopic.get(topic);
+            if (numPartitionsForTopic == null) {
+                continue;
+            }
+
+            // 可不排序
+            Collections.sort(consumersForTopic);
+
+            List&lt;TopicPartition&gt; partitions = AbstractPartitionAssignor.partitions(topic, numPartitionsForTopic);
+            partitions.forEach(partition -&gt; {
+                String randomConsumer = consumersForTopic.get(ThreadLocalRandom.current().nextInt(consumerSize)).memberId;
+                assignment.get(randomConsumer).add(partition);
+            });
+        }
+        return assignment;
+    }
+
+    private Map&lt;String, List&lt;MemberInfo&gt;&gt; consumersPerTopic(Map&lt;String, Subscription&gt; consumerMetadata) {
+        Map&lt;String, List&lt;MemberInfo&gt;&gt; topicToConsumers = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, Subscription&gt; subscriptionEntry : consumerMetadata.entrySet()) {
+            String consumerId = subscriptionEntry.getKey();
+            MemberInfo memberInfo = new MemberInfo(consumerId, subscriptionEntry.getValue().groupInstanceId());
+            for (String topic : subscriptionEntry.getValue().topics()) {
+                put(topicToConsumers, topic, memberInfo);
+            }
+        }
+        return topicToConsumers;
+    }
+}
+
+</code></pre>
+<pre><code>// 使用
+Properties props = new Properties();
+...
+props.put(
+    ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,   
+    RandomAssignor.class.getName()
+);
+
+KafkaConsumer&lt;String, String&gt; consumer = new KafkaConsumer&lt;&gt;(props);
+
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[kafka深入理解之Broker控制器]]></title>
+        <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-kong-zhi-qi/</id>
+        <link href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-kong-zhi-qi/">
+        </link>
+        <updated>2022-07-09T07:18:09.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述kafka broker控制器。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/neuschwanstein-701732_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="broker控制器">Broker控制器</h2>
+<h3 id="简介">简介</h3>
+<p>在 Kafka 集群中会有一个或多个 broker，其中有一个 broker 会被选举为控制器（Kafka Controller），它负责管理整个集群中所有分区和副本的状态以及执行管理任务，例如主题管理，重分配分区，broker管理，数据管理等。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316005.png" alt="img" loading="lazy"></figure>
+<h3 id="控制器选举与failover">控制器选举与Failover</h3>
+<p>Broker 在启动时，会尝试去 ZooKeeper 中创建 /controller 节点。第一个创建/controller节点成功的broker将会成为控制器。根据源码来看具体流程如下：</p>
+<p>获取 zk 的 /cotroller 节点中的 controllerId，如果该节点不存在（比如集群刚创建时），那么controllerId 将会返回-1；</p>
+<ol>
+<li>
+<p>如果 controller id 不为-1，即 controller 已经存在，直接结束流程；</p>
+</li>
+<li>
+<p>如果 controller id 为-1，证明 controller 还不存在，这时候当前 broker 开始在 zk 注册 controller同时递增epoch值；</p>
+</li>
+<li>
+<p>如果注册成功，那么当前 broker 就成为了 controller，这时候开始调用 onControllerFailover() 方法，正式初始化 controller（注意：controller 节点是临时节点，如果当前 controller 与 zk 的 session 断开，那么 controller 的临时节点会消失，会触发 controller 的重新选举）；</p>
+</li>
+<li>
+<p>如果注册失败（刚好 controller 被其他 broker 创建了、抛出异常等），那么直接返回。</p>
+</li>
+<li>
+<p>Zookeeper leader elector 在选举当前broker作为新控制器时调用onControllerFailover函数。</p>
+<p>它在成为控制器状态更改时执行以下操作 -</p>
+<ol>
+<li>初始化控制器的上下文对象，该对象包含当前主题的缓存对象、存活的broker及所有已存在分区的leaders</li>
+<li>启动控制器的channel管理器，建立与其他 broker 的连接的,负责与其他 broker 之间的通信;</li>
+<li>启动replicaStateMachine，副本状态机,管理副本的状态</li>
+<li>启动partitionStateMachine，分区状态机,管理分区的状态</li>
+</ol>
+<p>如果在 Controller 服务初始化的过程中，出现了任何不可预期的 异常/错误，它将会退出当前的进程，这确保了可以再次触发 controller 的选举。</p>
+</li>
+</ol>
+<p>关于epoch值：其是存放在ZooKeeper中 /controller_epoch 节点上的一个整型值。controller_epoch 用于记录控制器发生变更的次数，即记录当前的控制器是第几代控制器，直译可以称之为“控制器的纪元”。</p>
+<p>controller_epoch 的初始值为1，即集群中第一个控制器的纪元为1，当控制器发生变更时，每选出一个新的控制器就将该字段值加1。Kafka 通过 controller_epoch 来保证控制器的唯一性，进而保证相关操作的一致性。</p>
+<p>每个和控制器交互的请求都会携带 controller_epoch 这个字段，如果请求的 controller_epoch 值小于内存中的 controller_epoch 值，则认为这个请求是向已经过期的控制器所发送的请求，那么这个请求会被认定为无效的请求。</p>
+<p>如果请求的 controller_epoch 值大于内存中的 controller_epoch 值，那么说明已经有新的控制器当选了。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaServer.scala
+override def startup(): Unit = {
+    info(&quot;starting&quot;)
+    if (isShuttingDown.get)
+      throw new IllegalStateException(&quot;Kafka server is still shutting down, cannot re-start!&quot;)
+
+    if (startupComplete.get)
+      return
+
+   val canStartup = isStartingUp.compareAndSet(false, true)
+   if (canStartup) {
+       /* start kafka controller --- 启动 kafka 控制器 */
+       _kafkaController = new KafkaController(config, zkClient, time, metrics, brokerInfo, brokerEpoch, tokenManager, brokerFeatures, featureCache, threadNamePrefix)
+       kafkaController.startup()
+    }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/controller/KafkaController.scala
+/**
+ * Invoked when the controller module of a Kafka server is started up. This does not assume that the current broker
+ * is the controller. It merely registers the session expiration listener and starts the controller leader
+ * elector
+ * kafka服务的控制器模块启动时调用此函数。调用此函数的broker并不一定是最终的controller（取决于是否选举成功）。
+ * 此函数仅仅只是注册一个会话过期监听器并开始进行controller选举。
+ */
+def startup() = {
+  zkClient.registerStateChangeHandler(new StateChangeHandler {
+    override val name: String = StateChangeHandlers.ControllerHandler
+    override def afterInitializingSession(): Unit = {
+      eventManager.put(RegisterBrokerAndReelect)
+    }
+    override def beforeInitializingSession(): Unit = {
+      val queuedEvent = eventManager.clearAndPut(Expire)
+
+      // Block initialization of the new session until the expiration event is being handled,
+      // which ensures that all pending events have been processed before creating the new session
+      // 在过期事件被处理掉之前，不允许初始化新会话。这确保了所有的待处理事件在新会话之前能够得到处理。
+      queuedEvent.awaitProcessing()
+    }
+  })
+  // 事件状态为启动
+  // 文件地址：core/src/main/scala/kafka/controller/ControllerEventManager.scala
+  // ControllerEventManager 中的 ControllerEventProcessor 会被 KafkaController 继承，同时重写了其中的process函数
+  // process 便是线程具体执行的逻辑函数
+  eventManager.put(Startup)
+  // 启动事件线程开始进行controller选举
+  eventManager.start()
+}
+
+// 重写 ControllerEventProcessor 的process函数
+override def process(event: ControllerEvent): Unit = {
+  try {
+    event match {
+      ......
+      case BrokerChange =&gt;
+        // broker 发生改变时，执行此函数。主要用于监听zk节点变化。
+        processBrokerChange()
+      case Startup =&gt;
+        // 执行启动操作
+        processStartup()
+    }
+  } catch {
+    case e: ControllerMovedException =&gt;
+      info(s&quot;Controller moved to another broker when processing $event.&quot;, e)
+      maybeResign()
+    case e: Throwable =&gt;
+      error(s&quot;Error processing event $event&quot;, e)
+  } finally {
+    updateMetrics()
+  }
+}
+
+// 执行启动函数
+private def processStartup(): Unit = {
+  //  注册zk节点改变处理器，与此同时也会注册一个ExistsRequest观察者
+  zkClient.registerZNodeChangeHandlerAndCheckExistence(controllerChangeHandler)
+  // 选举controller
+  elect()
+}
+
+// 文件地址：core/src/main/scala/kafka/zk/KafkaZkClient.scala
+def registerZNodeChangeHandlerAndCheckExistence(zNodeChangeHandler: ZNodeChangeHandler): Boolean = {
+  zooKeeperClient.registerZNodeChangeHandler(zNodeChangeHandler)
+  val existsResponse = retryRequestUntilConnected(ExistsRequest(zNodeChangeHandler.path))
+  existsResponse.resultCode match {
+    case Code.OK =&gt; true
+    case Code.NONODE =&gt; false
+    case _ =&gt; throw existsResponse.resultException.get
+  }
+}
+
+// 选举函数
+private def elect(): Unit = {
+  // 获取活跃的controllerId  
+  activeControllerId = zkClient.getControllerId.getOrElse(-1)
+  /*
+   * We can get here during the initial startup and the handleDeleted ZK callback. Because of the potential race condition,
+   * it's possible that the controller has already been elected when we get here. This check will prevent the following
+   * createEphemeralPath method from getting into an infinite loop if this broker is already the controller.
+   */
+  // 如果存在controller，那么直接返回，不进行选举操作 
+  if (activeControllerId != -1) {
+    debug(s&quot;Broker $activeControllerId has been elected as the controller, so stopping the election process.&quot;)
+    return
+  }
+
+  try {
+    // 注册controller节点并递增epoch值  
+    val (epoch, epochZkVersion) = zkClient.registerControllerAndIncrementControllerEpoch(config.brokerId)
+    controllerContext.epoch = epoch
+    controllerContext.epochZkVersion = epochZkVersion
+    activeControllerId = config.brokerId
+
+    info(s&quot;${config.brokerId} successfully elected as the controller. Epoch incremented to ${controllerContext.epoch} &quot; +
+      s&quot;and epoch zk version is now ${controllerContext.epochZkVersion}&quot;)
+     // 执行controller快速恢复
+    // Zookeeper leader elector 在选举当前broker作为新控制器时调用此callback。
+    // 它在成为控制器状态更改时执行以下操作 -
+    // 1. 初始化控制器的上下文对象，该对象包含当前主题的缓存对象、存活的broker及所有已存在分区的leaders
+    // 2. 启动控制器的channel管理器，建立与其他 broker 的连接的,负责与其他 broker 之间的通信;
+    // 3. 启动replicaStateMachine，副本状态机,管理副本的状态
+    // 4. 启动partitionStateMachine，分区状态机,管理分区的状态
+    // 如果在 Controller 服务初始化的过程中，出现了任何不可预期的 异常/错误，它将会退出当前的进程，这确保了可以再次触发 controller 的选举
+    onControllerFailover()
+  } catch {
+    case e: ControllerMovedException =&gt;
+      maybeResign()
+
+      if (activeControllerId != -1)
+        debug(s&quot;Broker $activeControllerId was elected as controller instead of broker ${config.brokerId}&quot;, e)
+      else
+        warn(&quot;A controller has been elected but just resigned, this will result in another round of election&quot;, e)
+    case t: Throwable =&gt;
+      error(s&quot;Error while electing or becoming controller on broker ${config.brokerId}. &quot; +
+        s&quot;Trigger controller movement immediately&quot;, t)
+      triggerControllerMove()
+  }
+}
+
+// 快速恢复
+/**
+ * This callback is invoked by the zookeeper leader elector on electing the current broker as the new controller.
+ * It does the following things on the become-controller state change -
+ * 1. Initializes the controller's context object that holds cache objects for current topics, live brokers and
+ *    leaders for all existing partitions.
+ * 2. Starts the controller's channel manager
+ * 3. Starts the replica state machine
+ * 4. Starts the partition state machine
+ * If it encounters any unexpected exception/error while becoming controller, it resigns as the current controller.
+ * This ensures another controller election will be triggered and there will always be an actively serving controller
+ */
+private def onControllerFailover(): Unit = {
+  maybeSetupFeatureVersioning()
+
+  info(&quot;Registering handlers&quot;)
+
+  // before reading source of truth from zookeeper, register the listeners to get broker/topic callbacks
+  val childChangeHandlers = Seq(brokerChangeHandler, topicChangeHandler, topicDeletionHandler, logDirEventNotificationHandler,
+    isrChangeNotificationHandler)
+  childChangeHandlers.foreach(zkClient.registerZNodeChildChangeHandler)
+
+  val nodeChangeHandlers = Seq(preferredReplicaElectionHandler, partitionReassignmentHandler)
+  nodeChangeHandlers.foreach(zkClient.registerZNodeChangeHandlerAndCheckExistence)
+
+  info(&quot;Deleting log dir event notifications&quot;)
+  zkClient.deleteLogDirEventNotifications(controllerContext.epochZkVersion)
+  info(&quot;Deleting isr change notifications&quot;)
+  zkClient.deleteIsrChangeNotifications(controllerContext.epochZkVersion)
+  info(&quot;Initializing controller context&quot;)
+  initializeControllerContext()
+  info(&quot;Fetching topic deletions in progress&quot;)
+  val (topicsToBeDeleted, topicsIneligibleForDeletion) = fetchTopicDeletionsInProgress()
+  info(&quot;Initializing topic deletion manager&quot;)
+  topicDeletionManager.init(topicsToBeDeleted, topicsIneligibleForDeletion)
+
+  // We need to send UpdateMetadataRequest after the controller context is initialized and before the state machines
+  // are started. The is because brokers need to receive the list of live brokers from UpdateMetadataRequest before
+  // they can process the LeaderAndIsrRequests that are generated by replicaStateMachine.startup() and
+  // partitionStateMachine.startup().
+  info(&quot;Sending update metadata request&quot;)
+  sendUpdateMetadataRequest(controllerContext.liveOrShuttingDownBrokerIds.toSeq, Set.empty)
+
+  replicaStateMachine.startup()
+  partitionStateMachine.startup()
+
+  info(s&quot;Ready to serve as the new controller with epoch $epoch&quot;)
+
+  initializePartitionReassignments()
+  topicDeletionManager.tryTopicDeletion()
+  val pendingPreferredReplicaElections = fetchPendingPreferredReplicaElections()
+  onReplicaElection(pendingPreferredReplicaElections, ElectionType.PREFERRED, ZkTriggered)
+  info(&quot;Starting the controller scheduler&quot;)
+  kafkaScheduler.startup()
+  if (config.autoLeaderRebalanceEnable) {
+    scheduleAutoLeaderRebalanceTask(delay = 5, unit = TimeUnit.SECONDS)
+  }
+
+  if (config.tokenAuthEnabled) {
+    info(&quot;starting the token expiry check scheduler&quot;)
+    tokenCleanScheduler.startup()
+    tokenCleanScheduler.schedule(name = &quot;delete-expired-tokens&quot;,
+      fun = () =&gt; tokenManager.expireTokens(),
+      period = config.delegationTokenExpiryCheckIntervalMs,
+      unit = TimeUnit.MILLISECONDS)
+  }
+}
+
+</code></pre>
+<h3 id="控制器之分区选举">控制器之分区选举</h3>
+<p>controller负责分区的重分配。目前主要有四种选举机制。</p>
+<pre><code>sealed trait PartitionLeaderElectionStrategy
+// leader 掉线或新分区出现时触发
+final case class OfflinePartitionLeaderElectionStrategy(allowUnclean: Boolean) extends PartitionLeaderElectionStrategy
+// 分区的副本重新分配数据同步完成后触发的
+final case object ReassignPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+// 最优 leader 选举，手动触发或自动 leader 均衡调度时触发
+final case object PreferredReplicaPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+// controller 发送 ShutDown 请求主动关闭服务时触发
+final case object ControlledShutdownPartitionLeaderElectionStrategy extends PartitionLeaderElectionStrategy
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/controller/PartitionStateMachine.scala
+/**
+ * Invoked on successful controller election.
+ * controller 选举成功后调用此函数
+ */
+def startup(): Unit = {
+  info(&quot;Initializing partition state&quot;)
+  initializePartitionState()
+  info(&quot;Triggering online partition state changes&quot;)
+  // 分区函数入口
+  triggerOnlinePartitionStateChange()
+  debug(s&quot;Started partition state machine with initial state -&gt; ${controllerContext.partitionStates}&quot;)
+}
+
+// 选举分区leader
+private def doElectLeaderForPartitions(
+  partitions: Seq[TopicPartition],
+  partitionLeaderElectionStrategy: PartitionLeaderElectionStrategy
+): (Map[TopicPartition, Either[Exception, LeaderAndIsr]], Seq[TopicPartition]) = {
+    val (partitionsWithoutLeaders, partitionsWithLeaders) = partitionLeaderElectionStrategy match {
+      case OfflinePartitionLeaderElectionStrategy(allowUnclean) =&gt;
+        val partitionsWithUncleanLeaderElectionState = collectUncleanLeaderElectionState(
+          validLeaderAndIsrs,
+          allowUnclean
+        )
+        // 离线/新分区选举
+        leaderForOffline(controllerContext, partitionsWithUncleanLeaderElectionState).partition(_.leaderAndIsr.isEmpty)
+      case ReassignPartitionLeaderElectionStrategy =&gt;
+        // 重分配选举
+        leaderForReassign(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+      case PreferredReplicaPartitionLeaderElectionStrategy =&gt;
+        // 最优选举
+        leaderForPreferredReplica(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+      case ControlledShutdownPartitionLeaderElectionStrategy =&gt;
+        // shutdown 时选举
+        leaderForControlledShutdown(controllerContext, validLeaderAndIsrs).partition(_.leaderAndIsr.isEmpty)
+    }
+}  
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/controller/Election.scala
+// 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。
+private def leaderForOffline(partition: TopicPartition,
+                             leaderAndIsrOpt: Option[LeaderAndIsr],
+                             uncleanLeaderElectionEnabled: Boolean,
+                             controllerContext: ControllerContext): ElectionResult = {
+
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  val liveReplicas = assignment.filter(replica =&gt; controllerContext.isReplicaOnline(replica, partition))
+  leaderAndIsrOpt match {
+    case Some(leaderAndIsr) =&gt;
+      val isr = leaderAndIsr.isr
+      // 选举操作
+      // 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。
+      val leaderOpt = PartitionLeaderElectionAlgorithms.offlinePartitionLeaderElection(
+        assignment, isr, liveReplicas.toSet, uncleanLeaderElectionEnabled, controllerContext)
+      val newLeaderAndIsrOpt = leaderOpt.map { leader =&gt;
+        val newIsr = if (isr.contains(leader)) isr.filter(replica =&gt; controllerContext.isReplicaOnline(replica, partition))
+        else List(leader)
+        // 生成新的ISR
+        leaderAndIsr.newLeaderAndIsr(leader, newIsr)
+      }
+      ElectionResult(partition, newLeaderAndIsrOpt, liveReplicas)
+
+    case None =&gt;
+      // 返回无可用副本
+      ElectionResult(partition, None, liveReplicas)
+  }
+}
+
+// 分区重分配时选举，例如新增分区时，重新选举leader
+private def leaderForReassign(partition: TopicPartition,
+                              leaderAndIsr: LeaderAndIsr,
+                              controllerContext: ControllerContext): ElectionResult = {
+  val targetReplicas = controllerContext.partitionFullReplicaAssignment(partition).targetReplicas
+  // 获取所有在线的副本
+  val liveReplicas = targetReplicas.filter(replica =&gt; controllerContext.isReplicaOnline(replica, partition))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择一个作为新的leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.reassignPartitionLeaderElection(targetReplicas, isr, liveReplicas.toSet)
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&gt; leaderAndIsr.newLeader(leader))
+  ElectionResult(partition, newLeaderAndIsrOpt, targetReplicas)
+}
+
+// 副本优选选举leader
+private def leaderForPreferredReplica(partition: TopicPartition,
+                                      leaderAndIsr: LeaderAndIsr,
+                                      controllerContext: ControllerContext): ElectionResult = {
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  // 获取所有在线的副本
+  val liveReplicas = assignment.filter(replica =&gt; controllerContext.isReplicaOnline(replica, partition))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择第一个作为新的leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.preferredReplicaPartitionLeaderElection(assignment, isr, liveReplicas.toSet)
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&gt; leaderAndIsr.newLeader(leader))
+  ElectionResult(partition, newLeaderAndIsrOpt, assignment)
+}
+
+// controller shutdown时，选举新的leader
+private def leaderForControlledShutdown(partition: TopicPartition,
+                                        leaderAndIsr: LeaderAndIsr,
+                                        shuttingDownBrokerIds: Set[Int],
+                                        controllerContext: ControllerContext): ElectionResult = {
+  val assignment = controllerContext.partitionReplicaAssignment(partition)
+  // 获取所有副本，包括shutdown状态的
+  val liveOrShuttingDownReplicas = assignment.filter(replica =&gt;
+    controllerContext.isReplicaOnline(replica, partition, includeShuttingDownBrokers = true))
+  val isr = leaderAndIsr.isr
+  // 从存活的ISR副本中选择一个状态不为shutdown的作为新leader
+  val leaderOpt = PartitionLeaderElectionAlgorithms.controlledShutdownPartitionLeaderElection(assignment, isr,
+    liveOrShuttingDownReplicas.toSet, shuttingDownBrokerIds)
+  val newIsr = isr.filter(replica =&gt; !shuttingDownBrokerIds.contains(replica))
+  // 生成新的ISR
+  val newLeaderAndIsrOpt = leaderOpt.map(leader =&gt; leaderAndIsr.newLeaderAndIsr(leader, newIsr))
+  ElectionResult(partition, newLeaderAndIsrOpt, liveOrShuttingDownReplicas)
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/controller/PartitionStateMachine.scala
+object PartitionLeaderElectionAlgorithms {
+  // 从存活的ISR副本中选择一个作为新的leader，如果ISR为空且允许unclean election(脏选举)，那么就从存活的副本中选举一个作为新的leader。  
+  def offlinePartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int], uncleanLeaderElectionEnabled: Boolean, controllerContext: ControllerContext): Option[Int] = {
+    assignment.find(id =&gt; liveReplicas.contains(id) &amp;&amp; isr.contains(id)).orElse {
+      if (uncleanLeaderElectionEnabled) {
+        val leaderOpt = assignment.find(liveReplicas.contains)
+        if (leaderOpt.isDefined)
+          controllerContext.stats.uncleanLeaderElectionRate.mark()
+        leaderOpt
+      } else {
+        None
+      }
+    }
+  }
+
+  // 从存活的ISR副本中选择一个作为新的leader
+  def reassignPartitionLeaderElection(reassignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int]): Option[Int] = {
+    reassignment.find(id =&gt; liveReplicas.contains(id) &amp;&amp; isr.contains(id))
+  }
+
+  // 从存活的ISR副本中选择第一个作为新的leader
+  def preferredReplicaPartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int]): Option[Int] = {
+    assignment.headOption.filter(id =&gt; liveReplicas.contains(id) &amp;&amp; isr.contains(id))
+  }
+
+  // 从存活的ISR副本中选择一个状态不为shutdown的作为新leader
+  def controlledShutdownPartitionLeaderElection(assignment: Seq[Int], isr: Seq[Int], liveReplicas: Set[Int], shuttingDownBrokers: Set[Int]): Option[Int] = {
+    assignment.find(id =&gt; liveReplicas.contains(id) &amp;&amp; isr.contains(id) &amp;&amp; !shuttingDownBrokers.contains(id))
+  }
+}
+
+</code></pre>
+<h3 id="控制器之管理topic">控制器之管理Topic</h3>
+<p>负责topic的创建、删除，增加分区等操作。以sh命令创建topic为例，流程如下（源码）：</p>
+<h4 id="启动命令">启动命令</h4>
+<pre><code>bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --topic topic_test( Kafka 版本 &gt;= 2.2 支持此方式（推荐）)。
+</code></pre>
+<pre><code>// 文件地址：/bin/kafka-topics.sh
+#!/bin/bash
+exec $(dirname $0)/kafka-run-class.sh kafka.admin.TopicCommand &quot;$@&quot;
+</code></pre>
+<h4 id="topiccommand接受请求参数执行创建请求操作">TopicCommand接受请求参数，执行创建请求操作</h4>
+<pre><code>// 文件地址：core/src/main/scala/kafka/admin/TopicCommand.scala
+object TopicCommand extends Logging {
+
+  def main(args: Array[String]): Unit = {
+    val opts = new TopicCommandOptions(args)
+    // 检查必填参数
+    opts.checkArgs()
+
+    // 创建topic服务
+    val topicService = TopicService(opts.commandConfig, opts.bootstrapServer)
+
+    var exitCode = 0
+    try {
+      if (opts.hasCreateOption)
+        // 根据传入的参数判断判断是否有 --create 参数，有的话走创建主题逻辑。
+        topicService.createTopic(opts)
+      else if (opts.hasAlterOption)
+        topicService.alterTopic(opts)
+      else if (opts.hasListOption)
+        topicService.listTopics(opts)
+      else if (opts.hasDescribeOption)
+        topicService.describeTopic(opts)
+      else if (opts.hasDeleteOption)
+        topicService.deleteTopic(opts)
+    } catch {
+      case e: ExecutionException =&gt;
+        if (e.getCause != null)
+          printException(e.getCause)
+        else
+          printException(e)
+        exitCode = 1
+      case e: Throwable =&gt;
+        printException(e)
+        exitCode = 1
+    } finally {
+      topicService.close()
+      Exit.exit(exitCode)
+    }
+  }
+  
+    object TopicService {
+    // 如果传入的参数有 --command-config，则将这个文件里的参数放到 commandConfig 一个 map 里，假如配置文件里面已经有了bootstrap.servers配置，那么会将其覆盖。  
+    def createAdminClient(commandConfig: Properties, bootstrapServer: Option[String]): Admin = {
+      bootstrapServer match {
+        case Some(serverList) =&gt; commandConfig.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, serverList)
+        case None =&gt;
+      }
+      // 生成一个客户端创建topic
+      // Admin文件地址； clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+      Admin.create(commandConfig)
+    }
+
+    def apply(commandConfig: Properties, bootstrapServer: Option[String]): TopicService =
+      new TopicService(createAdminClient(commandConfig, bootstrapServer))
+  }
+
+</code></pre>
+<pre><code>// 文件地址: clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+@InterfaceStability.Evolving
+public interface Admin extends AutoCloseable {
+
+    /**
+     * Create a new Admin with the given configuration.
+     *
+     * @param props The configuration.
+     * @return The new KafkaAdminClient.
+     */
+    static Admin create(Properties props) {
+        // 文件地址: clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.javas
+        // 创建了一个客户端，用此客户端来管理topic
+        return KafkaAdminClient.createInternal(new AdminClientConfig(props, true), null);
+    }
+}  
+
+</code></pre>
+<pre><code>  // 文件地址：core/src/main/scala/kafka/admin/TopicCommand.scala
+  case class TopicService private (adminClient: Admin) extends AutoCloseable {
+
+    def createTopic(opts: TopicCommandOptions): Unit = {
+      val topic = new CommandTopicPartition(opts)
+      if (Topic.hasCollisionChars(topic.name))
+        println(&quot;WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could &quot; +
+          &quot;collide. To avoid issues it is best to use either, but not both.&quot;)
+      createTopic(topic)
+    }
+
+    def createTopic(topic: CommandTopicPartition): Unit = {
+      //  假如配置了副本数，--replication-factor 需在1和32767之间。  
+      if (topic.replicationFactor.exists(rf =&gt; rf &gt; Short.MaxValue || rf &lt; 1))
+        throw new IllegalArgumentException(s&quot;The replication factor must be between 1 and ${Short.MaxValue} inclusive&quot;)
+      // // 假如配置了分区数，--partitions 必须大于0。
+      if (topic.partitions.exists(partitions =&gt; partitions &lt; 1))
+        throw new IllegalArgumentException(s&quot;The partitions must be greater than 0&quot;)
+
+      try {
+        // 假如指定了 --replica-assignment 参数，则按照指定的方式来分配副本。  
+        val newTopic = if (topic.hasReplicaAssignment)
+          new NewTopic(topic.name, asJavaReplicaReassignment(topic.replicaAssignment.get))
+        else {
+          new NewTopic(
+            topic.name,
+            topic.partitions.asJava,
+            topic.replicationFactor.map(_.toShort).map(Short.box).asJava)
+        }
+
+        // 将配置 --config 解析成一个配置 map
+        val configsMap = topic.configsToAdd.stringPropertyNames()
+          .asScala
+          .map(name =&gt; name -&gt; topic.configsToAdd.getProperty(name))
+          .toMap.asJava
+
+        newTopic.configs(configsMap)
+        //  调用 KafkaAdminClient.createTopics 创建 Topic
+        val createResult = adminClient.createTopics(Collections.singleton(newTopic),
+          new CreateTopicsOptions().retryOnQuotaViolation(false))
+        // 获取创建结果  
+        createResult.all().get()
+        println(s&quot;Created topic ${topic.name}.&quot;)
+      } catch {
+        case e : ExecutionException =&gt;
+          if (e.getCause == null)
+            throw e
+          if (!(e.getCause.isInstanceOf[TopicExistsException] &amp;&amp; topic.ifTopicDoesntExist()))
+            throw e.getCause
+      }
+    }
+
+</code></pre>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java
+@Override
+public CreateTopicsResult createTopics(final Collection&lt;NewTopic&gt; newTopics,
+                                       final CreateTopicsOptions options) {
+    final Map&lt;String, KafkaFutureImpl&lt;TopicMetadataAndConfig&gt;&gt; topicFutures = new HashMap&lt;&gt;(newTopics.size());
+    final CreatableTopicCollection topics = new CreatableTopicCollection();
+    for (NewTopic newTopic : newTopics) {
+        if (topicNameIsUnrepresentable(newTopic.name())) {
+            KafkaFutureImpl&lt;TopicMetadataAndConfig&gt; future = new KafkaFutureImpl&lt;&gt;();
+            future.completeExceptionally(new InvalidTopicException(&quot;The given topic name '&quot; +
+                newTopic.name() + &quot;' cannot be represented in a request.&quot;));
+            topicFutures.put(newTopic.name(), future);
+        } else if (!topicFutures.containsKey(newTopic.name())) {
+            topicFutures.put(newTopic.name(), new KafkaFutureImpl&lt;&gt;());
+            topics.add(newTopic.convertToCreatableTopic());
+        }
+    }
+    if (!topics.isEmpty()) {
+        final long now = time.milliseconds();
+        final long deadline = calcDeadlineMs(now, options.timeoutMs());
+        // 远程调用执行创建操作
+        final Call call = getCreateTopicsCall(options, topicFutures, topics,
+            Collections.emptyMap(), now, deadline);
+        runnable.call(call, now);
+    }
+    return new CreateTopicsResult(new HashMap&lt;&gt;(topicFutures));
+}
+
+private Call getCreateTopicsCall(final CreateTopicsOptions options,
+                                 final Map&lt;String, KafkaFutureImpl&lt;TopicMetadataAndConfig&gt;&gt; futures,
+                                 final CreatableTopicCollection topics,
+                                 final Map&lt;String, ThrottlingQuotaExceededException&gt; quotaExceededExceptions,
+                                 final long now,
+                                 final long deadline) {
+    //  使用ControllerNodeProvider选择controller进行远程调用，从此也可以看出，topic的创建是由controller控制                              
+    return new Call(&quot;createTopics&quot;, deadline, new ControllerNodeProvider()) {
+        @Override
+        public CreateTopicsRequest.Builder createRequest(int timeoutMs) {
+            return new CreateTopicsRequest.Builder(
+                new CreateTopicsRequestData()
+                    .setTopics(topics)
+                    .setTimeoutMs(timeoutMs)
+                    .setValidateOnly(options.shouldValidateOnly()));
+        }
+
+        @Override
+        public void handleResponse(AbstractResponse abstractResponse) {
+            // 处理响应结果
+        }
+
+        @Override
+        void handleFailure(Throwable throwable) {
+           // 处理失败
+        }
+    };
+}
+
+/**
+ * Provides the controller node.
+ */
+private class ControllerNodeProvider implements NodeProvider {
+    @Override
+    public Node provide() {
+        if (metadataManager.isReady() &amp;&amp;
+                (metadataManager.controller() != null)) {
+            // 返回集群中的broker控制器    
+            return metadataManager.controller();
+        }
+        metadataManager.requestUpdate();
+        return null;
+    }
+}  
+
+</code></pre>
+<h4 id="服务端接受请求并执行创建操作">服务端接受请求，并执行创建操作</h4>
+<p>可参考上篇<a href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng">《kafka深入理解之Broker请求流程》</a></p>
+<pre><code>// 文件地址：/core/src/main/scala/kafka/server/KafkaRequestHandler.scala
+// 核心函数是def run()中的 apis.handle(request, requestLocal)
+// 文件地址：/core/src/main/scala/kafka/server/KafkaApis.scala
+class KafkaApis(val requestChannel: RequestChannel,
+                val metadataSupport: MetadataSupport,
+                val replicaManager: ReplicaManager,
+                val groupCoordinator: GroupCoordinator,
+                val txnCoordinator: TransactionCoordinator,
+                val autoTopicCreationManager: AutoTopicCreationManager,
+                val brokerId: Int,
+                val config: KafkaConfig,
+                val configRepository: ConfigRepository,
+                val metadataCache: MetadataCache,
+                val metrics: Metrics,
+                val authorizer: Option[Authorizer],
+                val quotas: QuotaManagers,
+                val fetchManager: FetchManager,
+                brokerTopicStats: BrokerTopicStats,
+                val clusterId: String,
+                time: Time,
+                val tokenManager: DelegationTokenManager,
+                val apiVersionManager: ApiVersionManager) extends ApiRequestHandler with Logging {
+
+  type FetchResponseStats = Map[TopicPartition, RecordConversionStats]
+  this.logIdent = &quot;[KafkaApi-%d] &quot;.format(brokerId)
+  val configHelper = new ConfigHelper(metadataCache, config, configRepository)
+  val authHelper = new AuthHelper(authorizer)
+  val requestHelper = new RequestHandlerHelper(requestChannel, quotas, time)
+  val aclApis = new AclApis(authHelper, authorizer, requestHelper, &quot;broker&quot;, config)
+  val configManager = new ConfigAdminManager(brokerId, config, configRepository)
+
+  // 根据处理类型执行相关操作 
+  private def maybeForwardToController(
+    request: RequestChannel.Request,
+    handler: RequestChannel.Request =&gt; Unit
+  ): Unit = {
+    def responseCallback(responseOpt: Option[AbstractResponse]): Unit = {
+      responseOpt match {
+        case Some(response) =&gt; requestHelper.sendForwardedResponse(request, response)
+        case None =&gt; handleInvalidVersionsDuringForwarding(request)
+      }
+    }
+    metadataSupport.maybeForward(request, handler, responseCallback)
+  }
+
+  /**
+   * Top-level method that handles all requests and multiplexes to the right api
+   */
+  override def handle(request: RequestChannel.Request, requestLocal: RequestLocal): Unit = {
+    try {
+      trace(s&quot;Handling request:${request.requestDesc(true)} from connection ${request.context.connectionId};&quot; +
+        s&quot;securityProtocol:${request.context.securityProtocol},principal:${request.context.principal}&quot;)
+
+      if (!apiVersionManager.isApiEnabled(request.header.apiKey)) {
+        // The socket server will reject APIs which are not exposed in this scope and close the connection
+        // before handing them to the request handler, so this path should not be exercised in practice
+        throw new IllegalStateException(s&quot;API ${request.header.apiKey} is not enabled&quot;)
+      }
+
+      // 根据api key匹配执行不同的操作
+      request.header.apiKey match {
+        ......  
+        // 创建topic
+        case ApiKeys.CREATE_TOPICS =&gt; maybeForwardToController(request, handleCreateTopicsRequest)
+        ......
+        case _ =&gt; throw new IllegalStateException(s&quot;No handler for request api key ${request.header.apiKey}&quot;)
+      }
+    } catch {
+      case e: FatalExitError =&gt; throw e
+      case e: Throwable =&gt;
+        error(s&quot;Unexpected error handling request ${request.requestDesc(true)} &quot; +
+          s&quot;with context ${request.context}&quot;, e)
+        requestHelper.handleError(request, e)
+    } finally {
+      // try to complete delayed action. In order to avoid conflicting locking, the actions to complete delayed requests
+      // are kept in a queue. We add the logic to check the ReplicaManager queue at the end of KafkaApis.handle() and the
+      // expiration thread for certain delayed operations (e.g. DelayedJoin)
+      replicaManager.tryCompleteActions()
+      // The local completion time may be set while processing the request. Only record it if it's unset.
+      if (request.apiLocalCompleteTimeNanos &lt; 0)
+        request.apiLocalCompleteTimeNanos = time.nanoseconds
+    }
+  }
+
+// 执行创建topic的请求  
+def handleCreateTopicsRequest(request: RequestChannel.Request): Unit = {
+  // 获取zookeeper支持器，用于在zookeeper上创建对应的topic节点
+  val zkSupport = metadataSupport.requireZkOrThrow(KafkaApis.shouldAlwaysForward(request))
+  val controllerMutationQuota = quotas.controllerMutation.newQuotaFor(request, strictSinceVersion = 6)
+  
+  // 响应结果回调
+  def sendResponseCallback(results: CreatableTopicResultCollection): Unit = {
+    def createResponse(requestThrottleMs: Int): AbstractResponse = {
+      val responseData = new CreateTopicsResponseData()
+        .setThrottleTimeMs(requestThrottleMs)
+        .setTopics(results)
+      val responseBody = new CreateTopicsResponse(responseData)
+      trace(s&quot;Sending create topics response $responseData for correlation id &quot; +
+        s&quot;${request.header.correlationId} to client ${request.header.clientId}.&quot;)
+      responseBody
+    }
+    requestHelper.sendResponseMaybeThrottleWithControllerQuota(controllerMutationQuota, request, createResponse)
+  }
+
+  val createTopicsRequest = request.body[CreateTopicsRequest]
+  val results = new CreatableTopicResultCollection(createTopicsRequest.data.topics.size)
+  // 判断当前broker是否为controller，只有controller才能创建topic----创建topic过程中，可能出现controller变更
+  if (!zkSupport.controller.isActive) {
+    createTopicsRequest.data.topics.forEach { topic =&gt;
+      results.add(new CreatableTopicResult().setName(topic.name)
+        .setErrorCode(Errors.NOT_CONTROLLER.code))
+    }
+    sendResponseCallback(results)
+  } else {
+    createTopicsRequest.data.topics.forEach { topic =&gt;
+      results.add(new CreatableTopicResult().setName(topic.name))
+    }
+    ......
+    // 处理创建topic响应结果
+    def handleCreateTopicsResults(errors: Map[String, ApiError]): Unit = {
+      errors.foreach { case (topicName, error) =&gt;
+        val result = results.find(topicName)
+        result.setErrorCode(error.error.code)
+          .setErrorMessage(error.message)
+        // Reset any configs in the response if Create failed
+        if (error != ApiError.NONE) {
+          result.setConfigs(List.empty.asJava)
+            .setNumPartitions(-1)
+            .setReplicationFactor(-1)
+            .setTopicConfigErrorCode(Errors.NONE.code)
+        }
+      }
+      sendResponseCallback(results)
+    }
+    // 在zookeeper上创建topic节点
+    zkSupport.adminManager.createTopics(
+      createTopicsRequest.data.timeoutMs,
+      createTopicsRequest.data.validateOnly,
+      toCreate,
+      authorizedForDescribeConfigs,
+      controllerMutationQuota,
+      handleCreateTopicsResults)
+  }
+}  
+
+</code></pre>
+<h4 id="写入zk的参数信息">写入zk的参数信息</h4>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/ZkAdminManager.scala
+/**
+  * Create topics and wait until the topics have been completely created.
+  * The callback function will be triggered either when timeout, error or the topics are created.
+  */
+def createTopics(timeout: Int,
+                 validateOnly: Boolean,
+                 toCreate: Map[String, CreatableTopic],
+                 includeConfigsAndMetadata: Map[String, CreatableTopicResult],
+                 controllerMutationQuota: ControllerMutationQuota,
+                 responseCallback: Map[String, ApiError] =&gt; Unit): Unit = {
+
+  // 1. map over topics creating assignment and calling zookeeper
+  val brokers = metadataCache.getAliveBrokers()
+  val metadata = toCreate.values.map(topic =&gt;
+    try {
+      ......
+
+      if (validateOnly) {
+        CreatePartitionsMetadata(topic.name, assignments.keySet)
+      } else {
+        controllerMutationQuota.record(assignments.size)
+        // 创建topic时把相关参数也写入zk中
+        adminZkClient.createTopicWithAssignment(topic.name, configs, assignments, validate = false, config.usesTopicId)
+        populateIds(includeConfigsAndMetadata, topic.name)
+        CreatePartitionsMetadata(topic.name, assignments.keySet)
+      }
+    } catch {
+      // Log client errors at a lower level than unexpected exceptions
+      ......
+    }).toBuffer
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/zk/ZkAdminManager.scala
+/**
+ * Create topic and optionally validate its parameters. Note that this method is used by the
+ * TopicCommand as well.
+ *
+ * @param topic The name of the topic
+ * @param config The config of the topic
+ * @param partitionReplicaAssignment The assignments of the topic
+ * @param validate Boolean indicating if parameters must be validated or not (true by default)
+ * @param usesTopicId Boolean indicating whether the topic ID will be created
+ */
+def createTopicWithAssignment(topic: String,
+                              config: Properties,
+                              partitionReplicaAssignment: Map[Int, Seq[Int]],
+                              validate: Boolean = true,
+                              usesTopicId: Boolean = false): Unit = {
+  if (validate)
+    validateTopicCreate(topic, partitionReplicaAssignment, config)
+
+  info(s&quot;Creating topic $topic with configuration $config and initial partition &quot; +
+    s&quot;assignment $partitionReplicaAssignment&quot;)
+
+  // write out the config if there is any, this isn't transactional with the partition assignments
+  // 将topic配置信息写入zk，不包含分区参数
+  zkClient.setOrCreateEntityConfigs(ConfigType.Topic, topic, config)
+
+  // create the partition assignment
+  // 写入分区参数
+  writeTopicPartitionAssignment(topic, partitionReplicaAssignment.map { case (k, v) =&gt; k -&gt; ReplicaAssignment(v) },
+    isUpdate = false, usesTopicId)
+}
+
+// 写入分区参数信息
+// 对应的参数写入znode路径--TopicZNode.path(topic)----/brokers/topics/&lt;topic_name&gt;  
+private def writeTopicPartitionAssignment(topic: String, replicaAssignment: Map[Int, ReplicaAssignment],
+                                          isUpdate: Boolean, usesTopicId: Boolean = false): Unit = {
+  try {
+    val assignment = replicaAssignment.map { case (partitionId, replicas) =&gt; (new TopicPartition(topic,partitionId), replicas) }.toMap
+
+    if (!isUpdate) {
+      val topicIdOpt = if (usesTopicId) Some(Uuid.randomUuid()) else None
+      // 不存在则创建
+      zkClient.createTopicAssignment(topic, topicIdOpt, assignment.map { case (k, v) =&gt; k -&gt; v.replicas })
+    } else {
+      val topicIds = zkClient.getTopicIdsForTopics(Set(topic))
+      // 存在就更新参数信息
+      zkClient.setTopicAssignment(topic, topicIds.get(topic), assignment)
+    }
+    debug(&quot;Updated path %s with %s for replica assignment&quot;.format(TopicZNode.path(topic), assignment))
+  } catch {
+    case _: NodeExistsException =&gt; throw new TopicExistsException(s&quot;Topic '$topic' already exists.&quot;)
+    case e2: Throwable =&gt; throw new AdminOperationException(e2.toString)
+  }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/zk/KafkaZkClient.scala
+/**
+ * Sets or creates the entity znode path with the given configs depending
+ * on whether it already exists or not.
+ * 根据给定的路径创建znode节点（如果不存在则创建，topic节点）---/config/topics/&lt;topic_name&gt;  
+ *
+ * If this is method is called concurrently, the last writer wins. In cases where we update configs and then
+ * partition assignment (i.e. create topic), it's possible for one thread to set this and the other to set the
+ * partition assignment. As such, the recommendation is to never call create topic for the same topic with different
+ * configs/partition assignment concurrently.
+ *
+ * @param rootEntityType entity type
+ * @param sanitizedEntityName entity name
+ * @throws KeeperException if there is an error while setting or creating the znode
+ */
+def setOrCreateEntityConfigs(rootEntityType: String, sanitizedEntityName: String, config: Properties) = {
+
+  def set(configData: Array[Byte]): SetDataResponse = {
+    val setDataRequest = SetDataRequest(ConfigEntityZNode.path(rootEntityType, sanitizedEntityName),
+      configData, ZkVersion.MatchAnyVersion)
+    retryRequestUntilConnected(setDataRequest)
+  }
+
+  def createOrSet(configData: Array[Byte]): Unit = {
+    // znode 节点路径名：/config/topics/&lt;topic_name&gt;  
+    val path = ConfigEntityZNode.path(rootEntityType, sanitizedEntityName)
+    try createRecursive(path, configData)
+    catch {
+      case _: NodeExistsException =&gt; set(configData).maybeThrow()
+    }
+  }
+
+  val configData = ConfigEntityZNode.encode(config)
+
+  val setDataResponse = set(configData)
+  setDataResponse.resultCode match {
+    case Code.NONODE =&gt; createOrSet(configData)
+    case _ =&gt; setDataResponse.maybeThrow()
+  }
+}
+
+</code></pre>
+<h4 id="controller监听brokerstopicstopic_name-如果节点有变化则会通知controller进行处理">Controller监听/brokers/topics/&lt;topic_name&gt; ，如果节点有变化，则会通知Controller进行处理</h4>
+<pre><code>// 文件地址：core/src/main/scala/kafka/controller/KafkaController.scala
+override def process(event: ControllerEvent): Unit = {
+  try {
+    event match {
+      case event: MockEvent =&gt;
+        // Used only in test cases
+        event.process()
+      ......
+      // 处理topic改变
+      case TopicChange =&gt;
+        processTopicChange()
+      ...... 
+    }
+  } catch {
+    case e: ControllerMovedException =&gt;
+      info(s&quot;Controller moved to another broker when processing $event.&quot;, e)
+      maybeResign()
+    case e: Throwable =&gt;
+      error(s&quot;Error processing event $event&quot;, e)
+  } finally {
+    updateMetrics()
+  }
+}
+
+private def processTopicChange(): Unit = {
+  // 非 controller 角色则直接返回，不作任何处理  
+  if (!isActive) return
+  // 获取zk集群中的所有topic信息---即/brokers/topics节点下的信息
+  val topics = zkClient.getAllTopicsInCluster(true)
+  // 获取新增状态的topic
+  val newTopics = topics -- controllerContext.allTopics
+  // 获取删除状态的topic
+  val deletedTopics = controllerContext.allTopics.diff(topics)
+  // 所有的topic都放入控制器上下文中
+  controllerContext.setAllTopics(topics)
+
+  // 注册分区变动处理器
+  registerPartitionModificationsHandlers(newTopics.toSeq)
+  // 对于新增topic，获取其可分配的副本及主题id
+  val addedPartitionReplicaAssignment = zkClient.getReplicaAssignmentAndTopicIdForTopics(newTopics)
+  // 从控制器上下文中移除已删除的topic
+  deletedTopics.foreach(controllerContext.removeTopic)
+  processTopicIds(addedPartitionReplicaAssignment)
+
+  addedPartitionReplicaAssignment.foreach { case TopicIdReplicaAssignment(_, _, newAssignments) =&gt;
+    newAssignments.foreach { case (topicAndPartition, newReplicaAssignment) =&gt;
+      controllerContext.updatePartitionFullReplicaAssignment(topicAndPartition, newReplicaAssignment)
+    }
+  }
+  info(s&quot;New topics: [$newTopics], deleted topics: [$deletedTopics], new partition replica assignment &quot; +
+    s&quot;[$addedPartitionReplicaAssignment]&quot;)
+  if (addedPartitionReplicaAssignment.nonEmpty) {
+    val partitionAssignments = addedPartitionReplicaAssignment
+      .map { case TopicIdReplicaAssignment(_, _, partitionsReplicas) =&gt; partitionsReplicas.keySet }
+      .reduce((s1, s2) =&gt; s1.union(s2))
+    // 处理新的可分配分区的状态  
+    onNewPartitionCreation(partitionAssignments)
+  }
+}
+
+/**
+ * This callback is invoked by the topic change callback with the list of failed brokers as input.
+ * It does the following -
+ * 1. Move the newly created partitions to the NewPartition state--新创建的分区修改状态为NewPartition 
+ * 2. Move the newly created partitions from NewPartition-&gt;OnlinePartition state--新创建的分区修改状态NewPartition为OnlinePartition 
+ */
+private def onNewPartitionCreation(newPartitions: Set[TopicPartition]): Unit = {
+  info(s&quot;New partition creation callback for ${newPartitions.mkString(&quot;,&quot;)}&quot;)
+  // 修改状态为 NewPartition
+  partitionStateMachine.handleStateChanges(newPartitions.toSeq, NewPartition)
+  // 修改状态为 NewReplica
+  replicaStateMachine.handleStateChanges(controllerContext.replicasForPartition(newPartitions).toSeq, NewReplica)
+  // 修改状态为 OnlinePartition
+  partitionStateMachine.handleStateChanges(
+    newPartitions.toSeq,
+    OnlinePartition,
+    Some(OfflinePartitionLeaderElectionStrategy(false))
+  )
+  // 修改状态为 OnlineReplica
+  replicaStateMachine.handleStateChanges(controllerContext.replicasForPartition(newPartitions).toSeq, OnlineReplica)
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+def handleLeaderAndIsrRequest(request: RequestChannel.Request): Unit = {
+  val zkSupport = metadataSupport.requireZkOrThrow(KafkaApis.shouldNeverReceive(request))
+  // ensureTopicExists is only for client facing requests
+  // We can't have the ensureTopicExists check here since the controller sends it as an advisory to all brokers so they
+  // stop serving data to clients for the topic being deleted
+  val correlationId = request.header.correlationId
+  val leaderAndIsrRequest = request.body[LeaderAndIsrRequest]
+
+  authHelper.authorizeClusterOperation(request, CLUSTER_ACTION)
+  if (isBrokerEpochStale(zkSupport, leaderAndIsrRequest.brokerEpoch)) {
+    // When the broker restarts very quickly, it is possible for this broker to receive request intended
+    // for its previous generation so the broker should skip the stale request.
+    info(&quot;Received LeaderAndIsr request with broker epoch &quot; +
+      s&quot;${leaderAndIsrRequest.brokerEpoch} smaller than the current broker epoch ${zkSupport.controller.brokerEpoch}&quot;)
+    requestHelper.sendResponseExemptThrottle(request, leaderAndIsrRequest.getErrorResponse(0, Errors.STALE_BROKER_EPOCH.exception))
+  } else {
+    // 创建本地log，如果日志已经存在，只返回现有日志的副本，否则如果 isNew=true 或者如果没有离线日志目录，则为给定的主题和给定的分区创建日志，否则抛出 KafkaStorageException。
+    // 源码调用链：kafka.server.ReplicaManager#becomeLeaderOrFollower -&gt; kafka.server.ReplicaManager#makeLeaders 
+    // -&gt; kafka.cluster.Partition#makeLeader -&gt; kafka.cluster.Partition#createLogIfNotExists
+    // -&gt; kafka.cluster.Partition#createLog-&gt; kafka.log.LogManager#getOrCreateLog
+    val response = replicaManager.becomeLeaderOrFollower(correlationId, leaderAndIsrRequest,
+      RequestHandlerHelper.onLeadershipChange(groupCoordinator, txnCoordinator, _, _))
+    requestHelper.sendResponseExemptThrottle(request, response)
+  }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/cluster/Partition.scala
+def createLogIfNotExists(isNew: Boolean, isFutureReplica: Boolean, offsetCheckpoints: OffsetCheckpoints, topicId: Option[Uuid]): Unit = {
+  def maybeCreate(logOpt: Option[UnifiedLog]): UnifiedLog = {
+    logOpt match {
+      case Some(log) =&gt;
+        trace(s&quot;${if (isFutureReplica) &quot;Future UnifiedLog&quot; else &quot;UnifiedLog&quot;} already exists.&quot;)
+        if (log.topicId.isEmpty)
+          topicId.foreach(log.assignTopicId)
+        log
+      case None =&gt;
+        // 不存在才创建
+        createLog(isNew, isFutureReplica, offsetCheckpoints, topicId)
+    }
+  }
+
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[kafka深入理解之Broker请求流程]]></title>
         <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/</id>
@@ -1172,6 +2863,8 @@ spring.kafka.listener.ack-time;
 <h3 id="需求描述">需求描述</h3>
 <p>为了防止敏感数据泄露，造成资产损失，故需要对相关数据进行加密处理；同时，允许部分加密数据支持模糊搜索。</p>
 <h2 id="详细设计">详细设计</h2>
+<h3 id="源码地址">源码地址</h3>
+<p><a href="https://github.com/philosopherZB/demo-all/tree/master/secret">点击此处跳转源码地址</a></p>
 <h3 id="总体设计">总体设计</h3>
 <p>加密服务提供针对敏感数据存储的加密能力，用于防止因外部或内部安全威胁所导致的数据泄露问题，从而提高数据安全的防护水平。</p>
 <p>基本功能：</p>
@@ -2556,900 +4249,6 @@ log_msg this is sample log message
 }
 fn
 echo &quot;global: str=${str}&quot;
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[python3基本知识]]></title>
-        <id>https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/</id>
-        <link href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/">
-        </link>
-        <updated>2022-04-16T07:52:59.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述python3脚本知识。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-209956_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="简介">简介</h2>
-<h3 id="简介-2">简介</h3>
-<p>Python 是一个高层次的结合了解释性、编译性、互动性和面向对象的脚本语言（计算机编程语言）。</p>
-<p>Python 的设计具有很强的可读性，相比其他语言经常使用英文关键字，其他语言的一些标点符号，它具有比其他语言更有特色的语法结构。</p>
-<p>注意：python3与python2具备较大的差别，他们之间并不完全兼容。</p>
-<p>Python的优点：</p>
-<ol>
-<li>简单和明确，做一件事只有一种方法。</li>
-<li>学习曲线低，跟其他很多语言相比，Python更容易上手。</li>
-<li>开放源代码，拥有强大的社区和生态圈。</li>
-<li>解释型语言，天生具有平台可移植性。</li>
-<li>支持两种主流的编程范式（面向对象编程和函数式编程）都提供了支持。</li>
-<li>可扩展性和可嵌入性，可以调用C/C++代码，也可以在C/C++中调用Python。</li>
-<li>代码规范程度高，可读性强，适合有代码洁癖和强迫症的人群。</li>
-</ol>
-<p>Python的缺点主要集中在以下几点。</p>
-<ol>
-<li>执行效率稍低，因此计算密集型任务可以由C/C++编写。</li>
-<li>代码无法加密，但是现在很多公司都不销售卖软件而是销售服务，这个问题会被淡化。</li>
-<li>在开发时可以选择的框架太多（如Web框架就有100多个），有选择的地方就有错误。</li>
-</ol>
-<h2 id="基本语法">基本语法</h2>
-<h3 id="变量">变量</h3>
-<h4 id="基础变量">基础变量</h4>
-<p>创建变量时，需遵循以下规则：</p>
-<ul>
-<li>第一个字符必须是字母表中字母或下划线 _ 。</li>
-<li>标识符的其他的部分由字母、数字和下划线组成。</li>
-<li>标识符对大小写敏感。</li>
-<li>不能使用python保留字。</li>
-<li>python3支持中文作为变量名，非 ASCII 标识符也是允许的。（不建议使用中文作为变量名）</li>
-</ul>
-<pre><code># 查看关键字
-import keyword
-var = keyword.kwlist
-print(var)
-
-</code></pre>
-<h4 id="注释与编码">注释与编码</h4>
-<p>单行注释使用#号，多行注释可以使用'''或者&quot;&quot;&quot;，python3编码默认为utf-8（可以修改）。</p>
-<pre><code># 单行注释信息
-&quot;&quot;&quot;
-多行注释
-&quot;&quot;&quot;
-
-# 修改编码
-# -*- coding: GBK -*-
-
-</code></pre>
-<h4 id="语法结构">语法结构</h4>
-<p>python对于代码块需要使用缩进来表示，缩进的空格数是可变的，但是同一个代码块中的缩进需要保持一致，一般使用4个空格。</p>
-<p>为了方便后期维护，在代码之间可以适当的使用空行进行代码功能隔离。</p>
-<pre><code>a = &quot;12&quot;
-if n := len(a) &gt; 1:
-    print(&quot;True&quot;)
-else:
-    print(&quot;False&quot;)
-
-</code></pre>
-<p>python中关于一条语句过长需要换行的写法如下（使用反斜杠\）：</p>
-<pre><code>var = &quot;var1&quot; \
-    &quot;var2&quot; \
-    &quot;var3&quot;
-print(var)
-
-</code></pre>
-<p>python支持多行语句并做一行处理</p>
-<pre><code>import sys; x = 'runoob'; sys.stdout.write(x + '\n')
-</code></pre>
-<h2 id="基本数据类型">基本数据类型</h2>
-<p>Python3有六个标准的数据类型：Number，String，List，Tuple，Set，Dictionary。</p>
-<p>其中不可变数据：Number，String，Tuple</p>
-<p>可变数据：List，Set，Dictionary</p>
-<h3 id="number数字">Number（数字）</h3>
-<p>python3支持int(长整型，相当于python2的Long)，float，bool(python2没有布尔值；1等于True，0等于False，可用于算术运算)，complex(复数)。</p>
-<pre><code># 可以使用type或者isinstance函数判断变量类型。
-# type()不会认为子类是一种父类类型。即type事先不知道变量类型。
-# isinstance()会认为子类是一种父类类型。即isinstance事先知道变量类型。
-a, b, c, d = 1, 2.2, False, 4+1j
-print(type(a), type(b), type(c), type(d))
-print(isinstance(a, int))
-
-# bool 算术运算
-a = True
-b, c, d = a + 1, a - 1, a * 10
-print(a, b, c, d)
-
-# 强制转换
-a = &quot;1&quot;
-print(a, int(a), bool(a), float(a))
-
-</code></pre>
-<h3 id="string字符串">String（字符串）</h3>
-<p>python3使用''或者&quot;&quot;定义字符串，使用反斜杠\转义特殊字符，也可以使用r让反斜杠不转义；连接字符串用+号，重复字符串用*号。</p>
-<pre><code>a = &quot;test\ncontent&quot;
-b = r&quot;test\ncontent&quot;
-print(a)
-print(b)
-print(b + b)
-print(b*3)
-
-</code></pre>
-<p>字符串的截取语法：variable[头下标:尾下标]，规则为左闭右开区间；</p>
-<p>从左往右，头下标从0开始（0可省略）；从右往左，尾下标从-1开始（注意：由于左闭右开原则，-1并不会取到最后一位字符，如需取最后一位字符，需将尾下标置空）。</p>
-<pre><code>a = &quot;test content&quot;
-print(a[:5])
-print(a[0:5])
-print(a[-12:-1])
-print(a[-12:])
-
-# 判断字符是否在目标字符串中
-print(&quot;te&quot; in a)
-print(&quot;t&quot; not in a)
-
-# 字符串格式化
-a = &quot;%s, %d&quot; % (&quot;weq&quot;, 2)
-print(a)
-
-# 使用f-string进行格式化，可以不用%s之类的转换符（python版本需要3.6及以上）
-a = &quot;content&quot;
-b = f&quot;test {a}&quot;
-print(b)
-print(f&quot;{1+2=}&quot;)
-
-</code></pre>
-<h3 id="tuple元组">Tuple（元组）</h3>
-<p>元组使用()进行赋值，使用逗号分隔不同元素；()中可以存在不同类型的元素，如数字，字符串，嵌套元组等。</p>
-<p>元组的索引与截取规则与字符串一致，可参考3.2节内容。</p>
-<p>注意：元组中的元素是不能被修改的；只包含一个元素时，需要在元素后面添加逗号，否则括号会被当作运算符使用</p>
-<pre><code>tup = (&quot;www&quot;, 12306, 99.99, 1, 2, 3)
-tup2 = (&quot;test&quot;,)
-print(tup)
-print(tup[:2])
-print(tup[-1:])
-print(tup + tup2)
-print(tup * 2)
-print(&quot;www&quot; in tup)
-
-# 元组截取时，支持第三个参数：步长
-print(tup[0:6:2])
-
-</code></pre>
-<h3 id="list列表">List（列表）</h3>
-<p>列表与元组规则基本一致，不过列表使用[]进行赋值，且其中的元素是可以被修改的。</p>
-<pre><code>list1 = [&quot;www&quot;, 12306, 99.99, 1, 2, 3]
-list2 = [&quot;test&quot;]
-print(list1)
-print(list1[:2])
-print(list1[-1:])
-print(list1 + list2)
-print(list1 * 2)
-print(&quot;www&quot; in list1)
-
-# 截取时，支持第三个参数：步长
-print(list1[0:6:2])
-
-# 修改列表元素
-list2[0] = &quot;update&quot;
-print(list2)
-
-</code></pre>
-<p>借助内置函数，列表也可以被当做堆栈（后进先出）或者队列（先进先出）使用。</p>
-<p>注意：列表用作队列时相对比较低效。因为在列表的末尾添加和弹出元素非常快，但是在列表的开头插入或弹出元素却很慢 (因为所有的其他元素都必须移动一位)。</p>
-<pre><code># 列表作为堆栈，利用append函数添加一个元素到堆栈的顶端，利用pop函数从堆栈顶部取出一个元素
-stack = [1, 2, 3]
-stack.append(4)
-stack.append(5)
-print(stack)
-stack.pop()
-print(stack)
-
-# 列表作为队列，需要借助collections.deque操作列表两端
-from collections import deque
-
-queue = deque([1, 2, 3])
-queue.append(4)
-queue.append(5)
-print(queue)
-queue.popleft()
-print(queue)
-
-</code></pre>
-<p>python中的列表推导式：列表推导式提供了一个更简单的创建列表的方法。常见的用法是把某种操作应用于序列或可迭代对象的每个元素上，然后使用其结果来创建列表，或者通过满足某些特定条件元素来创建子序列。</p>
-<p>列表推导式的结构是由一对方括号所包含的以下内容组成：一个表达式，后面跟一个 for 子句，然后是零个或多个 for 或 if 子句。 其结果将是一个新列表，由对表达式依据后面的 for 和 if 子句的内容进行求值计算而得出。</p>
-<p>注意：如果表达式是一个元组，那么其必须加上括号。</p>
-<pre><code># 简单列表推导式
-t = [x * 2 for x in range(3)]
-print(t)
-
-list_x = [1, 3, 5]
-list_y = [2, 4, 6]
-print([x * y for x in list_x for y in list_y])
-
-fresh_str = ['  f   ', '  r', 'w   ']
-print([x.strip() for x in fresh_str])
-
-# 组合两个列表中的不同元素，将返回一个列表，列表中的元素类型是元组
-t = [(x, y) for x in [1, 2, 3] for y in [2, 1, 3] if x != y]
-print(t)
-
-# 嵌套列表推导式
-list_1 = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
-t = [[row[i] for row in list_1] for i in range(4)]
-print(t)
-
-</code></pre>
-<h3 id="set集合">Set（集合）</h3>
-<p>集合是由不重复元素组成的无序的集。它的基本用法包括成员检测和消除重复元素。集合对象也支持像 联合，交集，差集，对称差分等数学运算。</p>
-<p>使用{}花括号或<a href="https://docs.python.org/zh-cn/3.9/library/stdtypes.html#set">set()</a> 函数可以用来创建集合。注意：要创建一个空集合只能用 set() 而不能用 {}，因为后者是创建一个空字典。</p>
-<pre><code># 去重
-sites = {&quot;www&quot;, &quot;12306&quot;, &quot;com&quot;, &quot;www&quot;}
-print(sites)
-print(&quot;www&quot; in sites)
-
-# 运算
-a = set(&quot;abcd&quot;)
-b = set(&quot;defg&quot;)
-print(a &amp; b)
-print(a | b)
-print(a ^ b)
-# a集合包含的元素而b集合不包含
-print(a - b)
-
-# 集合支持推导式
-a = {x for x in 'abcdefg' if x not in 'abc'}
-print(a)
-
-</code></pre>
-<h3 id="dictionary字典">Dictionary（字典）</h3>
-<p>字典（dictionary）是Python中另一个非常有用的内置数据类型。</p>
-<p>列表是有序的对象集合，字典是无序的对象集合。两者之间的区别在于：字典当中的元素是通过键来存取的，而不是通过偏移存取。</p>
-<p>字典是一种映射类型，字典用 { } 标识，它是一个无序的 键(key) : 值(value) 的集合。</p>
-<p>键(key)必须使用不可变类型。</p>
-<p>在同一个字典中，键(key)必须是唯一的。</p>
-<pre><code># 字典，类比如json，或者map，是一个kv键值对的集合
-dict_test = {'name': 'hello', 'age': 100}
-# 获取字典的值
-print(dict_test['name'])
-print(dict_test.get('age'))
-# 获取键值对
-for k, v in dict_test.items():
-    print(k, v)
-  
-# 使用dict函数构造字典
-d = dict([('name', 'jack'), ('age', 100)])
-print(d)
-d2 = dict(name='tom', age=90)
-print(d2)
-
-# 字典支持推导式
-a = {x: x * 2 for x in (1, 2, 3)}
-print(a)
-
-</code></pre>
-<h2 id="流程控制">流程控制</h2>
-<h3 id="条件判断">条件判断</h3>
-<p>if 语法如下所示：</p>
-<ul>
-<li>每个条件后面要使用冒号 :，表示接下来是满足条件后要执行的语句块。</li>
-<li>使用缩进来划分语句块，相同缩进数的语句在一起组成一个语句块。</li>
-<li>在Python中没有switch – case语句。</li>
-</ul>
-<pre><code># 语法格式
-if condition_1:
-    statement_block_1
-elif condition_2:
-    statement_block_2
-else:
-    statement_block_3
-  
-# 简单实例
-var = 10
-if var &gt; 10:
-    print(&quot;value(&quot; + str(var) + &quot;) grate than 10&quot;)
-elif var == 10:
-    print(&quot;value(&quot; + str(var) + &quot;) equals 10&quot;)
-else:
-    print(&quot;value(&quot; + str(var) + &quot;) less than 10&quot;)  
-  
-# := 赋值表达式运算符，又称海象运算符（python3.8）
-a = &quot;12&quot;
-if n := len(a) &gt; 1:
-    print(&quot;True&quot;)
-else:
-    print(&quot;False&quot;)  
-
-</code></pre>
-<h3 id="循环语句">循环语句</h3>
-<p>break（终止循环）及continue（跳过本次循环）用于流程控制。pass是空语句，是为了保持程序结构的完整性。</p>
-<p>while语句</p>
-<pre><code># 简单例子
-var = 1
-while var &lt; 3:
-    print(&quot;value: &quot; + str(var))
-    var += 1
-  
-# pass占位语句
-while True:
-    pass  
-
-</code></pre>
-<p>for语句（break（终止循环）及continue（跳过本次循环）用于流程控制）</p>
-<pre><code># 简单例子
-# 列表 for循环
-list1 = [&quot;first&quot;, 'second', 123, 45.6]
-print(len(list1))
-for var in list1:
-    print(var, end=&quot;; &quot;)
-  
-# 获取索引及其值
-for i, v in enumerate(list1):
-    print(i, v)   
-  
-# 多个list，使用zip函数聚合
-list2 = ['map', 'json', 'session', 'cookie']
-for q1, q2, in zip(list1, list2):
-    print('param1={0}, param2={1}'.format(q1, q2))
-  
-# 内置的range函数可以遍历数字序列
-# 简单range，
-for i in range(3):
-    print(i)
-# 指定区间
-for i in range(1, 3):
-    print(i)
-# 指定区间及步长
-for i in range(1, 10, 2):
-    print(i)
-  
-# 迭代器
-list3 = [&quot;good&quot;, &quot;fire&quot;, &quot;hello&quot;]
-it = iter(list2)
-print(next(it))
-for var in it:
-    print(var)  
-
-</code></pre>
-<h2 id="函数">函数</h2>
-<h3 id="函数-2">函数</h3>
-<p>函数是组织好的，可重复使用的，用来实现单一，或相关联功能的代码段。函数能提高应用的模块性，和代码的重复利用率。</p>
-<ul>
-<li>函数代码块以 def 关键词开头，后接函数标识符名称和圆括号 ()。</li>
-<li>任何传入参数和自变量必须放在圆括号中间，圆括号之间可以用于定义参数。</li>
-<li>函数的第一行语句可以选择性地使用文档字符串—用于存放函数说明。</li>
-<li>函数内容以冒号 : 起始，并且缩进。</li>
-<li>return [表达式] 结束函数，选择性地返回一个值给调用方，不带表达式的 return 相当于返回 None。</li>
-</ul>
-<pre><code># 可变对象传递给函数，将会改变其中的值；不可变对象传递不会改变值（如果修改，则返回一个新的变量）
-def test_n(var):
-    var[0] = 3
-
-test1 = [2, 3]
-test_n(test1)
-print(test1)
-
-# 必需参数须以正确的顺序传入函数。调用时的数量必须和声明时的一样。
-def test_1(var):
-    print(var)
-
-test_1(1)
-
-# 关键字参数和函数调用关系紧密，函数调用使用关键字参数来确定传入的参数值。
-# 使用关键字参数允许函数调用时参数的顺序与声明时不一致，因为 Python 解释器能够用参数名匹配参数值。
-def test_2(var1, var2):
-    print(var1, var2)
-
-test_2(var2=2, var1=1)
-
-# 默认参数：调用函数时，如果没有传递参数，则会使用默认参数
-# 默认参数最好使用不可变数据类型，否则可能会出现超出预期的场景
-def test_3(var1, var2=2):
-    print(var1, var2)
-
-test_3(1)
-
-# 不定长参数: 当需要一个函数能处理比当初声明时更多的参数时，这些参数就叫做不定长参数
-# *表示一个元组
-def test_4(var1, *var2):
-    print(var1)
-    print(var2)
-
-test_4(1, 10, 20, 30)
-
-# **表示一个字典
-def test_4(var1, **var2):
-    print(var1)
-    print(var2)
-
-test_4(1, a=10, b=20, c=30)
-
-# 文档字符串
-# 第一行应该是对象目的的简要概述。为简洁起见，它不应显式声明对象的名称或类型，因为这些可通过其他方式获得（除非名称恰好是描述函数操作的动词）。这一行应以大写字母开头，以句点结尾。
-# 如果文档字符串中有更多行，则第二行应为空白，从而在视觉上将摘要与其余描述分开。后面几行应该是一个或多个段落，描述对象的调用约定，它的副作用等。
-def test_5():
-    &quot;&quot;&quot;Do nothing, but document it.
-
-    No, really, it doesn't do anything
-    &quot;&quot;&quot;
-    print(&quot;test&quot;)
-
-print(test_5.__doc__)
-
-</code></pre>
-<h3 id="匿名函数">匿名函数</h3>
-<p>python 使用 lambda 来创建匿名函数。</p>
-<p>所谓匿名，意即不再使用 def 语句这样标准的形式定义一个函数。</p>
-<ul>
-<li>lambda 只是一个表达式，函数体比 def 简单很多。</li>
-<li>lambda的主体是一个表达式，而不是一个代码块。仅仅能在lambda表达式中封装有限的逻辑进去。</li>
-<li>lambda 函数拥有自己的命名空间，且不能访问自己参数列表之外或全局命名空间里的参数。</li>
-<li>虽然lambda函数看起来只能写一行，却不等同于C或C++的内联函数，后者的目的是调用小函数时不占用栈内存从而增加运行效率。</li>
-</ul>
-<pre><code># lambda函数
-# 语法
-lambda [arg1 [,arg2,.....argn]]:expression
-
-# 简单例子
-sum_result = lambda a1, a2: a1 + a2
-print(sum_result(2, 3))
-
-</code></pre>
-<h2 id="错误与异常">错误与异常</h2>
-<h3 id="异常">异常</h3>
-<p>即使语句或表达式在语法上是正确的，但在尝试执行时，它仍可能会引发错误。在执行时检测到的错误被称为异常，异常不一定会导致严重后果。</p>
-<pre><code># 简单异常
-print(3 / 0)
-# 输出
-Traceback (most recent call last):
-  File &quot;D:/knowledge/python/pycharm/pythonProject/learn/test.py&quot;, line 123, in &lt;module&gt;
-    print(3 / 0)
-ZeroDivisionError: division by zero
-
-# 处理异常
-def test_6(x, y):
-    try:
-        x / y
-    except Exception as msg:
-        print(msg)
-
-test_6(3, 0)
-
-# try finally， finally语句中的代码始终都会执行
-def test_7(x, y):
-    try:
-        x / y
-    except ZeroDivisionError as msg:
-        print(msg)
-    finally:
-        print(&quot;finally exec&quot;)
-
-test_7(3, 0)
-
-# raise抛出异常
-raise Exception(&quot;raise exception&quot;)
-
-</code></pre>
-<p>一个 <a href="https://docs.python.org/zh-cn/3.9/reference/compound_stmts.html#try">try</a> 语句可能有多个 except 子句，以指定不同异常的处理程序。 最多会执行一个处理程序。 处理程序只处理相应的 try 子句中发生的异常，而不处理同一 try 语句内其他处理程序中的异常。 一个 except 子句可以将多个异常命名为带括号的元组。</p>
-<pre><code># 一个except多个异常
-try:
-    expression
-except (RuntimeError, OSError, TypeError):
-    pass
-  
-# 多个except
-# 最后的 except 子句可以省略异常名，以用作通配符。但请谨慎使用，因为以这种方式很容易掩盖真正的编程错误！
-# 它还可用于打印错误消息，然后重新引发异常（同样允许调用者处理异常）   
-import sys
-try:
-    f = open('myfile.txt')
-    s = f.readline()
-    i = int(s.strip())
-except OSError as err:
-    print(&quot;OS error: {0}&quot;.format(err))
-except ValueError:
-    print(&quot;Could not convert data to an integer.&quot;)
-except:
-    print(&quot;Unexpected error:&quot;, sys.exc_info()[0])
-    raise 
-
-</code></pre>
-<p>使用with语句可以自动关闭流</p>
-<pre><code># with关键字会自动关闭文件,try捕获异常输出
-try:
-    with open('/opt/pythonDir/temp.txt', 'w+') as f:
-        f.write(&quot;test content&quot;)
-    print(f.close())
-except IOError as err:
-    print(&quot;exception: {0}&quot;.format(err))
-
-</code></pre>
-<h2 id="面向对象">面向对象</h2>
-<h3 id="python中的类">python中的类</h3>
-<p>类实例化后，可以使用其属性，实际上，创建一个类之后，可以通过类名访问其属性。</p>
-<pre><code># 创建类
-class FirstClass:
-    name = &quot;python&quot;
-
-    def fn(self):
-        print(self.name)
-        return &quot;hello world&quot;
-
-
-# 实例化类
-first_class = FirstClass()
-# 调用变量
-print(&quot;name: &quot;, first_class.name)
-# 调用函数
-print(&quot;function: &quot;, first_class.fn())
-
-# 定义初始化函数
-class People:
-    # 基本属性
-    name = &quot;&quot;
-    age = 0
-    # 使用双下划线定义私有属性，其无法被类外部所访问
-    __private_attribute = &quot;private_attribute&quot;
-
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-
-    def speak(self):
-        print(&quot;{0} speak: {1}, {2}&quot;.format(self.name, self.age, self.__private_attribute))
-
-    def action(self):
-        print(&quot;base class action&quot;)
-
-
-# people = People(&quot;Jack&quot;, 100)
-# people.speak()
-
-# 继承类
-class Employee(People):
-    profession = &quot;&quot;
-
-    def __init__(self, name, age, profession):
-        People.__init__(self, name, age)
-        self.profession = profession
-
-    def speak(self):
-        print(&quot;{0} speak: {1}, {2}&quot;.format(self.name, self.age, self.profession))
-
-    # 重写toString方法
-#   def __str__(self):
-#       return &quot;Employee:{name: %s, age: %d, profession: %s}&quot; % (self.name, self.age, self.profession)
-
-    # 重写toString方法（使用f-string格式化）
-    def __str__(self):
-        return f&quot;Employee:(name: {self.name}, age: {self.age}, profession: {self.profession})&quot;
-
-teacher = Employee(&quot;Tom&quot;, 40, &quot;teacher&quot;)
-teacher.speak()
-teacher.action()
-print(teacher.name)
-
-json_str = json.dumps(teacher.__dict__)
-print(json_str)
-teacher2 = json.loads(json_str)
-print(teacher2)
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Lua基本知识]]></title>
-        <id>https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/</id>
-        <link href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">
-        </link>
-        <updated>2022-04-02T09:10:47.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Lua脚本知识。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/tianjin-2185510_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="简介与安装">简介与安装</h2>
-<h3 id="简介">简介</h3>
-<p>Lua是一个强大，高效且轻量化的嵌入式脚本语言，由 clean C（标准 C 和 C++ 间共通的子集）实现成一个库，支持过程编程，面向对象编程，函数编程以及数据驱动编程，以此来供任何需要的程序使用。</p>
-<p>同时，作为一门扩展式语言，Lua 没有 &quot;main&quot; 程序的概念：它只能 嵌入 一个宿主程序中工作，该宿主程序被称为 被嵌入程序 或者简称 宿主 。 宿主程序可以调用函数执行一小段 Lua 代码，可以读写 Lua 变量，可以注册 C 函数让 Lua 代码调用。依靠 C 函数，Lua 可以共享相同的语法框架来定制编程语言，从而适用不同的领域。</p>
-<p>这也是其设计目的：为了给应用程序提供灵活的可扩展及定制化功能。</p>
-<h3 id="安装">安装</h3>
-<p>linux/mac安装lua，命令如下，第四行根据系统自行选择，可在<a href="http://www.lua.org/ftp">官网地址</a>中获取最新的lua下载信息。</p>
-<pre><code>curl -R -O http://www.lua.org/ftp/lua-5.*.*.tar.gz
-tar zxf lua-5.*.*.tar.gz
-cd lua-5.*.*
-make linux/macosx test
-make install
-
-</code></pre>
-<p>windows下载LuaForWindows（双击安装即可）：</p>
-<ul>
-<li>Github下载地址：<a href="https://github.com/rjpcomputing/luaforwindows/releases">点击此处跳转下载页面</a></li>
-<li>Google下载地址 : <a href="https://code.google.com/p/luaforwindows/downloads/list">点击此处跳转下载页面</a></li>
-</ul>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230306010.png" alt="img" loading="lazy"></figure>
-<h2 id="基本概念">基本概念</h2>
-<h3 id="值与类型">值与类型</h3>
-<p>Lua 是一门动态类型语言，这意味着变量没有类型，只有值才有类型；值可以存储在变量中，作为参数传递或者返回。</p>
-<p>Lua 中有八种基本类型：nil、boolean、number、string、function、userdata、thread 和 table</p>
-<table>
-<thead>
-<tr>
-<th>数据类型</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>nil</td>
-<td>NIL是值nil的类型，用于与其他值区分；通常用来表示一个有意义的值不存在时的状态。如果用于条件判断，其等同于boolean中的false。</td>
-</tr>
-<tr>
-<td>boolean</td>
-<td>包含两个值：true和false</td>
-</tr>
-<tr>
-<td>number</td>
-<td>整数及实数(浮点数)：标准Lua使用64位整数及双精度(64位)浮点数；小型机器和嵌入式系统可以使用32位整数及单精度(32位)浮点数。</td>
-</tr>
-<tr>
-<td>string</td>
-<td>不可变的字节序列(字符串)，可以使用双引号(&quot;&quot;)，单引号('')，双中括号([[]])表示</td>
-</tr>
-<tr>
-<td>function</td>
-<td>由C或者Lua编写的函数</td>
-</tr>
-<tr>
-<td>userdata</td>
-<td>存储在变量中的C语言数据，用户数据类型的值是一个内存块，分为：完全用户数据：指一块由Lua管理的内存对应的对象；轻量用户数据：一个简单的C指针。Lua可使用元表(metatable)对userdata进行操作;如若需要修改用户数据中的值，只能通过C API进行处理，这保证了数据仅被宿主机所控制。</td>
-</tr>
-<tr>
-<td>thread</td>
-<td>一个独立的执行序列，主要用于实现协程(coroutine)。注意：Lua中的线程与操作系统没有任何关系，因此，它可以为那些不支持原生线程的系统提供协程支持。线程跟协程的区别：线程可以同时多个运行，而协程任意时刻只能运行一个，并且处于运行状态的协程只有被挂起（suspend）时才会暂停。</td>
-</tr>
-<tr>
-<td>table</td>
-<td>一个关联数组，是Lua中唯一的数据结构。它可被用于表示普通数组、序列、符号表、集合、记录、图、树等等。</td>
-</tr>
-</tbody>
-</table>
-<h3 id="错误处理">错误处理</h3>
-<p>由于 Lua 是一门嵌入式扩展语言，其所有行为均源于宿主程序中代码对某个 Lua 库函数的调用（如果是单独使用 Lua 时，那么Lua 程序就是宿主程序）。因此，在编译或运行 Lua 代码块的过程中，无论何时发生错误，控制权都返回给宿主，由宿主负责采取恰当的措施（比如打印错误消息）。</p>
-<p>在Lua中的可以通过asset函数或者error函数处理错误。</p>
-<p>asset函数首先会检查第一个参数，如果没有问题则不做任何事情，否则输出第二个参数作为错误信息。使用样例：</p>
-<pre><code>-- 错误处理
-local function add(i, j)
-    assert(type(i) == &quot;number&quot;, &quot;i 不是一个数字&quot;)
-	assert(type(j) == &quot;number&quot;, &quot;j 不是一个数字&quot;)
-	return i + j
-end
-print(add(rd, 1))
--- 输出
-lua: demo.lua:3: i 不是一个数字
-stack traceback:
-	[C]: in function 'assert'
-	demo.lua:3: in function 'add'
-	demo.lua:7: in main chunk
-	[C]: ?
-
-</code></pre>
-<p>error函数：error (message [, level])，显式地抛出一个错误，内容为参数message，</p>
-<p>Level参数指示获得错误的位置: Level=1[默认]：为调用error位置(文件+行号)；Level=2：指出哪个调用error的函数的函数；Level=0:不添加错误位置信息。</p>
-<pre><code>error('error msg..')
---输出
-lua: demo.lua:1: error msg..
-stack traceback:
-	[C]: in function 'error'
-	demo.lua:1: in main chunk
-	[C]: ?
-
-</code></pre>
-<p>如果需要在 Lua 中捕获这些错误，可以使用 <a href="https://www.bookstack.cn/read/lua-5.3/2.md#pdf-pcall">pcall</a> 或<a href="https://www.bookstack.cn/read/lua-5.3/2.md#pdf-xpcall">xpcall</a>在 保护模式 下调用一个函数。</p>
-<p>使用xpcall或pcall时，需要提供一个 消息处理函数 用于错误抛出时调用。该函数需接收原始的错误消息，并返回一个新的错误消息。</p>
-<p>它在错误发生后栈尚未展开时调用，因此可以利用栈来收集更多的信息，比如通过探知栈来创建一组栈回溯信息。同时，该处理函数也处于保护模式下，所以该函数内发生的错误会再次触发它（递归）。如果递归太深，Lua 会终止调用并返回一个合适的消息。</p>
-<h3 id="垃圾收集">垃圾收集</h3>
-<p>Lua采用了自动内存管理（类似于Java）。这意味着使用者不用操心新创建的对象需要的内存如何分配出来，也不用考虑在对象不再被使用后怎样释放它们所占用的内存。</p>
-<p>Lua 运行了一个 垃圾收集器 来收集所有 死对象（即在 Lua 中不可能再访问到的对象）来完成自动内存管理的工作。</p>
-<p>Lua 中所有用到的内存，如：字符串、表、用户数据、函数、线程、内部结构等，都服从自动管理。</p>
-<p>Lua 实现了一个增量标记-扫描收集器。它使用这两个数字来控制垃圾收集循环：垃圾收集器间歇率 和 垃圾收集器步进倍率。这两个数字都使用百分数为单位（例如：值 100 在内部表示 1 ）。</p>
-<p>垃圾收集器间歇率控制着收集器需要在开启新的循环前要等待多久。增大这个值会减少收集器的积极性。当这个值比 100 小的时候，收集器在开启新的循环前不会有等待。设置这个值为 200 就会让收集器等到总内存使用量达到之前的两倍时才开始新的循环。</p>
-<p>垃圾收集器步进倍率控制着收集器运作速度相对于内存分配速度的倍率。增大这个值不仅会让收集器更加积极，还会增加每个增量步骤的长度。不要把这个值设得小于 100 ，那样的话收集器就工作的太慢了以至于永远都干不完一个循环。默认值是 200 ，这表示收集器以内存分配的“两倍”速工作。</p>
-<p>如果将步进倍率设为一个非常大的数字（比程序可能用到的字节数还大 10% ），收集器的行为就像一个 stop-the-world 收集器。接着若把间歇率设为 200 ，收集器的行为就和过去的 Lua 版本一样了：每次 Lua 使用的内存翻倍时，就做一次完整的收集。</p>
-<p>通过在 C 中调用 lua_gc或在 Lua 中调用collectgarbage ([opt [, arg]])来控制自动内存管理。通过参数 opt 它提供了一组不同的功能：</p>
-<ul>
-<li>collectgarbage(&quot;collect&quot;): 做一次完整的垃圾收集循环。</li>
-<li>collectgarbage(&quot;count&quot;): 以 K 字节数为单位返回 Lua 使用的总内存数。 这个值有小数部分，所以只需要乘上 1024 就能得到 Lua 使用的准确字节数（除非溢出）。</li>
-<li>collectgarbage(&quot;restart&quot;): 重启垃圾收集器的自动运行。</li>
-<li>collectgarbage(&quot;setpause&quot;): 将 arg 设为收集器的 间歇率。 返回 间歇率 的前一个值。</li>
-<li>collectgarbage(&quot;setstepmul&quot;): 返回 步进倍率 的前一个值。</li>
-<li>collectgarbage(&quot;step&quot;): 单步运行垃圾收集器。 步长&quot;大小&quot;由 arg 控制。 传入 0 时，收集器步进（不可分割的）一步。 传入非 0 值， 收集器收集相当于 Lua 分配这些多（K 字节）内存的工作。 如果收集器结束一个循环将返回 true 。</li>
-<li>collectgarbage(&quot;stop&quot;): 停止垃圾收集器的运行。 在调用重启前，收集器只会因显式的调用运行。</li>
-<li>collectgarbage(&quot;isrunning&quot;): 返回表示收集器是否工作的布尔值。</li>
-</ul>
-<pre><code>demoTable = {&quot;LUa&quot;, &quot;shell&quot;, &quot;python&quot;, &quot;Java&quot;, &quot;ruby&quot;}
-print(collectgarbage(&quot;count&quot;))
-demoTable = nil
-
-print(collectgarbage(&quot;count&quot;))
-print(collectgarbage(&quot;collect&quot;))
-print(collectgarbage(&quot;count&quot;))
--- 输出
-21.0859375
-21.1123046875
-0
-19.498046875
-
-</code></pre>
-<h3 id="协程coroutine">协程（coroutine）</h3>
-<p>Lua中的协程也被称作协同式多线程，代表了一段独立执行的线程。它与线程非常的类似：拥有独立的堆栈、局部变量、指令指针，同时又与其他协程共享全局变量。</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>coroutine.create()</td>
-<td>创建一个协程。其唯一的参数是该协程的主函数。create 函数只负责新建一个协程并返回其句柄（一个 thread 类型的对象）；而不会启动该协程。</td>
-</tr>
-<tr>
-<td>coroutine.resume()</td>
-<td>执行一个协程。第一次调用coroutine.resume时，第一个参数应传入coroutine.create返回的线程对象，然后协程从其主函数的第一行开始执行。传递给coroutine.resume的其他参数将作为协程主函数的参数传入。协程启动之后，将一直运行到它终止或调用coroutine.yield。</td>
-</tr>
-<tr>
-<td>coroutine.yield()</td>
-<td>挂起协程，让出执行权。一般与resume配合使用。协程挂起时，对应的最近coroutine.resume函数会立刻返回，即使该挂起操作发生在内嵌函数调用中（即不在主函数，但在主函数直接或间接调用的函数内部）。在协程挂起的情况下，coroutine.resume也会返回 true，并加上传给coroutine.yield的参数。当下次重启同一个协程时，协程会接着从挂起点继续执行。此时，此前挂起点处对coroutine.yield的调用会返回，返回值为传给coroutine.resume的第一个参数之外的其他参数。</td>
-</tr>
-<tr>
-<td>coroutine.status()</td>
-<td>查看线程状态：dead，suspended，running</td>
-</tr>
-<tr>
-<td>coroutine.warp()</td>
-<td>与create类似，也是创建一个协程。不同之处在于，它不返回协程本身，而是返回一个函数。调用这个函数将启动该协程。传递给该函数的任何参数均当作coroutine.resume的额外参数。</td>
-</tr>
-<tr>
-<td>coroutine.running()</td>
-<td>返回一个running协程的协程号。</td>
-</tr>
-</tbody>
-</table>
-<p>协程样例及步骤解释：</p>
-<p>1、函数foo加载，协程co创建。</p>
-<p>2、第15行print执行，由coroutine.resume触发执行co协程。</p>
-<p>2.1、接着打印第7行数据，对应输出结果第28行。</p>
-<p>2.2、随后第8行调用函数foo，开始执行第2行，打印结果为第29行</p>
-<p>2.3、最后第3行执行，协程被挂起，打印结果对应第30行。</p>
-<p>注意：yield调用后的返回值为下次resume同一协程时的输入参数。对应第8行的r。</p>
-<p>3、第16行执行，打印协程状态，为suspended（挂起）。</p>
-<p>4、第18行执行，resume同一协程，输入参数“r”对应第8行的local r，也即第3行yield挂起后的返回值。</p>
-<p>4.1、第9行打印，对应结果为第32行。</p>
-<p>4.2、第10行执行，协程挂起，返回r，s两个值，作为下次resume时可输入的值。</p>
-<p>5、第21行执行，resume同一协程，输入参数“x”，“y”，对应第10行的local r，s。</p>
-<p>5.1、第11行执行，打印协程内容，对接结果为第35行。</p>
-<p>5.2、协程结束，打印结果为第36行。</p>
-<p>6、第22执行，显示协程已dead（死亡），对应结果为第37行。</p>
-<p>7、第24行执行，resume协程，开始提示，协程已经dead，对应结果为第38行。</p>
-<pre><code>function foo (a)
-  print(&quot;foo&quot;, a)
-  return coroutine.yield(2*a)
-end
-
-co = coroutine.create(function (a,b)
-      print(&quot;co-body&quot;, a, b)
-      local r = foo(a+1)
-      print(&quot;co-body&quot;, r)
-      local r, s = coroutine.yield(a+b, a-b)
-      print(&quot;co-body&quot;, r, s)
-      return b, &quot;end&quot;
-end)
-
-print(&quot;main&quot;, coroutine.resume(co, 1, 10))
-print(coroutine.status(co))
-
-print(&quot;main&quot;, coroutine.resume(co, &quot;r&quot;))
-print(coroutine.status(co))
-
-print(&quot;main&quot;, coroutine.resume(co, &quot;x&quot;, &quot;y&quot;))
-print(coroutine.status(co))
-
-print(&quot;main&quot;, coroutine.resume(co, &quot;x&quot;, &quot;y&quot;))
-print(coroutine.status(co))
-
--- 输出
-co-body	1	10
-foo	2
-main	true	4
-suspended
-co-body	r
-main	true	11	-9
-suspended
-co-body	x	y
-main	true	10	end
-dead
-main	false	cannot resume dead coroutine
-dead
-
-</code></pre>
-<h2 id="基本语法">基本语法</h2>
-<h3 id="变量">变量</h3>
-<p>在Lua中的进行赋值操作，是不需要指定类型的。如下：</p>
-<pre><code>-- 简单赋值
-z = 1
-print(z)
--- 多重赋值，同时也支持多重返回值
-a,b = 3,4
-print(a)
-print(b)
-return a,b
-
--- 本地（局部）变量赋值
-local x,y=5,6
-print(x)
-print(y)
--- 交换数据
-x,y = y,x
-print(x)
-print(y)
-
--- 代码块
-do
-    local str = &quot;world&quot;
-	print(str)
-end
-
-</code></pre>
-<h3 id="表达式">表达式</h3>
-<p>在Lua中的表达式基本与高级语言相差无几，如下：</p>
-<p>操作符</p>
-<ol>
-<li>算术运算符：+ - * / ^ (加减乘除幂)</li>
-<li>关系运算符：&lt; &gt; &lt;= &gt;= == ~=</li>
-<li>逻辑运算符：and or not</li>
-<li>连接运算符：..</li>
-</ol>
-<p>有几个操作符需要注意：</p>
-<ul>
-<li>a ~= b 即 a 不等于 b</li>
-<li>a ^ b 即 a 的 b 次方</li>
-<li>a .. b 将 a 和 b 作为字符串连接</li>
-</ul>
-<p>优先级：</p>
-<ol>
-<li>^</li>
-<li>not -(负号)</li>
-<li>*/</li>
-<li>+-</li>
-<li>..</li>
-<li>&lt; &gt; &lt;= &gt;= ~= ==</li>
-<li>and</li>
-<li>or</li>
-</ol>
-<h3 id="控制流">控制流</h3>
-<p>Lua以if for while等来进行流程控制，具体如下所示：</p>
-<pre><code>-- if语句
-local num = &quot;21&quot;
-if (tonumber(num)~=nil) then
-    print(&quot;tonumber result: &quot;..tonumber(num))
-else
-    print(&quot;tonumber result is not number&quot;)
-end
-
--- for语句
--- 三个数字分别表示初始值，终止值，步长
-for i = 2, 10, 2 do
-    print(i)
-end
--- i，v分别表示数组对应的索引及值，注意：Lua中的数组是从1开始排序
-demoTable = {&quot;LUa&quot;, &quot;shell&quot;, &quot;python&quot;, &quot;Java&quot;, &quot;ruby&quot;}
-for i,v in ipairs(demoTable) do
-    print(i)
-    print(v)
-end
-
--- while语句
-local i = 0
-while i &lt; 2 do
-    print(i)
-	i = i + 1
-	if (i == 1) then break end
-end
 
 </code></pre>
 ]]></content>
