@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>python3基本知识 | Philosopher</title>
+<title>kafka深入理解之Broker请求流程 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1678949797844">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="python3基本知识" />
-  <meta name="keywords" content="python,脚本" />
+  <meta name="description" content="kafka深入理解之Broker请求流程" />
+  <meta name="keywords" content="kafka" />
 </head>
 
 <body>
@@ -255,52 +255,19 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E7%AE%80%E4%BB%8B">简介</a>
+<li><a href="#broker%E8%AF%B7%E6%B1%82%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3">Broker请求流程详解</a>
 <ul>
-<li><a href="#%E7%AE%80%E4%BB%8B-2">简介</a></li>
+<li><a href="#reactor-%E6%A8%A1%E5%9E%8B">Reactor 模型</a></li>
+<li><a href="#broker-%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B">Broker 处理流程</a>
+<ul>
+<li><a href="#socketserver">SocketServer</a></li>
+<li><a href="#requestchannel">RequestChannel</a></li>
+<li><a href="#acceptor-%E7%BA%BF%E7%A8%8B">Acceptor 线程</a></li>
+<li><a href="#processor-%E7%BA%BF%E7%A8%8B">Processor 线程</a></li>
+<li><a href="#kafkarequesthandler-%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91%E5%A4%84%E7%90%86%E5%99%A8">KafkaRequestHandler 核心逻辑处理器</a></li>
+<li><a href="#%E5%AE%8C%E6%95%B4%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B">完整处理流程</a></li>
 </ul>
 </li>
-<li><a href="#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95">基本语法</a>
-<ul>
-<li><a href="#%E5%8F%98%E9%87%8F">变量</a>
-<ul>
-<li><a href="#%E5%9F%BA%E7%A1%80%E5%8F%98%E9%87%8F">基础变量</a></li>
-<li><a href="#%E6%B3%A8%E9%87%8A%E4%B8%8E%E7%BC%96%E7%A0%81">注释与编码</a></li>
-<li><a href="#%E8%AF%AD%E6%B3%95%E7%BB%93%E6%9E%84">语法结构</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B">基本数据类型</a>
-<ul>
-<li><a href="#number%E6%95%B0%E5%AD%97">Number（数字）</a></li>
-<li><a href="#string%E5%AD%97%E7%AC%A6%E4%B8%B2">String（字符串）</a></li>
-<li><a href="#tuple%E5%85%83%E7%BB%84">Tuple（元组）</a></li>
-<li><a href="#list%E5%88%97%E8%A1%A8">List（列表）</a></li>
-<li><a href="#set%E9%9B%86%E5%90%88">Set（集合）</a></li>
-<li><a href="#dictionary%E5%AD%97%E5%85%B8">Dictionary（字典）</a></li>
-</ul>
-</li>
-<li><a href="#%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6">流程控制</a>
-<ul>
-<li><a href="#%E6%9D%A1%E4%BB%B6%E5%88%A4%E6%96%AD">条件判断</a></li>
-<li><a href="#%E5%BE%AA%E7%8E%AF%E8%AF%AD%E5%8F%A5">循环语句</a></li>
-</ul>
-</li>
-<li><a href="#%E5%87%BD%E6%95%B0">函数</a>
-<ul>
-<li><a href="#%E5%87%BD%E6%95%B0-2">函数</a></li>
-<li><a href="#%E5%8C%BF%E5%90%8D%E5%87%BD%E6%95%B0">匿名函数</a></li>
-</ul>
-</li>
-<li><a href="#%E9%94%99%E8%AF%AF%E4%B8%8E%E5%BC%82%E5%B8%B8">错误与异常</a>
-<ul>
-<li><a href="#%E5%BC%82%E5%B8%B8">异常</a></li>
-</ul>
-</li>
-<li><a href="#%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1">面向对象</a>
-<ul>
-<li><a href="#python%E4%B8%AD%E7%9A%84%E7%B1%BB">python中的类</a></li>
 </ul>
 </li>
 </ul>
@@ -570,8 +537,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/">
-      python3基本知识
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/">
+      kafka深入理解之Broker请求流程
     </a>
   </h1>
   <div class="post-meta">
@@ -579,7 +546,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-04-16 15:52:59">2022-04-16</span>
+      <span class="publish-time" data-t="2022-07-02 14:17:03">2022-07-02</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -588,14 +555,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/J0nZ922z5/">
-        <span>python</span>
-      </a>、
-      
-      
-      
-      <a href="https://philosopherzb.github.io/tag/f97QyUxa8/">
-        <span>脚本</span>
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/">
+        <span>kafka</span>
       </a>
       
       
@@ -609,12 +570,12 @@
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4477<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>3933<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/python3-ji-ben-zhi-shi/" data-flag-title="python3基本知识" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/" data-flag-title="kafka深入理解之Broker请求流程" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -624,569 +585,495 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述python3脚本知识。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-209956_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="简介">简介</h2>
-<h3 id="简介-2">简介</h3>
-<p>Python 是一个高层次的结合了解释性、编译性、互动性和面向对象的脚本语言（计算机编程语言）。</p>
-<p>Python 的设计具有很强的可读性，相比其他语言经常使用英文关键字，其他语言的一些标点符号，它具有比其他语言更有特色的语法结构。</p>
-<p>注意：python3与python2具备较大的差别，他们之间并不完全兼容。</p>
-<p>Python的优点：</p>
+<p>本章主要简述kafka broker请求流程。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/nature-21474001_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="broker请求流程详解">Broker请求流程详解</h2>
+<h3 id="reactor-模型">Reactor 模型</h3>
+<p>在介绍kafka的broker通信前，有必要简述一下reactor(响应式)模型。Reactor核心是基于事件驱动（IO多路复用），整体架构流程图如下所示(源自Doug Lea)：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316001.png" alt="img" loading="lazy"></figure>
+<ul>
+<li>整个模型中所有的输入都由一个Reactor进行接受，随后通过一个dispatch loop（即acceptor）轮询将事件推送至不同的工作线程处理器进行相关逻辑处理。</li>
+<li>在这个架构中，Acceptor 线程只是用来进行请求分发，所以非常轻量级，因此会有很高的吞吐量。而那些工作线程则可以根据实际系统负载情况动态的调节系统负载能力，从而达到请求处理的平衡性。</li>
+<li>多核处理时，还可以针对reactor进行池化处理(pool)，来提高IO效率。在此过程中，每个Reactor都有自己的选择器，线程处理器及分发轮询器，由主acceptor将数据分发给其他reactors。如下图所示：</li>
+</ul>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316002.png" alt="img" loading="lazy"></figure>
+<h3 id="broker-处理流程">Broker 处理流程</h3>
+<p>在kafka中，集群中的每个broker都面临着巨量的网络请求，这个时候如果使用单线程或者多线程进行网络连接处理，那吞吐量将难以达到期望值。此时，上文所说的reactor模型便有了应用场景。</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316003.png" alt="img" loading="lazy"></figure>
+<p>在Kafka的架构中，会有很多客户端向Broker端发送请求，Kafka 的 Broker 端有个 SocketServer 组件，主要负责和客户端建立连接，并将相关请求通过Acceptor转发给对应的处理器线程池；而网络连接池(RequestHandlerPool)则主要负责真实的逻辑处理。</p>
+<p>SocketServer 组件是 Kafka 超高并发网络通信层中最重要的子模块。它包含 Acceptor 线程、Processor 线程和 RequestChannel 等对象，都是网络通信的重要组成部分。它主要实现了 Reactor 设计模式，用来处理外部多个 Clients（这里的 Clients 可能包含 Producer、Consumer 或其他 Broker）的并发请求，并负责将处理结果封装进 Response 中，返还给 Clients。</p>
+<p>其中Acceptor 线程采用轮询的方式将入站请求公平地发到所有网络线程中，网络线程池默认大小是 3个，表示每台 Broker 启动时会创建 3 个网络线程，专门处理客户端发送的请求，可以通过Broker 端参数 num.network.threads（可适当的设置为CPU核数*2，这个值过低时可能会出现因网络空闲太低而缺失副本。）来进行修改。</p>
+<p>关于网络线程处理流程如下所示：</p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316004.png" alt="img" loading="lazy"></figure>
+<p>当网络线程拿到请求后，会将请求放入到一个共享请求队列中。Broker 端还有个 IO 线程池，负责从该队列中取出请求，执行真正的处理。如果是 PRODUCE 生产请求，则将消息写入到底层的磁盘日志中；如果是 FETCH 请求，则从磁盘或页缓存中读取消息。</p>
+<p>IO 线程池中的线程负责执行具体的请求逻辑，默认是8，表示每台 Broker 启动后自动创建 8 个 IO 线程处理请求，可以通过Broker 端参数 num.io.threads（可设置为broker磁盘个数*2）调整。</p>
+<p>Purgatory组件是用来缓存延时请求（Delayed Request）的。比如设置了 acks=all 的 PRODUCE 请求，一旦设置了 acks=all，那么该请求就必须等待 ISR 中所有副本都接收了消息后才能返回，此时处理该请求的 IO 线程就必须等待其他 Broker 的写入结果。</p>
+<h4 id="socketserver">SocketServer</h4>
+<p>负责管理Acceptor 线程、Processor线程和 RequestChannel等对象。</p>
+<p>源码地址：<a href="https://github.com/apache/kafka">点击此处跳转github-kafka源码地址</a></p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/network/SocketServer.scala
+class SocketServer(val config: KafkaConfig,
+                   val metrics: Metrics,
+                   val time: Time,
+                   val credentialProvider: CredentialProvider,
+                   val apiVersionManager: ApiVersionManager)
+  extends Logging with KafkaMetricsGroup with BrokerReconfigurable {
+  // 共享队列长度，即网络阻塞之前可容纳的等待数。由broker端的queued.max.requests参数控制，默认值500
+  private val maxQueuedRequests = config.queuedMaxRequests
+
+  private val nodeId = config.brokerId
+
+  private val logContext = new LogContext(s&quot;[SocketServer listenerType=${apiVersionManager.listenerType}, nodeId=$nodeId] &quot;)
+
+  this.logIdent = logContext.logPrefix
+
+  private val memoryPoolSensor = metrics.sensor(&quot;MemoryPoolUtilization&quot;)
+  private val memoryPoolDepletedPercentMetricName = metrics.metricName(&quot;MemoryPoolAvgDepletedPercent&quot;, MetricsGroup)
+  private val memoryPoolDepletedTimeMetricName = metrics.metricName(&quot;MemoryPoolDepletedTimeTotal&quot;, MetricsGroup)
+  memoryPoolSensor.add(new Meter(TimeUnit.MILLISECONDS, memoryPoolDepletedPercentMetricName, memoryPoolDepletedTimeMetricName))
+  private val memoryPool = if (config.queuedMaxBytes &gt; 0) new SimpleMemoryPool(config.queuedMaxBytes, config.socketRequestMaxBytes, false, memoryPoolSensor) else MemoryPool.NONE
+ 
+   // data-plane
+  // 处理数据面请求的 processor线程池 
+  private val dataPlaneProcessors = new ConcurrentHashMap[Int, Processor]()
+  // 处理数据面请求的 acceptor线程池，一个监听器对应一个acceptor线程
+  private[network] val dataPlaneAcceptors = new ConcurrentHashMap[EndPoint, Acceptor]()
+  // 处理数据面的requestChannel对象
+  val dataPlaneRequestChannel = new RequestChannel(maxQueuedRequests, DataPlaneMetricPrefix, time, apiVersionManager.newRequestMetrics)
+  
+  // control-plane
+  // 处理控制面请求的 processor，只一个
+  private var controlPlaneProcessorOpt : Option[Processor] = None
+  // 处理控制面请求的 acceptor，只一个
+  private[network] var controlPlaneAcceptorOpt : Option[Acceptor] = None
+  // 处理控制面的requestChannel对象
+  val controlPlaneRequestChannelOpt: Option[RequestChannel] = config.controlPlaneListenerName.map(_ =&gt;
+    new RequestChannel(20, ControlPlaneMetricPrefix, time, apiVersionManager.newRequestMetrics))
+
+  private var nextProcessorId = 0
+  val connectionQuotas = new ConnectionQuotas(config, time, metrics)
+  private var startedProcessingRequests = false
+  private var stoppedProcessingRequests = false
+
+</code></pre>
+<h4 id="requestchannel">RequestChannel</h4>
+<p>负责管理Processor，并作为传输request和response的中转站。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/network/RequestChannel.scala
+class RequestChannel(val queueSize: Int,
+                     val metricNamePrefix: String,
+                     time: Time,
+                     val metrics: RequestChannel.Metrics) extends KafkaMetricsGroup {
+  import RequestChannel._
+  // 共享请求阻塞队列
+  private val requestQueue = new ArrayBlockingQueue[BaseRequest](queueSize)
+  // processor 线程池
+  private val processors = new ConcurrentHashMap[Int, Processor]()
+  val requestQueueSizeMetricName = metricNamePrefix.concat(RequestQueueSizeMetric)
+  val responseQueueSizeMetricName = metricNamePrefix.concat(ResponseQueueSizeMetric)
+
+  newGauge(requestQueueSizeMetricName, () =&gt; requestQueue.size)
+
+  newGauge(responseQueueSizeMetricName, () =&gt; {
+    processors.values.asScala.foldLeft(0) {(total, processor) =&gt;
+      total + processor.responseQueueSize
+    }
+  })
+  // 添加processor线程 
+  def addProcessor(processor: Processor): Unit = {
+    if (processors.putIfAbsent(processor.id, processor) != null)
+      warn(s&quot;Unexpected processor with processorId ${processor.id}&quot;)
+
+    newGauge(responseQueueSizeMetricName, () =&gt; processor.responseQueueSize,
+      Map(ProcessorMetricTag -&gt; processor.id.toString))
+  }
+  // 删除processor线程 
+  def removeProcessor(processorId: Int): Unit = {
+    processors.remove(processorId)
+    removeMetric(responseQueueSizeMetricName, Map(ProcessorMetricTag -&gt; processorId.toString))
+  }
+
+  /** Send a request to be handled, potentially blocking until there is room in the queue for the request */
+  // 发送请求到队列中，如果空间不足将会处于阻塞状态
+  def sendRequest(request: RequestChannel.Request): Unit = {
+    requestQueue.put(request)
+  }
+  // 关闭连接
+  def closeConnection(
+    request: RequestChannel.Request,
+    errorCounts: java.util.Map[Errors, Integer]
+  ): Unit = {
+    // This case is used when the request handler has encountered an error, but the client
+    // does not expect a response (e.g. when produce request has acks set to 0)
+    updateErrorMetrics(request.header.apiKey, errorCounts.asScala)
+    sendResponse(new RequestChannel.CloseConnectionResponse(request))
+  }
+
+  def sendResponse(
+    request: RequestChannel.Request,
+    response: AbstractResponse,
+    onComplete: Option[Send =&gt; Unit]
+  ): Unit = {
+    updateErrorMetrics(request.header.apiKey, response.errorCounts.asScala)
+    sendResponse(new RequestChannel.SendResponse(
+      request,
+      request.buildResponseSend(response),
+      request.responseNode(response),
+      onComplete
+    ))
+  }
+
+  def sendNoOpResponse(request: RequestChannel.Request): Unit = {
+    sendResponse(new network.RequestChannel.NoOpResponse(request))
+  }
+
+  def startThrottling(request: RequestChannel.Request): Unit = {
+    sendResponse(new RequestChannel.StartThrottlingResponse(request))
+  }
+
+  def endThrottling(request: RequestChannel.Request): Unit = {
+    sendResponse(new EndThrottlingResponse(request))
+  }
+
+  /** Send a response back to the socket server to be sent over the network */
+  // 将响应结果发回socket服务，并通过网络传输
+  private[network] def sendResponse(response: RequestChannel.Response): Unit = {
+    if (isTraceEnabled) {
+      val requestHeader = response.request.headerForLoggingOrThrottling()
+      val message = response match {
+        case sendResponse: SendResponse =&gt;
+          s&quot;Sending ${requestHeader.apiKey} response to client ${requestHeader.clientId} of ${sendResponse.responseSend.size} bytes.&quot;
+        case _: NoOpResponse =&gt;
+          s&quot;Not sending ${requestHeader.apiKey} response to client ${requestHeader.clientId} as it's not required.&quot;
+        case _: CloseConnectionResponse =&gt;
+          s&quot;Closing connection for client ${requestHeader.clientId} due to error during ${requestHeader.apiKey}.&quot;
+        case _: StartThrottlingResponse =&gt;
+          s&quot;Notifying channel throttling has started for client ${requestHeader.clientId} for ${requestHeader.apiKey}&quot;
+        case _: EndThrottlingResponse =&gt;
+          s&quot;Notifying channel throttling has ended for client ${requestHeader.clientId} for ${requestHeader.apiKey}&quot;
+      }
+      trace(message)
+    }
+
+    response match {
+      // We should only send one of the following per request
+      case _: SendResponse | _: NoOpResponse | _: CloseConnectionResponse =&gt;
+        val request = response.request
+        val timeNanos = time.nanoseconds()
+        request.responseCompleteTimeNanos = timeNanos
+        if (request.apiLocalCompleteTimeNanos == -1L)
+          request.apiLocalCompleteTimeNanos = timeNanos
+      // For a given request, these may happen in addition to one in the previous section, skip updating the metrics
+      case _: StartThrottlingResponse | _: EndThrottlingResponse =&gt; ()
+    }
+
+    val processor = processors.get(response.processor)
+    // The processor may be null if it was shutdown. In this case, the connections
+    // are closed, so the response is dropped.
+    if (processor != null) {
+      processor.enqueueResponse(response)
+    }
+  }
+
+  /** Get the next request or block until specified time has elapsed */
+  // 在过期时间之前一直阻塞获取下一个请求
+  def receiveRequest(timeout: Long): RequestChannel.BaseRequest =
+    requestQueue.poll(timeout, TimeUnit.MILLISECONDS)
+
+  /** Get the next request or block until there is one */
+  // 一直阻塞获取下一个请求
+  def receiveRequest(): RequestChannel.BaseRequest =
+    requestQueue.take()
+
+  def updateErrorMetrics(apiKey: ApiKeys, errors: collection.Map[Errors, Integer]): Unit = {
+    errors.forKeyValue { (error, count) =&gt;
+      metrics(apiKey.name).markErrorMeter(error, count)
+    }
+  }
+
+  def clear(): Unit = {
+    requestQueue.clear()
+  }
+
+  def shutdown(): Unit = {
+    clear()
+    metrics.close()
+  }
+
+  def sendShutdownRequest(): Unit = requestQueue.put(ShutdownRequest)
+
+}
+
+</code></pre>
+<h4 id="acceptor-线程">Acceptor 线程</h4>
+<p>Reactor模型中，有一种重要的Dispatcher角色，主要用来接受外部请求，并进行分发操作；这个角色也被称为Acceptor。在kafka中的，每个broker端的每个SocketServer实例只会创建一个Acceptor线程，这个Acceptor线程主要用来创建连接，并分发请求给Processor线程处理。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/network/SocketServer.scala
+private[kafka] class Acceptor(val endPoint: EndPoint,
+                              val sendBufferSize: Int,
+                              val recvBufferSize: Int,
+                              nodeId: Int,
+                              connectionQuotas: ConnectionQuotas,
+                              metricPrefix: String,
+                              time: Time,
+                              logPrefix: String = &quot;&quot;) extends AbstractServerThread(connectionQuotas) with KafkaMetricsGroup {
+
+  this.logIdent = logPrefix
+  // 创建nio selector对象，用来检查一个或多个NIO Channel的状态是否处于可读、可写
+  private val nioSelector = NSelector.open()
+  // broker 端创建对应的socketServer channel实例，并注册到selector上。
+  val serverChannel = openServerSocket(endPoint.host, endPoint.port)
+  // 创建processors 线程池
+  private val processors = new ArrayBuffer[Processor]()
+  // processors启动标志
+  private val processorsStarted = new AtomicBoolean
+  // 阻塞状态记录器
+  private val blockedPercentMeter = newMeter(s&quot;${metricPrefix}AcceptorBlockedPercent&quot;,
+    &quot;blocked time&quot;, TimeUnit.NANOSECONDS, Map(ListenerMetricTag -&gt; endPoint.listenerName.value))
+  private var currentProcessorIndex = 0
+  private[network] val throttledSockets = new mutable.PriorityQueue[DelayedCloseSocket]()
+
+  // 延迟关闭socket
+  private[network] case class DelayedCloseSocket(socket: SocketChannel, endThrottleTimeMs: Long) extends Ordered[DelayedCloseSocket] {
+    override def compare(that: DelayedCloseSocket): Int = endThrottleTimeMs compare that.endThrottleTimeMs
+  }
+  
+    /**
+   * Accept loop that checks for new connection attempts
+   * 循环检查是否有新连接进入，如果有的话就给其分配处理器
+   */
+  def run(): Unit = {
+    // 注册  OP_ACCEPT
+    serverChannel.register(nioSelector, SelectionKey.OP_ACCEPT)
+    // 等待 Acceptor启动完成
+    startupComplete()
+    try {
+      while (isRunning) {
+        try {
+          // 循环检查是否有可用的新连接  
+          acceptNewConnections()
+          // 关闭连接
+          closeThrottledConnections()
+        }
+        catch {
+          // We catch all the throwables to prevent the acceptor thread from exiting on exceptions due
+          // to a select operation on a specific channel or a bad request. We don't want
+          // the broker to stop responding to requests from other clients in these scenarios.
+          case e: ControlThrowable =&gt; throw e
+          case e: Throwable =&gt; error(&quot;Error occurred&quot;, e)
+        }
+      }
+    } finally {
+      debug(&quot;Closing server socket, selector, and any throttled sockets.&quot;)
+      CoreUtils.swallow(serverChannel.close(), this, Level.ERROR)
+      CoreUtils.swallow(nioSelector.close(), this, Level.ERROR)
+      throttledSockets.foreach(throttledSocket =&gt; closeSocket(throttledSocket.socket))
+      throttledSockets.clear()
+      shutdownComplete()
+    }
+  }
+  
+    /**
+   * Listen for new connections and assign accepted connections to processors using round-robin.
+   * 轮询监听并分配连接给处理器
+   */
+  private def acceptNewConnections(): Unit = {
+    // 每500毫秒获取一次就绪的IO事件  
+    val ready = nioSelector.select(500)
+    // 如果存在就绪的IO事件
+    if (ready &gt; 0) {
+      // 获取selector中的key  
+      val keys = nioSelector.selectedKeys()
+      val iter = keys.iterator()
+      while (iter.hasNext &amp;&amp; isRunning) {
+        try {
+          val key = iter.next
+          iter.remove()
+
+          // 如果key可接受数据
+          if (key.isAcceptable) {
+            // 针对key创建socket连接  
+            accept(key).foreach { socketChannel =&gt;
+              // Assign the channel to the next processor (using round-robin) to which the
+              // channel can be added without blocking. If newConnections queue is full on
+              // all processors, block until the last one is able to accept a connection.
+              var retriesLeft = synchronized(processors.length)
+              var processor: Processor = null
+              do {
+                retriesLeft -= 1
+                // 指定处理线程processor
+                processor = synchronized {
+                  // adjust the index (if necessary) and retrieve the processor atomically for
+                  // correct behaviour in case the number of processors is reduced dynamically
+                  currentProcessorIndex = currentProcessorIndex % processors.length
+                  processors(currentProcessorIndex)
+                }
+                // 递增当前处理器索引
+                currentProcessorIndex += 1
+              } while (!assignNewConnection(socketChannel, processor, retriesLeft == 0))
+            }
+          } else
+            throw new IllegalStateException(&quot;Unrecognized key state for acceptor thread.&quot;)
+        } catch {
+          case e: Throwable =&gt; error(&quot;Error while accepting connection&quot;, e)
+        }
+      }
+    }
+  }
+
+</code></pre>
+<h4 id="processor-线程">Processor 线程</h4>
+<p>Processor线程负责核心的逻辑处理。</p>
+<p>核心参数说明：</p>
+<ul>
+<li>newConnections 队列: 是一个阻塞队列，主要用来保存要创建的新连接信息，也就是SocketChannel 对象，其队列长度大小为20(源码中直接硬编码了)。每当 Processor 线程接收到新的连接请求时，都会将对应的 SocketChannel 对象放入队列，等到后面创建连接时，从该队列中获取 SocketChannel，然后注册新的连接。</li>
+<li>inflightResponse 队列：是一个临时的 Response 队列， 当 Processor 线程将 Repsonse 返回给 Client 之后，要将 Response 放入该队列。它存在的意义：由于有些 Response 回调逻辑要在 Response 被发送回 Request 发送方后，才能执行，因此需要暂存到临时队列。</li>
+<li>ResponseQueue 队列：它主要是存放需要返回给Request 发送方的所有 Response 对象。通过源码得知：每个 Processor 线程都会维护自己的 Response 队列。</li>
+</ul>
+<pre><code>  // 文件地址：core/src/main/scala/kafka/network/SocketServer.scala
+  private val newConnections = new ArrayBlockingQueue[SocketChannel](connectionQueueSize)
+  private val inflightResponses = mutable.Map[String, RequestChannel.Response]()
+  private val responseQueue = new LinkedBlockingDeque[RequestChannel.Response]()
+  
+  override def run(): Unit = {
+    // 等待processor线程启动完成  
+    startupComplete()
+    try {
+      while (isRunning) {
+        try {
+          // setup any new connections that have been queued up
+          // 配置新的已就绪连接（将newConnections 里的channel取出来注册到selector中）；
+          // 为了确保及时处理现有通道的流量和连接关闭的通知，每次迭代处理的连接数是有限的。
+          configureNewConnections()
+          // register any new responses for writing
+          // selector将response通过网络发出，并将其存入inflightResponses 用作后续调用
+          processNewResponses()
+          // 执行nio poll，获取socketChannel上已就绪的IO事件
+          poll()
+          // 将接收到的请求放入request阻塞队列中
+          processCompletedReceives()
+          // 为了inflightResponses 中成功发送的response执行回调逻辑
+          processCompletedSends()
+          // 将断开连接的response从inflightResponses 中移除
+          processDisconnected()
+          // 关闭超过配额限制的连接
+          closeExcessConnections()
+        } catch {
+          // We catch all the throwables here to prevent the processor thread from exiting. We do this because
+          // letting a processor exit might cause a bigger impact on the broker. This behavior might need to be
+          // reviewed if we see an exception that needs the entire broker to stop. Usually the exceptions thrown would
+          // be either associated with a specific socket channel or a bad request. These exceptions are caught and
+          // processed by the individual methods above which close the failing channel and continue processing other
+          // channels. So this catch block should only ever see ControlThrowables.
+          case e: Throwable =&gt; processException(&quot;Processor got uncaught exception.&quot;, e)
+        }
+      }
+    } finally {
+      debug(s&quot;Closing selector - processor $id&quot;)
+      CoreUtils.swallow(closeAll(), this, Level.ERROR)
+      shutdownComplete()
+    }
+  }
+
+</code></pre>
+<h4 id="kafkarequesthandler-核心逻辑处理器">KafkaRequestHandler 核心逻辑处理器</h4>
+<p>KafkaRequestHandler 是kafka中真正的逻辑处理代码。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaRequestHandler.scala
+// IO线程池
+class KafkaRequestHandlerPool(val brokerId: Int,
+                              val requestChannel: RequestChannel,
+                              val apis: ApiRequestHandler,// 具体逻辑处理器
+                              time: Time,
+                              numThreads: Int,// 线程数
+                              requestHandlerAvgIdleMetricName: String,
+                              logAndThreadNamePrefix : String) extends Logging with KafkaMetricsGroup {
+   // 可动态扩展
+  private val threadPoolSize: AtomicInteger = new AtomicInteger(numThreads)
+  /* a meter to track the average free capacity of the request handlers */
+  private val aggregateIdleMeter = newMeter(requestHandlerAvgIdleMetricName, &quot;percent&quot;, TimeUnit.NANOSECONDS)
+
+  // 线程数组
+  this.logIdent = &quot;[&quot; + logAndThreadNamePrefix + &quot; Kafka Request Handler on Broker &quot; + brokerId + &quot;], &quot;
+  val runnables = new mutable.ArrayBuffer[KafkaRequestHandler](numThreads)
+  for (i &lt;- 0 until numThreads) {
+    createHandler(i)
+  }
+  
+  // 创建IO处理线程，即KafkaRequestHandler
+  def createHandler(id: Int): Unit = synchronized {
+    runnables += new KafkaRequestHandler(id, brokerId, aggregateIdleMeter, threadPoolSize, requestChannel, apis, time)
+    KafkaThread.daemon(logAndThreadNamePrefix + &quot;-kafka-request-handler-&quot; + id, runnables(id)).start()
+  }
+  
+// IO线程  
+class KafkaRequestHandler(id: Int,
+                          brokerId: Int,
+                          val aggregateIdleMeter: Meter,
+                          val totalHandlerThreads: AtomicInteger,
+                          val requestChannel: RequestChannel,
+                          apis: ApiRequestHandler,
+                          time: Time) extends Runnable with Logging {
+  this.logIdent = s&quot;[Kafka Request Handler $id on Broker $brokerId], &quot;
+  private val shutdownComplete = new CountDownLatch(1)
+  private val requestLocal = RequestLocal.withThreadConfinedCaching
+  @volatile private var stopped = false
+
+  def run(): Unit = {
+    while (!stopped) {
+      // We use a single meter for aggregate idle percentage for the thread pool.
+      // Since meter is calculated as total_recorded_value / time_window and
+      // time_window is independent of the number of threads, each recorded idle
+      // time should be discounted by # threads.
+      val startSelectTime = time.nanoseconds
+
+      // 从requestChannel获取请求
+      val req = requestChannel.receiveRequest(300)
+      val endTime = time.nanoseconds
+      // 统计线程空闲时间
+      val idleTime = endTime - startSelectTime
+      // 更新线程空闲百分比指标
+      aggregateIdleMeter.mark(idleTime / totalHandlerThreads.get)
+
+      req match {
+        // 关闭请求  
+        case RequestChannel.ShutdownRequest =&gt;
+          debug(s&quot;Kafka request handler $id on broker $brokerId received shut down command&quot;)
+          completeShutdown()
+          return
+
+        // 正常请求
+        case request: RequestChannel.Request =&gt;
+          try {
+            request.requestDequeueTimeNanos = endTime
+            trace(s&quot;Kafka request handler $id on broker $brokerId handling request $request&quot;)
+            // 真正开始处理相关逻辑
+            apis.handle(request, requestLocal)
+          } catch {
+            case e: FatalExitError =&gt;
+              completeShutdown()
+              Exit.exit(e.statusCode)
+            case e: Throwable =&gt; error(&quot;Exception when handling request&quot;, e)
+          } finally {
+            request.releaseBuffer()
+          }
+
+        case null =&gt; // continue
+      }
+    }
+    completeShutdown()
+  }
+
+</code></pre>
+<h4 id="完整处理流程">完整处理流程</h4>
 <ol>
-<li>简单和明确，做一件事只有一种方法。</li>
-<li>学习曲线低，跟其他很多语言相比，Python更容易上手。</li>
-<li>开放源代码，拥有强大的社区和生态圈。</li>
-<li>解释型语言，天生具有平台可移植性。</li>
-<li>支持两种主流的编程范式（面向对象编程和函数式编程）都提供了支持。</li>
-<li>可扩展性和可嵌入性，可以调用C/C++代码，也可以在C/C++中调用Python。</li>
-<li>代码规范程度高，可读性强，适合有代码洁癖和强迫症的人群。</li>
+<li>SocketServer 中的Acceptor 线程接受clients的请求。</li>
+<li>Acceptor 线程会创建 NIO Selector 对象及 ServerSocketChannel 实例，并将其与 OP_ACCEPT 事件注册到 Selector 多路复用器上。</li>
+<li>与此同时，Acceptor 线程还会创建默认大小为3的 Processor 线程池，（可通过broker端参数：num.network.threads进行修改） 。</li>
+<li>Acceptor线程开始轮询监听，如果有新的请求对象 SocketChannel 进入，便会将其放入到连接队列中（newConnections），同时会触发一个processor线程进行处理。</li>
+<li>Processor 线程向 SocketChannel 注册 OP_READ/OP_WRITE 事件，同时，轮询获取已就绪的IO事件。</li>
+<li>Processor 线程会根据Channel中获取已经完成的 Receive 对象，构建 Request 对象，并将其存入到 Requestchannel 的 RequestQueue 请求队列中 。</li>
+<li>KafkaRequestHandler 线程循环地从请求队列中获取 Request 实例，然后交由KafkaApis 的 handle 方法，执行真正的请求处理逻辑，并最终将数据存储到磁盘中。</li>
+<li>待处理完请求后，KafkaRequestHandler 线程会将 Response 对象放入 Processor 线程的 Response 队列。</li>
+<li>Processor 线程通过 Request 中的 ProcessorID 不停地从 Response 队列中来定位并取出 Response 对象，并返还给 Request 发送方。</li>
 </ol>
-<p>Python的缺点主要集中在以下几点。</p>
-<ol>
-<li>执行效率稍低，因此计算密集型任务可以由C/C++编写。</li>
-<li>代码无法加密，但是现在很多公司都不销售卖软件而是销售服务，这个问题会被淡化。</li>
-<li>在开发时可以选择的框架太多（如Web框架就有100多个），有选择的地方就有错误。</li>
-</ol>
-<h2 id="基本语法">基本语法</h2>
-<h3 id="变量">变量</h3>
-<h4 id="基础变量">基础变量</h4>
-<p>创建变量时，需遵循以下规则：</p>
-<ul>
-<li>第一个字符必须是字母表中字母或下划线 _ 。</li>
-<li>标识符的其他的部分由字母、数字和下划线组成。</li>
-<li>标识符对大小写敏感。</li>
-<li>不能使用python保留字。</li>
-<li>python3支持中文作为变量名，非 ASCII 标识符也是允许的。（不建议使用中文作为变量名）</li>
-</ul>
-<pre><code># 查看关键字
-import keyword
-var = keyword.kwlist
-print(var)
-
-</code></pre>
-<h4 id="注释与编码">注释与编码</h4>
-<p>单行注释使用#号，多行注释可以使用'''或者&quot;&quot;&quot;，python3编码默认为utf-8（可以修改）。</p>
-<pre><code># 单行注释信息
-&quot;&quot;&quot;
-多行注释
-&quot;&quot;&quot;
-
-# 修改编码
-# -*- coding: GBK -*-
-
-</code></pre>
-<h4 id="语法结构">语法结构</h4>
-<p>python对于代码块需要使用缩进来表示，缩进的空格数是可变的，但是同一个代码块中的缩进需要保持一致，一般使用4个空格。</p>
-<p>为了方便后期维护，在代码之间可以适当的使用空行进行代码功能隔离。</p>
-<pre><code>a = &quot;12&quot;
-if n := len(a) &gt; 1:
-    print(&quot;True&quot;)
-else:
-    print(&quot;False&quot;)
-
-</code></pre>
-<p>python中关于一条语句过长需要换行的写法如下（使用反斜杠\）：</p>
-<pre><code>var = &quot;var1&quot; \
-    &quot;var2&quot; \
-    &quot;var3&quot;
-print(var)
-
-</code></pre>
-<p>python支持多行语句并做一行处理</p>
-<pre><code>import sys; x = 'runoob'; sys.stdout.write(x + '\n')
-</code></pre>
-<h2 id="基本数据类型">基本数据类型</h2>
-<p>Python3有六个标准的数据类型：Number，String，List，Tuple，Set，Dictionary。</p>
-<p>其中不可变数据：Number，String，Tuple</p>
-<p>可变数据：List，Set，Dictionary</p>
-<h3 id="number数字">Number（数字）</h3>
-<p>python3支持int(长整型，相当于python2的Long)，float，bool(python2没有布尔值；1等于True，0等于False，可用于算术运算)，complex(复数)。</p>
-<pre><code># 可以使用type或者isinstance函数判断变量类型。
-# type()不会认为子类是一种父类类型。即type事先不知道变量类型。
-# isinstance()会认为子类是一种父类类型。即isinstance事先知道变量类型。
-a, b, c, d = 1, 2.2, False, 4+1j
-print(type(a), type(b), type(c), type(d))
-print(isinstance(a, int))
-
-# bool 算术运算
-a = True
-b, c, d = a + 1, a - 1, a * 10
-print(a, b, c, d)
-
-# 强制转换
-a = &quot;1&quot;
-print(a, int(a), bool(a), float(a))
-
-</code></pre>
-<h3 id="string字符串">String（字符串）</h3>
-<p>python3使用''或者&quot;&quot;定义字符串，使用反斜杠\转义特殊字符，也可以使用r让反斜杠不转义；连接字符串用+号，重复字符串用*号。</p>
-<pre><code>a = &quot;test\ncontent&quot;
-b = r&quot;test\ncontent&quot;
-print(a)
-print(b)
-print(b + b)
-print(b*3)
-
-</code></pre>
-<p>字符串的截取语法：variable[头下标:尾下标]，规则为左闭右开区间；</p>
-<p>从左往右，头下标从0开始（0可省略）；从右往左，尾下标从-1开始（注意：由于左闭右开原则，-1并不会取到最后一位字符，如需取最后一位字符，需将尾下标置空）。</p>
-<pre><code>a = &quot;test content&quot;
-print(a[:5])
-print(a[0:5])
-print(a[-12:-1])
-print(a[-12:])
-
-# 判断字符是否在目标字符串中
-print(&quot;te&quot; in a)
-print(&quot;t&quot; not in a)
-
-# 字符串格式化
-a = &quot;%s, %d&quot; % (&quot;weq&quot;, 2)
-print(a)
-
-# 使用f-string进行格式化，可以不用%s之类的转换符（python版本需要3.6及以上）
-a = &quot;content&quot;
-b = f&quot;test {a}&quot;
-print(b)
-print(f&quot;{1+2=}&quot;)
-
-</code></pre>
-<h3 id="tuple元组">Tuple（元组）</h3>
-<p>元组使用()进行赋值，使用逗号分隔不同元素；()中可以存在不同类型的元素，如数字，字符串，嵌套元组等。</p>
-<p>元组的索引与截取规则与字符串一致，可参考3.2节内容。</p>
-<p>注意：元组中的元素是不能被修改的；只包含一个元素时，需要在元素后面添加逗号，否则括号会被当作运算符使用</p>
-<pre><code>tup = (&quot;www&quot;, 12306, 99.99, 1, 2, 3)
-tup2 = (&quot;test&quot;,)
-print(tup)
-print(tup[:2])
-print(tup[-1:])
-print(tup + tup2)
-print(tup * 2)
-print(&quot;www&quot; in tup)
-
-# 元组截取时，支持第三个参数：步长
-print(tup[0:6:2])
-
-</code></pre>
-<h3 id="list列表">List（列表）</h3>
-<p>列表与元组规则基本一致，不过列表使用[]进行赋值，且其中的元素是可以被修改的。</p>
-<pre><code>list1 = [&quot;www&quot;, 12306, 99.99, 1, 2, 3]
-list2 = [&quot;test&quot;]
-print(list1)
-print(list1[:2])
-print(list1[-1:])
-print(list1 + list2)
-print(list1 * 2)
-print(&quot;www&quot; in list1)
-
-# 截取时，支持第三个参数：步长
-print(list1[0:6:2])
-
-# 修改列表元素
-list2[0] = &quot;update&quot;
-print(list2)
-
-</code></pre>
-<p>借助内置函数，列表也可以被当做堆栈（后进先出）或者队列（先进先出）使用。</p>
-<p>注意：列表用作队列时相对比较低效。因为在列表的末尾添加和弹出元素非常快，但是在列表的开头插入或弹出元素却很慢 (因为所有的其他元素都必须移动一位)。</p>
-<pre><code># 列表作为堆栈，利用append函数添加一个元素到堆栈的顶端，利用pop函数从堆栈顶部取出一个元素
-stack = [1, 2, 3]
-stack.append(4)
-stack.append(5)
-print(stack)
-stack.pop()
-print(stack)
-
-# 列表作为队列，需要借助collections.deque操作列表两端
-from collections import deque
-
-queue = deque([1, 2, 3])
-queue.append(4)
-queue.append(5)
-print(queue)
-queue.popleft()
-print(queue)
-
-</code></pre>
-<p>python中的列表推导式：列表推导式提供了一个更简单的创建列表的方法。常见的用法是把某种操作应用于序列或可迭代对象的每个元素上，然后使用其结果来创建列表，或者通过满足某些特定条件元素来创建子序列。</p>
-<p>列表推导式的结构是由一对方括号所包含的以下内容组成：一个表达式，后面跟一个 for 子句，然后是零个或多个 for 或 if 子句。 其结果将是一个新列表，由对表达式依据后面的 for 和 if 子句的内容进行求值计算而得出。</p>
-<p>注意：如果表达式是一个元组，那么其必须加上括号。</p>
-<pre><code># 简单列表推导式
-t = [x * 2 for x in range(3)]
-print(t)
-
-list_x = [1, 3, 5]
-list_y = [2, 4, 6]
-print([x * y for x in list_x for y in list_y])
-
-fresh_str = ['  f   ', '  r', 'w   ']
-print([x.strip() for x in fresh_str])
-
-# 组合两个列表中的不同元素，将返回一个列表，列表中的元素类型是元组
-t = [(x, y) for x in [1, 2, 3] for y in [2, 1, 3] if x != y]
-print(t)
-
-# 嵌套列表推导式
-list_1 = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
-t = [[row[i] for row in list_1] for i in range(4)]
-print(t)
-
-</code></pre>
-<h3 id="set集合">Set（集合）</h3>
-<p>集合是由不重复元素组成的无序的集。它的基本用法包括成员检测和消除重复元素。集合对象也支持像 联合，交集，差集，对称差分等数学运算。</p>
-<p>使用{}花括号或<a href="https://docs.python.org/zh-cn/3.9/library/stdtypes.html#set">set()</a> 函数可以用来创建集合。注意：要创建一个空集合只能用 set() 而不能用 {}，因为后者是创建一个空字典。</p>
-<pre><code># 去重
-sites = {&quot;www&quot;, &quot;12306&quot;, &quot;com&quot;, &quot;www&quot;}
-print(sites)
-print(&quot;www&quot; in sites)
-
-# 运算
-a = set(&quot;abcd&quot;)
-b = set(&quot;defg&quot;)
-print(a &amp; b)
-print(a | b)
-print(a ^ b)
-# a集合包含的元素而b集合不包含
-print(a - b)
-
-# 集合支持推导式
-a = {x for x in 'abcdefg' if x not in 'abc'}
-print(a)
-
-</code></pre>
-<h3 id="dictionary字典">Dictionary（字典）</h3>
-<p>字典（dictionary）是Python中另一个非常有用的内置数据类型。</p>
-<p>列表是有序的对象集合，字典是无序的对象集合。两者之间的区别在于：字典当中的元素是通过键来存取的，而不是通过偏移存取。</p>
-<p>字典是一种映射类型，字典用 { } 标识，它是一个无序的 键(key) : 值(value) 的集合。</p>
-<p>键(key)必须使用不可变类型。</p>
-<p>在同一个字典中，键(key)必须是唯一的。</p>
-<pre><code># 字典，类比如json，或者map，是一个kv键值对的集合
-dict_test = {'name': 'hello', 'age': 100}
-# 获取字典的值
-print(dict_test['name'])
-print(dict_test.get('age'))
-# 获取键值对
-for k, v in dict_test.items():
-    print(k, v)
-  
-# 使用dict函数构造字典
-d = dict([('name', 'jack'), ('age', 100)])
-print(d)
-d2 = dict(name='tom', age=90)
-print(d2)
-
-# 字典支持推导式
-a = {x: x * 2 for x in (1, 2, 3)}
-print(a)
-
-</code></pre>
-<h2 id="流程控制">流程控制</h2>
-<h3 id="条件判断">条件判断</h3>
-<p>if 语法如下所示：</p>
-<ul>
-<li>每个条件后面要使用冒号 :，表示接下来是满足条件后要执行的语句块。</li>
-<li>使用缩进来划分语句块，相同缩进数的语句在一起组成一个语句块。</li>
-<li>在Python中没有switch – case语句。</li>
-</ul>
-<pre><code># 语法格式
-if condition_1:
-    statement_block_1
-elif condition_2:
-    statement_block_2
-else:
-    statement_block_3
-  
-# 简单实例
-var = 10
-if var &gt; 10:
-    print(&quot;value(&quot; + str(var) + &quot;) grate than 10&quot;)
-elif var == 10:
-    print(&quot;value(&quot; + str(var) + &quot;) equals 10&quot;)
-else:
-    print(&quot;value(&quot; + str(var) + &quot;) less than 10&quot;)  
-  
-# := 赋值表达式运算符，又称海象运算符（python3.8）
-a = &quot;12&quot;
-if n := len(a) &gt; 1:
-    print(&quot;True&quot;)
-else:
-    print(&quot;False&quot;)  
-
-</code></pre>
-<h3 id="循环语句">循环语句</h3>
-<p>break（终止循环）及continue（跳过本次循环）用于流程控制。pass是空语句，是为了保持程序结构的完整性。</p>
-<p>while语句</p>
-<pre><code># 简单例子
-var = 1
-while var &lt; 3:
-    print(&quot;value: &quot; + str(var))
-    var += 1
-  
-# pass占位语句
-while True:
-    pass  
-
-</code></pre>
-<p>for语句（break（终止循环）及continue（跳过本次循环）用于流程控制）</p>
-<pre><code># 简单例子
-# 列表 for循环
-list1 = [&quot;first&quot;, 'second', 123, 45.6]
-print(len(list1))
-for var in list1:
-    print(var, end=&quot;; &quot;)
-  
-# 获取索引及其值
-for i, v in enumerate(list1):
-    print(i, v)   
-  
-# 多个list，使用zip函数聚合
-list2 = ['map', 'json', 'session', 'cookie']
-for q1, q2, in zip(list1, list2):
-    print('param1={0}, param2={1}'.format(q1, q2))
-  
-# 内置的range函数可以遍历数字序列
-# 简单range，
-for i in range(3):
-    print(i)
-# 指定区间
-for i in range(1, 3):
-    print(i)
-# 指定区间及步长
-for i in range(1, 10, 2):
-    print(i)
-  
-# 迭代器
-list3 = [&quot;good&quot;, &quot;fire&quot;, &quot;hello&quot;]
-it = iter(list2)
-print(next(it))
-for var in it:
-    print(var)  
-
-</code></pre>
-<h2 id="函数">函数</h2>
-<h3 id="函数-2">函数</h3>
-<p>函数是组织好的，可重复使用的，用来实现单一，或相关联功能的代码段。函数能提高应用的模块性，和代码的重复利用率。</p>
-<ul>
-<li>函数代码块以 def 关键词开头，后接函数标识符名称和圆括号 ()。</li>
-<li>任何传入参数和自变量必须放在圆括号中间，圆括号之间可以用于定义参数。</li>
-<li>函数的第一行语句可以选择性地使用文档字符串—用于存放函数说明。</li>
-<li>函数内容以冒号 : 起始，并且缩进。</li>
-<li>return [表达式] 结束函数，选择性地返回一个值给调用方，不带表达式的 return 相当于返回 None。</li>
-</ul>
-<pre><code># 可变对象传递给函数，将会改变其中的值；不可变对象传递不会改变值（如果修改，则返回一个新的变量）
-def test_n(var):
-    var[0] = 3
-
-test1 = [2, 3]
-test_n(test1)
-print(test1)
-
-# 必需参数须以正确的顺序传入函数。调用时的数量必须和声明时的一样。
-def test_1(var):
-    print(var)
-
-test_1(1)
-
-# 关键字参数和函数调用关系紧密，函数调用使用关键字参数来确定传入的参数值。
-# 使用关键字参数允许函数调用时参数的顺序与声明时不一致，因为 Python 解释器能够用参数名匹配参数值。
-def test_2(var1, var2):
-    print(var1, var2)
-
-test_2(var2=2, var1=1)
-
-# 默认参数：调用函数时，如果没有传递参数，则会使用默认参数
-# 默认参数最好使用不可变数据类型，否则可能会出现超出预期的场景
-def test_3(var1, var2=2):
-    print(var1, var2)
-
-test_3(1)
-
-# 不定长参数: 当需要一个函数能处理比当初声明时更多的参数时，这些参数就叫做不定长参数
-# *表示一个元组
-def test_4(var1, *var2):
-    print(var1)
-    print(var2)
-
-test_4(1, 10, 20, 30)
-
-# **表示一个字典
-def test_4(var1, **var2):
-    print(var1)
-    print(var2)
-
-test_4(1, a=10, b=20, c=30)
-
-# 文档字符串
-# 第一行应该是对象目的的简要概述。为简洁起见，它不应显式声明对象的名称或类型，因为这些可通过其他方式获得（除非名称恰好是描述函数操作的动词）。这一行应以大写字母开头，以句点结尾。
-# 如果文档字符串中有更多行，则第二行应为空白，从而在视觉上将摘要与其余描述分开。后面几行应该是一个或多个段落，描述对象的调用约定，它的副作用等。
-def test_5():
-    &quot;&quot;&quot;Do nothing, but document it.
-
-    No, really, it doesn't do anything
-    &quot;&quot;&quot;
-    print(&quot;test&quot;)
-
-print(test_5.__doc__)
-
-</code></pre>
-<h3 id="匿名函数">匿名函数</h3>
-<p>python 使用 lambda 来创建匿名函数。</p>
-<p>所谓匿名，意即不再使用 def 语句这样标准的形式定义一个函数。</p>
-<ul>
-<li>lambda 只是一个表达式，函数体比 def 简单很多。</li>
-<li>lambda的主体是一个表达式，而不是一个代码块。仅仅能在lambda表达式中封装有限的逻辑进去。</li>
-<li>lambda 函数拥有自己的命名空间，且不能访问自己参数列表之外或全局命名空间里的参数。</li>
-<li>虽然lambda函数看起来只能写一行，却不等同于C或C++的内联函数，后者的目的是调用小函数时不占用栈内存从而增加运行效率。</li>
-</ul>
-<pre><code># lambda函数
-# 语法
-lambda [arg1 [,arg2,.....argn]]:expression
-
-# 简单例子
-sum_result = lambda a1, a2: a1 + a2
-print(sum_result(2, 3))
-
-</code></pre>
-<h2 id="错误与异常">错误与异常</h2>
-<h3 id="异常">异常</h3>
-<p>即使语句或表达式在语法上是正确的，但在尝试执行时，它仍可能会引发错误。在执行时检测到的错误被称为异常，异常不一定会导致严重后果。</p>
-<pre><code># 简单异常
-print(3 / 0)
-# 输出
-Traceback (most recent call last):
-  File &quot;D:/knowledge/python/pycharm/pythonProject/learn/test.py&quot;, line 123, in &lt;module&gt;
-    print(3 / 0)
-ZeroDivisionError: division by zero
-
-# 处理异常
-def test_6(x, y):
-    try:
-        x / y
-    except Exception as msg:
-        print(msg)
-
-test_6(3, 0)
-
-# try finally， finally语句中的代码始终都会执行
-def test_7(x, y):
-    try:
-        x / y
-    except ZeroDivisionError as msg:
-        print(msg)
-    finally:
-        print(&quot;finally exec&quot;)
-
-test_7(3, 0)
-
-# raise抛出异常
-raise Exception(&quot;raise exception&quot;)
-
-</code></pre>
-<p>一个 <a href="https://docs.python.org/zh-cn/3.9/reference/compound_stmts.html#try">try</a> 语句可能有多个 except 子句，以指定不同异常的处理程序。 最多会执行一个处理程序。 处理程序只处理相应的 try 子句中发生的异常，而不处理同一 try 语句内其他处理程序中的异常。 一个 except 子句可以将多个异常命名为带括号的元组。</p>
-<pre><code># 一个except多个异常
-try:
-    expression
-except (RuntimeError, OSError, TypeError):
-    pass
-  
-# 多个except
-# 最后的 except 子句可以省略异常名，以用作通配符。但请谨慎使用，因为以这种方式很容易掩盖真正的编程错误！
-# 它还可用于打印错误消息，然后重新引发异常（同样允许调用者处理异常）   
-import sys
-try:
-    f = open('myfile.txt')
-    s = f.readline()
-    i = int(s.strip())
-except OSError as err:
-    print(&quot;OS error: {0}&quot;.format(err))
-except ValueError:
-    print(&quot;Could not convert data to an integer.&quot;)
-except:
-    print(&quot;Unexpected error:&quot;, sys.exc_info()[0])
-    raise 
-
-</code></pre>
-<p>使用with语句可以自动关闭流</p>
-<pre><code># with关键字会自动关闭文件,try捕获异常输出
-try:
-    with open('/opt/pythonDir/temp.txt', 'w+') as f:
-        f.write(&quot;test content&quot;)
-    print(f.close())
-except IOError as err:
-    print(&quot;exception: {0}&quot;.format(err))
-
-</code></pre>
-<h2 id="面向对象">面向对象</h2>
-<h3 id="python中的类">python中的类</h3>
-<p>类实例化后，可以使用其属性，实际上，创建一个类之后，可以通过类名访问其属性。</p>
-<pre><code># 创建类
-class FirstClass:
-    name = &quot;python&quot;
-
-    def fn(self):
-        print(self.name)
-        return &quot;hello world&quot;
-
-
-# 实例化类
-first_class = FirstClass()
-# 调用变量
-print(&quot;name: &quot;, first_class.name)
-# 调用函数
-print(&quot;function: &quot;, first_class.fn())
-
-# 定义初始化函数
-class People:
-    # 基本属性
-    name = &quot;&quot;
-    age = 0
-    # 使用双下划线定义私有属性，其无法被类外部所访问
-    __private_attribute = &quot;private_attribute&quot;
-
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-
-    def speak(self):
-        print(&quot;{0} speak: {1}, {2}&quot;.format(self.name, self.age, self.__private_attribute))
-
-    def action(self):
-        print(&quot;base class action&quot;)
-
-
-# people = People(&quot;Jack&quot;, 100)
-# people.speak()
-
-# 继承类
-class Employee(People):
-    profession = &quot;&quot;
-
-    def __init__(self, name, age, profession):
-        People.__init__(self, name, age)
-        self.profession = profession
-
-    def speak(self):
-        print(&quot;{0} speak: {1}, {2}&quot;.format(self.name, self.age, self.profession))
-
-    # 重写toString方法
-#   def __str__(self):
-#       return &quot;Employee:{name: %s, age: %d, profession: %s}&quot; % (self.name, self.age, self.profession)
-
-    # 重写toString方法（使用f-string格式化）
-    def __str__(self):
-        return f&quot;Employee:(name: {self.name}, age: {self.age}, profession: {self.profession})&quot;
-
-teacher = Employee(&quot;Tom&quot;, 40, &quot;teacher&quot;)
-teacher.speak()
-teacher.action()
-print(teacher.name)
-
-json_str = json.dumps(teacher.__dict__)
-print(json_str)
-teacher2 = json.loads(json_str)
-print(teacher2)
-
-</code></pre>
 
             </div>
             
@@ -1199,7 +1086,7 @@ print(teacher2)
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/" title="python3基本知识">https://philosopherzb.github.io/post/python3-ji-ben-zhi-shi/</a>
+      <a href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/" title="kafka深入理解之Broker请求流程">https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-broker-qing-qiu-liu-cheng/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1208,23 +1095,17 @@ print(teacher2)
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/J0nZ922z5/"># python</a>
-    
-      <a href="https://philosopherzb.github.io/tag/f97QyUxa8/"># 脚本</a>
+      <a href="https://philosopherzb.github.io/tag/qwW0Keb-p/"># kafka</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
-        <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="Shell基本知识" href="https://philosopherzb.github.io/post/shell-ji-ben-zhi-shi/">Shell基本知识</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="Shell基本知识" href="https://philosopherzb.github.io/post/shell-ji-ben-zhi-shi/">上一篇</a>
-      
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="Lua基本知识" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">Lua基本知识</a>
-        <a class="nav-mobile-next" title="Lua基本知识" href="https://philosopherzb.github.io/post/lua-ji-ben-zhi-shi/">下一篇</a>
+        <a class="nav-pc-next" title="kafka深入理解之可用性与持久性保证" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-ke-yong-xing-yu-chi-jiu-xing-bao-zheng/">kafka深入理解之可用性与持久性保证</a>
+        <a class="nav-mobile-next" title="kafka深入理解之可用性与持久性保证" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-ke-yong-xing-yu-chi-jiu-xing-bao-zheng/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
