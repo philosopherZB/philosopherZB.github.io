@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1679032827076">
+<link rel="shortcut icon" href="/favicon.ico?v=1679034920284">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -196,7 +196,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">35</span>
+        <span class="site-item-stat-count">37</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -571,6 +571,441 @@
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/i18n-sdk-shi-yong-shou-ce/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述i18n-sdk 的使用方式。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/boats-1802340_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;源码地址&#34;&gt;源码地址&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/philosopherZB/demo-all/tree/master/i18n&#34;&gt;点击此处跳转github查看具体源码&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;引入依赖&#34;&gt;引入依赖&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;com.philosopherzb&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;i18n-sdk&amp;lt;/artifactId&amp;gt;
+         &amp;lt;version&amp;gt;1.0.0-SNAPSHOT&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;使用-可参考i18n-client工程&#34;&gt;使用--&amp;gt;(可参考i18n-client工程)&lt;/h2&gt;
+&lt;h3 id=&#34;配置文件在本地&#34;&gt;配置文件在本地&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;在resource目录下创建 messages_en_US.properties, messages_zb_CN.properties&lt;/li&gt;
+&lt;li&gt;在配置文件中输入中英文配置信息&lt;/li&gt;
+&lt;li&gt;项目的application.properties配置文件中需要加入:&lt;br&gt;
+&lt;code&gt;spring.main.allow-bean-definition-overriding=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;其中i18n为resources下的文件目录，messages是第一步中的properties前缀&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.basename=classpath:i18n/messages&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;代码中使用: MessageUtil.get(&amp;quot;key&amp;quot;); MessageUtil.get(&amp;quot;key&amp;quot;, &amp;quot;params&amp;quot;);&lt;/li&gt;
+&lt;li&gt;测试使用，通过在请求头信息中添加如下信息:&lt;br&gt;
+&lt;code&gt;[{&amp;quot;key&amp;quot;:&amp;quot;Accept-Language&amp;quot;,&amp;quot;value&amp;quot;:&amp;quot;en_US&amp;quot;,&amp;quot;description&amp;quot;:&amp;quot;英文&amp;quot;,&amp;quot;type&amp;quot;:&amp;quot;text&amp;quot;,&amp;quot;enabled&amp;quot;:true}]&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;[{&amp;quot;key&amp;quot;:&amp;quot;Accept-Language&amp;quot;,&amp;quot;value&amp;quot;:&amp;quot;zh_CN&amp;quot;,&amp;quot;description&amp;quot;:&amp;quot;中文&amp;quot;,&amp;quot;type&amp;quot;:&amp;quot;text&amp;quot;,&amp;quot;enabled&amp;quot;:true}]&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;配置文件在nacos&#34;&gt;配置文件在nacos&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;com.alibaba.nacos&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;nacos-client&amp;lt;/artifactId&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;如上引入nacos依赖&lt;/li&gt;
+&lt;li&gt;项目的application.properties配置文件中需要加入:&lt;br&gt;
+&lt;code&gt;spring.main.allow-bean-definition-overriding=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;mode 表示i18n模式，local为本地，nacos为nacos配置中心，默认为local&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.mode=nacos&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;存储i18n的文件目录，默认为 i18n/&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.baseFolder=i18n/&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;此值与nacos中的配置信息需保持一致，且为必填。若为空则会抛出spring.messages.basename value is empty的异常信息。&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.basename=user-message&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;nacos的地址，为必填。若为空则会抛出spring.messages.serverAddress value is empty的异常信息。&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.serverAddress=127.0.0.1:8848&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;nacos的namespace值，为必填。若为空则会抛出spring.messages.namespace value is empty的异常信息。&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;spring.messages.namespace=e52f0660-c859-4762-b0f4-4f6f17727d59&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;代码中使用: MessageUtil.get(&amp;quot;key&amp;quot;); MessageUtil.get(&amp;quot;key&amp;quot;, &amp;quot;params&amp;quot;);&lt;/li&gt;
+&lt;li&gt;测试使用，通过在请求头信息中添加如下信息:&lt;br&gt;
+&lt;code&gt;[{&amp;quot;key&amp;quot;:&amp;quot;Accept-Language&amp;quot;,&amp;quot;value&amp;quot;:&amp;quot;en_US&amp;quot;,&amp;quot;description&amp;quot;:&amp;quot;英文&amp;quot;,&amp;quot;type&amp;quot;:&amp;quot;text&amp;quot;,&amp;quot;enabled&amp;quot;:true}]&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;[{&amp;quot;key&amp;quot;:&amp;quot;Accept-Language&amp;quot;,&amp;quot;value&amp;quot;:&amp;quot;zh_CN&amp;quot;,&amp;quot;description&amp;quot;:&amp;quot;中文&amp;quot;,&amp;quot;type&amp;quot;:&amp;quot;text&amp;quot;,&amp;quot;enabled&amp;quot;:true}]&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;自动捕获javaxvalidationconstraints中的message作为国际化输出-可参考i18n-client工程&#34;&gt;自动捕获javax.validation.constraints中的message作为国际化输出--&amp;gt;(可参考i18n-client工程)&lt;/h3&gt;
+&lt;h4 id=&#34;全局异常捕获&#34;&gt;全局异常捕获&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.handler.GlobalExceptionHandler&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * @author philosopherZB
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private Function&amp;lt;Exception, String&amp;gt; messageExtractor = this::extractReadableMessage;
+
+    @ExceptionHandler(RuntimeException.class)
+    public Result&amp;lt;String&amp;gt; handleSystemException(Exception e) {
+        log.error(&amp;quot;service occurs runtime error: &amp;quot;, e);
+        return ResultUtils.failResult(BizErrorCode.SYSTEM_BUSY);
+    }
+
+    @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
+    public Result&amp;lt;String&amp;gt; handleArgumentException(Exception e) {
+        String msg = this.messageExtractor.apply(e);
+        return ResultUtils.failResult(BizErrorCode.PARAM_VALID_EXCEPTION.getCode(), msg);
+    }
+
+    @ExceptionHandler({ConstraintViolationException.class})
+    public Result&amp;lt;String&amp;gt; handleException(ConstraintViolationException e) {
+        log.error(&amp;quot;param exception: &amp;quot;, e);
+        Optional&amp;lt;ConstraintViolation&amp;lt;?&amp;gt;&amp;gt; optional = e.getConstraintViolations().stream().findFirst();
+        String msg = optional.isPresent() ? optional.get().getMessage() : BizErrorCode.PARAM_VALID_EXCEPTION.getErrorMessage();
+        return ResultUtils.failResult(BizErrorCode.PARAM_VALID_EXCEPTION.getCode(), msg);
+    }
+
+    private String extractReadableMessage(Exception e) {
+        log.error(&amp;quot;param exception: &amp;quot;, e);
+        BindingResult bindingResult;
+        if (e instanceof BindException) {
+            bindingResult = ((BindException) e).getBindingResult();
+        } else {
+            bindingResult = ((MethodArgumentNotValidException) e).getBindingResult();
+        }
+
+        return Objects.requireNonNull(bindingResult.getFieldError()).getDefaultMessage();
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;通用型validation配置&#34;&gt;通用型validation配置&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.config.CommonValidationConfig 类&lt;/li&gt;
+&lt;li&gt;此配置器对于 javax.validation.constraints 中的message的格式要求为el形式&lt;/li&gt;
+&lt;li&gt;eg:  @NotBlank(message = &amp;quot;{PARAM_INVALID}&amp;quot;)&lt;/li&gt;
+&lt;li&gt;eg:  @NotBlank(message = &amp;quot;prefix-{PARAM_INVALID}-suffix&amp;quot;)&lt;/li&gt;
+&lt;li&gt;其中 PARAM_INVALID 为国际化配置文件中的key; 在花括号的左右两边可以输入额外的参数&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 此配置器对于 javax.validation.constraints 中的message的格式要求为el形式
+ * eg:  @NotBlank(message = &amp;quot;{PARAM_INVALID}&amp;quot;)
+ * eg:  @NotBlank(message = &amp;quot;prefix-{PARAM_INVALID}-suffix&amp;quot;)
+ * 其中 PARAM_INVALID 为配置文件中的key
+ *
+ * @author philosopherZB
+ */
+@Configuration
+public class CommonValidationConfig {
+    @Bean
+    public LocalValidatorFactoryBean localValidatorFactoryBean(MessageSource messageSource) {
+        LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
+        bean.setValidationMessageSource(messageSource);
+        return bean;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;定制化validation配置&#34;&gt;定制化validation配置&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.config.CustomValidationConfig 类&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;此配置器对于 javax.validation.constraints 中的message的格式要求为el形式，或者定制化分隔符&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;eg:  @NotBlank(message = &amp;quot;{PARAM_INVALID}&amp;quot;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;eg:  @NotBlank(message = &amp;quot;prefix-{PARAM_INVALID}-suffix&amp;quot;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;其中 PARAM_INVALID 为国际化配置文件中的key; 在花括号的左右两边可以输入额外的参数&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;eg:  @NotBlank(message = I18nConstant.PARAM_IS_NULL_BY_SEPARATE + &amp;quot;orderSource&amp;quot;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;其中 18nConstant.PARAM_IS_NULL_BY_SEPARATE 是一个组合字符串，由 PARAM_IS_NULL_BY + SEPARATE构成&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;PARAM_IS_NULL_BY为配置文件中的key，而orderSource则为对应的字段名&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 此配置器对于 javax.validation.constraints 中的message的格式要求为el形式，或者分隔符
+ * eg:  @NotBlank(message = &amp;quot;{PARAM_INVALID}&amp;quot;)
+ * eg:  @NotBlank(message = &amp;quot;prefix-{PARAM_INVALID}-suffix&amp;quot;)
+ * 其中 PARAM_INVALID 为配置文件中的key
+ * &amp;lt;p&amp;gt;
+ * eg:  @NotBlank(message = I18nConstant.PARAM_IS_NULL_BY_SEPARATE + &amp;quot;orderSource&amp;quot;)
+ * 其中 18nConstant.PARAM_IS_NULL_BY_SEPARATE 是一个组合字符串，由 PARAM_IS_NULL_BY + SEPARATE构成
+ * PARAM_IS_NULL_BY为配置文件中的key，而orderSource则为对应的字段名
+ *
+ * @author philosopherZB
+ */
+@Configuration
+public class CustomValidationConfig {
+
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile(&amp;quot;(?&amp;lt;=\\{)[^}]*(?=})&amp;quot;);
+
+    @Bean
+    @Primary
+    public Validator localValidator() {
+        return Validation.byDefaultProvider()
+                .configure()
+                .messageInterpolator(new I18nMessageInterpolator())
+                .buildValidatorFactory()
+                .getValidator();
+    }
+
+    static class I18nMessageInterpolator implements MessageInterpolator {
+        @Override
+        public String interpolate(String s, Context context) {
+            return interpolate(s, context, null);
+        }
+
+        @Override
+        public String interpolate(String s, Context context, Locale locale) {
+            if (MessageUtil.prepared()) {
+                if (s.contains(I18nConstant.SEPARATE)) {
+                    String[] split = s.split(I18nConstant.SEPARATE);
+                    return MessageUtil.get(split[0], split[1]);
+                }
+                Matcher matcher = MESSAGE_PATTERN.matcher(s);
+                if (matcher.find()) {
+                    String temp = MessageUtil.get(matcher.group());
+                    return s.replaceFirst(&amp;quot;\\{&amp;quot;.concat(matcher.group()).concat(&amp;quot;\\}&amp;quot;), temp);
+                }
+                return MessageUtil.get(s);
+            }
+            return s;
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * @author philosopherZB
+ */
+public class I18nConstant {
+    /**
+     * 分隔符
+     */
+    public static final String SEPARATE = &amp;quot;~&amp;quot;;
+
+    /**
+     * 空值参数，可以指定参数名
+     */
+    public static final String PARAM_IS_NULL_BY = &amp;quot;PARAM_IS_NULL_BY&amp;quot;;
+    /**
+     * 空值参数，有分隔符，可以指定参数名
+     */
+    public static final String PARAM_IS_NULL_BY_SEPARATE = PARAM_IS_NULL_BY + SEPARATE;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">i18n-sdk 使用手册</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/health-check-sdk-shi-yong-shou-ce/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述health-check-sdk 的使用方式。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-192978_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;源码地址&#34;&gt;源码地址&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/philosopherZB/demo-all/tree/master/health-check&#34;&gt;点击此处跳转github查看具体源码&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;查看自带的健康监测&#34;&gt;查看自带的健康监测&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;org.springframework.boot&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;spring-boot-starter-actuator&amp;lt;/artifactId&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果项目中有引入spring-cloud-stream-binder-xxx之类的jar，那么其中可能已经编写了对应的服务健康监测，可以先引入上述jar查看&lt;br&gt;
+在配置文件中加入如下内容:&lt;br&gt;
+&lt;em&gt;此配置需在项目中的启动yaml中的配置&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;禁用所有的监控点&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoints.enabled-by-default=false&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;启用health监控点&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoint.health.enabled=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;显示详细内容&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoint.health.show-details=always&lt;/code&gt;&lt;br&gt;
+随后访问：http://ip:prot//actuator/health 观察是否已经存在对应的中间件健康监测&lt;/p&gt;
+&lt;h2 id=&#34;定制化的健康监测操作如下所示&#34;&gt;定制化的健康监测操作如下所示：&lt;/h2&gt;
+&lt;h3 id=&#34;引入pom&#34;&gt;引入pom&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;com.dbappsecurity.cloudpl.mss&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;health&amp;lt;/artifactId&amp;gt;
+        &amp;lt;version&amp;gt;1.0.0-SNAPSHOT&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;如果要监测kafka需额外引入如下pom&#34;&gt;如果要监测kafka，需额外引入如下pom&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;!-- kafka --&amp;gt;
+    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;org.apache.kafka&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;kafka-clients&amp;lt;/artifactId&amp;gt;
+        &amp;lt;version&amp;gt;2.7.0&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;如果要监测minio则需要额外引入如下pom&#34;&gt;如果要监测minio，则需要额外引入如下pom&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;!-- minio --&amp;gt;
+    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;io.minio&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;minio&amp;lt;/artifactId&amp;gt;
+        &amp;lt;version&amp;gt;8.0.3&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;如果要监测rocketmq则需要额外引入如下pom&#34;&gt;如果要监测rocketmq，则需要额外引入如下pom&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;!-- rocketmq --&amp;gt;
+    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;org.apache.rocketmq&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;rocketmq-client&amp;lt;/artifactId&amp;gt;
+        &amp;lt;version&amp;gt;4.9.1&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;如果要监测xxl-job则需要额外引入如下pom&#34;&gt;如果要监测xxl-job，则需要额外引入如下pom&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    &amp;lt;!-- xxl-job --&amp;gt;
+    &amp;lt;dependency&amp;gt;
+        &amp;lt;groupId&amp;gt;com.xuxueli&amp;lt;/groupId&amp;gt;
+        &amp;lt;artifactId&amp;gt;xxl-job-core&amp;lt;/artifactId&amp;gt;
+        &amp;lt;version&amp;gt;2.3.0&amp;lt;/version&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;在配置文件中添加如下内容&#34;&gt;在配置文件中添加如下内容&lt;/h3&gt;
+&lt;h4 id=&#34;在启动应用程序的配置文件中加入如下内容&#34;&gt;在启动应用程序的配置文件中加入如下内容:&lt;/h4&gt;
+&lt;p&gt;&lt;em&gt;此配置需在项目中的启动yaml中的配置&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;禁用所有的监控点&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoints.enabled-by-default=false&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;启用health监控点&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoint.health.enabled=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;显示详细内容&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;management.endpoint.health.show-details=always&lt;/code&gt;&lt;/p&gt;
+&lt;h4 id=&#34;以下配置可以放在nacos或其他配置中心里&#34;&gt;以下配置可以放在nacos或其他配置中心里&lt;/h4&gt;
+&lt;h5 id=&#34;kafka-配置&#34;&gt;kafka 配置&lt;/h5&gt;
+&lt;p&gt;&lt;em&gt;启动kafka监测&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.kafka.enabled=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;kafka地址,此参数必填，格式：master:9092,slave1:9092,slave2:9092&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.kafka.server-address=10.50.79.250:9091&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;kafka监测主题,根据自己项目进行命名。必须存在，否则将无法发送消息至主题或从主题消费消息。&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;格式：{project-name}-health-check-topic&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.kafka.topic=service-plan-health-check-topic&lt;/code&gt;&lt;/p&gt;
+&lt;h5 id=&#34;minio-配置&#34;&gt;minio 配置&lt;/h5&gt;
+&lt;p&gt;&lt;em&gt;启动minio监测&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.minio.enabled=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;minio 服务地址&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.minio.end-point=http://10.50.79.250:9000&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;access key&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.minio.access-key=wfawggehhhwehw&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;secret key&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.minio.secret-key=1231231231&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;文件名&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;格式：{project-name}-health-check&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.minio.file-name=service-plan-health-check&lt;/code&gt;&lt;/p&gt;
+&lt;h5 id=&#34;rocketmq-配置&#34;&gt;rocketmq 配置&lt;/h5&gt;
+&lt;p&gt;&lt;em&gt;启动rocketmq监测&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.rocketmq.enabled=true&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;rocketmq 服务地址, 格式：master:9876;slave1:9876;slave2:9876&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.rocketmq.server-address=10.50.79.236:9876&lt;/code&gt;&lt;br&gt;
+&lt;em&gt;rocketmq 监测tag, 根据自己项目进行命名&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;格式：{project-name}-health-check-tag&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.rocketmq.tag=service-plan-health-check-tag&lt;/code&gt;&lt;/p&gt;
+&lt;h5 id=&#34;xxl-job-配置&#34;&gt;xxl-job 配置&lt;/h5&gt;
+&lt;p&gt;&lt;em&gt;启动xxl-job监测，注意：xxl-job还需要在xxl-web界面配置一个bean名为healthCheckJobHandler的执行任务，并启动该任务，&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;其中调度类型可以选择固定速度，值选30（此值应与health.check.xxljob.execute-interval的配置值保持一致）。&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.enabled=true&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;注意如果项目中已配置XxlJobSpringExecutor 的bean 则不需要再额外添加以下内容&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;此配置与正常的xxl-job配置一致&lt;/em&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.admin-addresses=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.access-token=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.appname=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.address=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.ip=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.port=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.log-path=&lt;/code&gt;&lt;br&gt;
+&lt;code&gt;health.check.xxljob.log-retention-days=&lt;/code&gt;&lt;/p&gt;
+&lt;h2 id=&#34;注意事项&#34;&gt;注意事项&lt;/h2&gt;
+&lt;p&gt;源码在health-check-sdk模块中，如果有额外的自定义监测，可以模仿编写&lt;/p&gt;
+&lt;p&gt;该模块引入的spring-boot-starter-actuator已提供常用的健康监测，如db，redis，es等&lt;/p&gt;
+&lt;h2 id=&#34;样例&#34;&gt;样例&lt;/h2&gt;
+&lt;p&gt;启动时，可以通过接口访问健康状态：http://ip:prot//actuator/health&lt;br&gt;
+注意：此接口需要左安全保证，防止应用数据泄露。&lt;br&gt;
+正常内容如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{    
+    &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;,
+    &amp;quot;components&amp;quot;: {
+        &amp;quot;diskSpace&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;total&amp;quot;: 381826846720,
+                &amp;quot;free&amp;quot;: 310320566272,
+                &amp;quot;threshold&amp;quot;: 10485760,
+                &amp;quot;exists&amp;quot;: true
+            }
+        },
+        &amp;quot;kafka&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        },
+        &amp;quot;minio&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        },
+        &amp;quot;ping&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        },
+        &amp;quot;rocketMQ&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        },
+        &amp;quot;xxljob&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;异常内容如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt; {  
+     &amp;quot;status&amp;quot;: &amp;quot;DOWN&amp;quot;,
+    &amp;quot;components&amp;quot;: {
+        &amp;quot;diskSpace&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;total&amp;quot;: 381826846720,
+                &amp;quot;free&amp;quot;: 310320607232,
+                &amp;quot;threshold&amp;quot;: 10485760,
+                &amp;quot;exists&amp;quot;: true
+            }
+        },
+        &amp;quot;kafka&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;DOWN&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;topic&amp;quot;: &amp;quot;client-health-check-topic&amp;quot;,
+                &amp;quot;serviceAddress&amp;quot;: &amp;quot;127.0.0.1:9092&amp;quot;,
+                &amp;quot;errorMsg&amp;quot;: &amp;quot;received msg not equals expected msg&amp;quot;
+            }
+        },
+        &amp;quot;minio&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;DOWN&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;error&amp;quot;: &amp;quot;com.philosopherzb.health.check.exception.HealthCheckException: java.nio.file.FileAlreadyExistsException: \\temp\\temp.txt&amp;quot;,
+                &amp;quot;endpoint&amp;quot;: &amp;quot;https://play.min.io&amp;quot;,
+                &amp;quot;message&amp;quot;: &amp;quot;download file failure&amp;quot;
+            }
+        },
+        &amp;quot;ping&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;UP&amp;quot;
+        },
+        &amp;quot;rocketMQ&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;DOWN&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;topic&amp;quot;: &amp;quot;rocketmq-default-health-check-topic&amp;quot;,
+                &amp;quot;tag&amp;quot;: &amp;quot;client-health-check-tag&amp;quot;,
+                &amp;quot;serviceAddress&amp;quot;: &amp;quot;127.0.0.1:9876&amp;quot;,
+                &amp;quot;errorMsg&amp;quot;: &amp;quot;received msg not equals expected msg&amp;quot;
+            }
+        },
+        &amp;quot;xxljob&amp;quot;: {
+            &amp;quot;status&amp;quot;: &amp;quot;DOWN&amp;quot;,
+            &amp;quot;details&amp;quot;: {
+                &amp;quot;errorMsg&amp;quot;: &amp;quot;time offset too big, standard value:  33&amp;quot;
+            }
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+">health-check-sdk 使用手册</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-ri-zhi-andshi-wu-andkuo-zhan/"" data-c="
