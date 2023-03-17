@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>python3基本知识 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1679034920284">
+<link rel="shortcut icon" href="/favicon.ico?v=1679043686146">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,19 +214,19 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">37</span>
+        <span class="site-item-stat-count">38</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="">
-        <span class="site-item-stat-count">19</span>
+        <span class="site-item-stat-count">20</span>
         <span class="site-item-stat-name language" data-lan="category">分类</span>
       </a>
     </div>
     <div class="sidebar-item-box">
       <a href="/tags/">
-        <span class="site-item-stat-count">19</span>
+        <span class="site-item-stat-count">20</span>
         <span class="site-item-stat-name language" data-lan="tag">标签</span>
       </a>
     </div>
@@ -1732,6 +1732,388 @@ print(teacher2)
       <hr>
     </div>
     <div class="result" id="result">
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/rocketmq-an-zhuang-yu-jian-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Rocketmq的安装以及基本概念和特性。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/river-1589616_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;安装与运行&#34;&gt;安装与运行&lt;/h2&gt;
+&lt;h3 id=&#34;安装与运行-2&#34;&gt;安装与运行&lt;/h3&gt;
+&lt;p&gt;以win10为例，下载安装rocketmq并单机运行；详细操作如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;安装包下载地址：&lt;a href=&#34;https://rocketmq.apache.org/release_notes/&#34;&gt;点击此处跳转下载页面&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;选择合适的版本，点击进去选择Binary版下载，然后解压即可（最好使用英文目录，不包括特殊字符）&lt;/li&gt;
+&lt;li&gt;win10配置系统变量，右击此电脑--选择属性--选择高级系统设置--点击环境变量，在系统变量下方选择新建：变量名：ROCKETMQ_HOME；变量值：${解压目录}\rocketmq-all-对应版本号-bin-release&lt;/li&gt;
+&lt;li&gt;开启cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqnamesrv.cmd 启动 nameService&lt;/li&gt;
+&lt;li&gt;再开启一个cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true 启动 broker&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;# 启动成功如下所示
+D:\knowledge\java\rocketmq\rocketmq-xxx&amp;gt;.\bin\mqnamesrv.cmd
+Java HotSpot(TM) 64-Bit Server VM warning: Using the DefNew young collector with the CMS collector is deprecated and will likely be removed in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: UseCMSCompactAtFullCollection is deprecated and will likely be removed in a future release.
+The Name Server boot success. serializeType=JSON
+
+D:\knowledge\java\rocketmq\rocketmq-xxx&amp;gt;.\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true
+The broker[LAPTOP-1TAHGGN6, 1.2.3.4:11111] boot success. serializeType=JSON and name server is localhost:9876
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ol start=&#34;6&#34;&gt;
+&lt;li&gt;测试款已经发送消费消息：在此之前需要进入rocketmq解压目录的bin目录下，打开tools.cmd，在其中的set &amp;quot;JAVA=%JAVA_HOME%\bin\java.exe&amp;quot;前一行输入set NAMESRV_ADDR=localhost:9876&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;# 键入NAMESRV_ADDR，否则无法使用该工具
+set NAMESRV_ADDR=localhost:9876
+set &amp;quot;JAVA=%JAVA_HOME%\bin\java.exe&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 发送消息
+D:\knowledge\java\rocketmq\rocketmq-xxx&amp;gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Producer
+SendResult [sendStatus=SEND_OK, msgId=7F00000115807ADF9F5F63FC1C7B0010, offsetMsgId=0A1450C100002A9F000000000000114C, messageQueue=MessageQueue [topic=TopicTest, brokerName=LAPTOP-1TAHGGN6, queueId=1], queueOffset=4]
+
+# 消费消息
+D:\knowledge\java\rocketmq\rocketmq-xxx&amp;gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Consumer
+Consumer Started.
+ConsumeMessageThread_please_rename_unique_group_name_4_1 Receive New Messages: [MessageExt [brokerName=LAPTOP-1TAHGGN6, queueId=0, storeSize=190, queueOffset=0, sysFlag=0, bornTimestamp=1650419866707, bornHost=/10.20.80.193:60236, storeTimestamp=1650419866709, storeHost=/10.20.80.193:10911, msgId=0A1450C100002A9F00000000000007A0, commitLogOffset=1952, bodyCRC=1032136437, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic=&#39;TopicTest&#39;, flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=250, CONSUME_START_TIME=1650419883935, UNIQ_KEY=7F00000115807ADF9F5F63FC1C530003, CLUSTER=DefaultCluster, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 82, 111, 99, 107, 101, 116, 77, 81, 32, 51], transactionId=&#39;null&#39;}]]
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;运行console&#34;&gt;运行console&lt;/h3&gt;
+&lt;p&gt;以win10为例，下载rocketmq-console并运行；详细操作如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;下载地址：&lt;a href=&#34;https://github.com/apache/rocketmq-externals/tree/release-rocketmq-console-1.0.0&#34;&gt;点击此处跳转下载页面&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;直接使用IDEA打开，修改其中的配置文件，即可启动&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;# 修改配置文件
+rocketmq.config.namesrvAddr=localhost:9876
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;# 打包运行
+mvn clean package -Dmaven.test.skip=true
+java -jar target/rocketmq-console-ng-1.0.0.jar
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;rocketmq&#34;&gt;RocketMQ&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;rocketmq 是由 alibaba 公司开发，现已转接给apache管理的开源项目；它是一个分布式的，支持多消息队列、主从同步，基于 nameService 的发布订阅模式的消息引擎系统；底层通信与连接基于netty实现，以达到更高速的网络处理效率。&lt;/p&gt;
+&lt;h3 id=&#34;基本术语&#34;&gt;基本术语&lt;/h3&gt;
+&lt;p&gt;RocketMQ主要由 Producer、Broker、Consumer 三部分组成，其中Producer 负责生产消息，Consumer 负责消费消息，Broker 负责存储消息。Broker 在实际部署过程中对应一台服务器，每个 Broker 可以存储多个Topic的消息，每个Topic的消息也可以分片存储于不同的 Broker。Message Queue 用于存储消息的物理地址，每个Topic中的消息地址存储于多个 Message Queue 中。ConsumerGroup 由多个Consumer 实例构成。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;生产者(Producer)：负责生产消息，一般由业务系统负责生产消息。一个消息生产者会把业务应用系统里产生的消息发送到broker服务器。RocketMQ提供多种发送方式，同步发送、异步发送、顺序发送、单向发送。同步和异步方式均需要Broker返回确认信息，单向发送不需要。&lt;/li&gt;
+&lt;li&gt;消费者(Consumer)：负责消费消息，一般是后台系统负责异步消费。一个消息消费者会从Broker服务器拉取消息、并将其提供给应用程序。从用户应用的角度而言提供了两种消费模式：拉取式消费、推动式消费（本质上也是pull模式）。同时还支持两种消费方式：集群消费（集群消费模式下,相同Consumer Group的每个Consumer实例平均分摊消息）和广播消费（广播消费模式下，相同Consumer Group的每个Consumer实例都接收全量的消息）。&lt;/li&gt;
+&lt;li&gt;主题(Topic)：用于存储同一类消息事件，每个主题包含若干条消息，每条消息只能属于一个主题，是RocketMQ进行消息订阅的基本单位。打个简单的比喻：主题类似于文件系统中的文件夹，而消息事件则类似于文件夹中的文件。&lt;/li&gt;
+&lt;li&gt;消息(Message)：消息系统所传输信息的物理载体，生产和消费数据的最小单位，每条消息必须属于一个主题。RocketMQ中每个消息拥有唯一的Message ID，且可以携带具有业务标识的Key。系统提供了通过Message ID和Key查询消息的功能。&lt;/li&gt;
+&lt;li&gt;偏移量(Offset)：是一种元数据，且是一个不断递增的整数值（java Long类型），用于标识消息队列中的消息位置；当消费者处理完消息后，将会提交offset+1到broker中。&lt;/li&gt;
+&lt;li&gt;broker： 一个独立的 rocketmq 服务就被称为 broker；它作为消息中转角色，负责存储消息、转发消息。代理服务器在RocketMQ系统中负责接收从生产者发送来的消息并存储、同时为消费者的拉取请求作准备。代理服务器也存储消息相关的元数据，包括消费者组、消费进度偏移和主题和队列消息等。每个broker都会与所有的nameServer保持长连接并发送心跳，以便定时将topic信息注册到nameServer（低层通信与连接使用的是netty）。Master角色的Broker支持读和写，Slave角色的Broker仅支持读。&lt;/li&gt;
+&lt;li&gt;nameServer：名称服务充当路由消息的提供者。生产者或消费者能够通过名字服务查找各主题相应的Broker IP列表。多个Namesrv实例组成集群，但相互独立，没有信息交换。所有的内容在nameServer上都是内存式存储，并不会进行持久化，因此也被称为无状态节点。&lt;/li&gt;
+&lt;li&gt;组（group）：分为ProducerGroup，ConsumerGroup（要注意的是，消费者组的消费者实例必须订阅完全相同的Topic），代表某一类的生产者和消费者，同一个组中的生产者或消费者处理消息的逻辑是一致的。&lt;/li&gt;
+&lt;li&gt;消息队列（Message Queue）：在一个主题中可以存在一个或多个消息队列，每个消息队列中消息有序；它是消息的逻辑存储介质（实际存储文件为commitLog）。同一Topic下的多个Message Queue可以部署在多个Broker组上（相同Broker名称，不同 brokerId的机器组成一个Broker组），这样当一个Broker组的Master不可用后，其他组的Master仍然可用，Producer仍然可以发送消息（消息发送的高可用性）。&lt;/li&gt;
+&lt;li&gt;标签（tag）：为消息设置的标志，用于同一主题下区分不同类型的消息。来自同一业务单元的消息，可以根据不同业务目的在同一主题下设置不同标签。标签能够有效地保持代码的清晰度和连贯性，并优化RocketMQ提供的查询系统。消费者可以根据Tag实现对不同子主题的不同消费逻辑，实现更好的扩展性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;基本特性&#34;&gt;基本特性&lt;/h3&gt;
+&lt;h4 id=&#34;顺序消息&#34;&gt;顺序消息&lt;/h4&gt;
+&lt;p&gt;消息有序指的是一类消息消费时，能按照发送的顺序来消费。例如：一个订单产生了三条消息分别是订单创建、订单付款、订单完成。消费时要按照这个顺序消费才能有意义，但是同时订单之间是可以并行消费的。&lt;/p&gt;
+&lt;p&gt;RocketMQ可以严格的保证消息有序（单个message queue是有序的：FIFO）。顺序消息分为全局顺序消息与分区顺序消息，全局顺序是指某个Topic下的所有消息都要保证顺序；部分顺序消息只要保证每一组消息被顺序消费即可。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;全局顺序：对于指定的一个 Topic，所有消息按照严格的先入先出（FIFO）的顺序进行发布和消费。 适用场景：性能要求不高，所有的消息严格按照 FIFO 原则进行消息发布和消费的场景&lt;/li&gt;
+&lt;li&gt;分区顺序：对于指定的一个 Topic，所有消息根据 sharding key 进行区块分区。同一个分区内的消息按照严格的 FIFO 顺序进行发布和消费。 Sharding key 是顺序消息中用来区分不同分区的关键字段，和普通消息的 Key 是完全不同的概念。适用场景：性能要求高，以 sharding key 作为分区字段，在同一个区块中严格的按照 FIFO 原则进行消息发布和消费的场景。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// 顺序消息需自定义消息路由规则
+try {
+    DefaultMQProducer producer = new DefaultMQProducer(&amp;quot;unique_group_name&amp;quot;);
+    producer.setNamesrvAddr(&amp;quot;localhost:9876&amp;quot;);
+    producer.start();
+
+    Message message = new Message(&amp;quot;topicName&amp;quot;, &amp;quot;tagName&amp;quot;, &amp;quot;msgContent&amp;quot;.getBytes(StandardCharsets.UTF_8));
+    message.setKeys(&amp;quot;key&amp;quot;);
+    SendResult sendResult = producer.send(message, (mqs, msg, arg) -&amp;gt; {
+        Integer id = (Integer) arg;
+        int index = id % mqs.size(); 
+        return mqs.get(index);
+    }, 1);// 此处的1即使消息队列使用的arg参数值，对应上面的Integer id = (Integer) arg;
+  
+    System.out.printf(&amp;quot;%s%n&amp;quot;, sendResult);
+    producer.shutdown();
+} catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+    e.printStackTrace();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 自带的消息路由规则
+// 取arg参数的hashcode的绝对值，然后对mqs.size()取余，得到目标队列在mqs的下标
+public class SelectMessageQueueByHash implements MessageQueueSelector {
+
+    @Override
+    public MessageQueue select(List&amp;lt;MessageQueue&amp;gt; mqs, Message msg, Object arg) {
+        int value = arg.hashCode() % mqs.size();
+        if (value &amp;lt; 0) {
+            value = Math.abs(value);
+        }
+        return mqs.get(value);
+    }
+}
+
+// 直接根据mqs.size()随机一个值作为目标队列在mqs的下标
+public class SelectMessageQueueByRandom implements MessageQueueSelector {
+    private Random random = new Random(System.currentTimeMillis());
+
+    @Override
+    public MessageQueue select(List&amp;lt;MessageQueue&amp;gt; mqs, Message msg, Object arg) {
+        int value = random.nextInt(mqs.size());
+        return mqs.get(value);
+    }
+}
+
+// 指定机房，目前return null，暂无实现逻辑
+public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
+    private Set&amp;lt;String&amp;gt; consumeridcs;
+
+    @Override
+    public MessageQueue select(List&amp;lt;MessageQueue&amp;gt; mqs, Message msg, Object arg) {
+        return null;
+    }
+
+    public Set&amp;lt;String&amp;gt; getConsumeridcs() {
+        return consumeridcs;
+    }
+
+    public void setConsumeridcs(Set&amp;lt;String&amp;gt; consumeridcs) {
+        this.consumeridcs = consumeridcs;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 未指定MessageQueueSelector 时，rocketmq 将使用默认的规则选择一个message queue
+// 文件地址：org.apache.rocketmq.client.impl.producer.TopicPublishInfo
+public MessageQueue selectOneMessageQueue() {
+    // 每次请求都递增然后对messageQueueSize取模，如果小于0便直接取0
+    int index = this.sendWhichQueue.incrementAndGet();
+    int pos = Math.abs(index) % this.messageQueueList.size();
+    if (pos &amp;lt; 0)
+        pos = 0;
+    return this.messageQueueList.get(pos);
+}
+
+// 文件地址：org.apache.rocketmq.client.common.ThreadLocalIndex
+public int incrementAndGet() {
+    Integer index = this.threadLocalIndex.get();
+    if (null == index) {
+        // 为空时随机取一个index
+        index = Math.abs(random.nextInt());
+        this.threadLocalIndex.set(index);
+    }
+    // 不为空便直接递增index
+    this.threadLocalIndex.set(++index);
+    return Math.abs(index);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;事务消息&#34;&gt;事务消息&lt;/h4&gt;
+&lt;p&gt;RocketMQ(4.3.0版本及之后)事务消息（Transactional Message）是指应用本地事务和发送消息操作可以被定义到全局事务中，要么同时成功，要么同时失败。RocketMQ的事务消息提供类似 X/Open XA 的分布事务功能，通过事务消息能达到分布式事务的最终一致。关于事务消息的处理流程，有必要了解如下两个概念：半消息及消息状态检查：&lt;/p&gt;
+&lt;p&gt;半消息（Half(Prepare) Message）：指暂时无法投递的消息。当一条消息成功发送到MQ服务器，但服务器没有收到生产者对消息的第二次确认，则将该消息标记为“暂时无法投递”。这种状态的消息称为半消息。&lt;/p&gt;
+&lt;p&gt;消息状态检查（Message Status Check）：网络断开或生产者应用程序重启可能会导致事务消息的第二次确认丢失。当 MQ 服务器发现一条消息长时间处于半消息状态时，会向消息生产者发送请求，检查消息的最终状态（Commit 或 Rollback）。&lt;/p&gt;
+&lt;p&gt;详细设计可参考：&lt;a href=&#34;https://rocketmq.apache.org/rocketmq/the-design-of-transactional-message/&#34;&gt;点击此处跳转详情页面&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;事务消息发送流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;生产者向 MQ 服务器发送半消息。&lt;/li&gt;
+&lt;li&gt;发送半消息成功后，执行本地事务。&lt;/li&gt;
+&lt;li&gt;根据本地事务结果向 MQ 服务器发送提交或回滚消息。&lt;/li&gt;
+&lt;li&gt;如果本地事务执行过程中提交/回滚消息丢失或生产者挂起，MQ 服务器将向同一组中的每个生产者发送检查消息以获取事务状态。&lt;/li&gt;
+&lt;li&gt;生产者根据本地事务状态回复提交/回滚消息。&lt;/li&gt;
+&lt;li&gt;提交的消息将被传递给消费者，但回滚的消息将被 MQ 服务器丢弃。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317011.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;pre&gt;&lt;code&gt;// 实现事务监听器
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class TransactionListenerImpl implements TransactionListener {
+    private AtomicInteger transactionIndex = new AtomicInteger(0);
+
+    private ConcurrentHashMap&amp;lt;String, Integer&amp;gt; localTrans = new ConcurrentHashMap&amp;lt;&amp;gt;();
+
+    @Override
+    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+        int value = transactionIndex.getAndIncrement();
+        int status = value % 3;
+        localTrans.put(msg.getTransactionId(), status);
+        return LocalTransactionState.UNKNOW;
+    }
+
+    @Override
+    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+        Integer status = localTrans.get(msg.getTransactionId());
+        if (null != status) {
+            switch (status) {
+                case 0:
+                    return LocalTransactionState.UNKNOW;
+                case 1:
+                    return LocalTransactionState.COMMIT_MESSAGE;
+                case 2:
+                    return LocalTransactionState.ROLLBACK_MESSAGE;
+                default:
+                    return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        }
+        return LocalTransactionState.COMMIT_MESSAGE;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 发送事务消息
+public static void main(String[] args) throws MQClientException, InterruptedException {
+    TransactionListener transactionListener = new TransactionListenerImpl();
+    TransactionMQProducer producer = new TransactionMQProducer(&amp;quot;unique_group_name&amp;quot;);
+    ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue&amp;lt;&amp;gt;(2000), r -&amp;gt; {
+        Thread thread = new Thread(r);
+        thread.setName(&amp;quot;client-transaction-msg-check-thread&amp;quot;);
+        return thread;
+    });
+
+    producer.setExecutorService(executorService);
+    producer.setTransactionListener(transactionListener);
+    producer.start();
+
+    String[] tags = new String[] {&amp;quot;TagA&amp;quot;, &amp;quot;TagB&amp;quot;, &amp;quot;TagC&amp;quot;, &amp;quot;TagD&amp;quot;, &amp;quot;TagE&amp;quot;};
+    for (int i = 0; i &amp;lt; 10; i++) {
+        try {
+            Message msg =
+                new Message(&amp;quot;topicName&amp;quot;, tags[i % tags.length], &amp;quot;KEY&amp;quot; + i,
+                    (&amp;quot;Hello RocketMQ &amp;quot; + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+            SendResult sendResult = producer.sendMessageInTransaction(msg, null);
+            System.out.printf(&amp;quot;%s%n&amp;quot;, sendResult);
+
+            Thread.sleep(10);
+        } catch (MQClientException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    for (int i = 0; i &amp;lt; 100000; i++) {
+        Thread.sleep(1000);
+    }
+    producer.shutdown();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;定时消息&#34;&gt;定时消息&lt;/h4&gt;
+&lt;p&gt;定时消息（延迟队列）是指消息发送到broker后，不会立即被消费，等待特定时间投递给真正的topic。 broker有配置项messageDelayLevel，默认值为“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”，18个level。可以配置自定义messageDelayLevel。注意，messageDelayLevel是broker的属性，不属于某个topic。发消息时，设置delayLevel等级即可：msg.setDelayLevel(level)。对level设值时会出现以下是那种情形：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;level == 0，消息为非延迟消息&lt;/li&gt;
+&lt;li&gt;1&amp;lt;=level&amp;lt;=maxLevel，消息延迟特定时间，例如level==1，延迟1s&lt;/li&gt;
+&lt;li&gt;level &amp;gt; maxLevel，则level== maxLevel，例如level==20，延迟2h&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;定时消息会暂存在名为SCHEDULE_TOPIC_XXXX的topic中，并根据delayTimeLevel存入特定的queue，queueId = delayTimeLevel – 1，即一个queue只存相同延迟的消息，保证具有相同发送延迟的消息能够顺序消费。broker会调度地消费SCHEDULE_TOPIC_XXXX，将消息写入真实的topic。&lt;/p&gt;
+&lt;p&gt;需要注意的是，定时消息会在第一次写入和调度写入真实topic时都会计数，因此发送数量、tps都会变高。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 发送定时消息
+public static void main(String[] args) throws Exception {
+    // 初始化 producer 以发送定时消息
+    DefaultMQProducer producer = new DefaultMQProducer(&amp;quot;ExampleProducerGroup&amp;quot;);
+    // 启动producer
+    producer.start();
+    int totalMessagesToSend = 100;
+    for (int i = 0; i &amp;lt; totalMessagesToSend; i++) {
+        Message message = new Message(&amp;quot;TestTopic&amp;quot;, (&amp;quot;Hello scheduled message &amp;quot; + i).getBytes());
+        // 此处设置3表示消息将会延迟10秒后发送，具体可见下述源码
+        message.setDelayTimeLevel(3);
+        // Send the message
+        producer.send(message);
+    }
+  
+    // Shutdown producer after use.
+    producer.shutdown();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 文件地址：org.apache.rocketmq.store.schedule.ScheduleMessageService
+// 转换延迟等级，将“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”按从左到右的顺序匹配1~18
+public boolean parseDelayLevel() {
+    // 存储时间单位
+    HashMap&amp;lt;String, Long&amp;gt; timeUnitTable = new HashMap&amp;lt;String, Long&amp;gt;();
+    timeUnitTable.put(&amp;quot;s&amp;quot;, 1000L);
+    timeUnitTable.put(&amp;quot;m&amp;quot;, 1000L * 60);
+    timeUnitTable.put(&amp;quot;h&amp;quot;, 1000L * 60 * 60);
+    timeUnitTable.put(&amp;quot;d&amp;quot;, 1000L * 60 * 60 * 24);
+
+    // 获取“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”
+    String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
+    try {
+        // 切割获取对应的数组
+        String[] levelArray = levelString.split(&amp;quot; &amp;quot;);
+        for (int i = 0; i &amp;lt; levelArray.length; i++) {
+            String value = levelArray[i];
+            String ch = value.substring(value.length() - 1);
+            Long tu = timeUnitTable.get(ch);
+
+            int level = i + 1;
+            if (level &amp;gt; this.maxDelayLevel) {
+                this.maxDelayLevel = level;
+            }
+            long num = Long.parseLong(value.substring(0, value.length() - 1));
+            long delayTimeMillis = tu * num;
+            // 匹配1~18放入ConcurrentMap中
+            this.delayLevelTable.put(level, delayTimeMillis);
+            if (this.enableAsyncDeliver) {
+                this.deliverPendingTable.put(level, new LinkedBlockingQueue&amp;lt;&amp;gt;());
+            }
+        }
+    } catch (Exception e) {
+        log.error(&amp;quot;parseDelayLevel exception&amp;quot;, e);
+        log.info(&amp;quot;levelString String = {}&amp;quot;, levelString);
+        return false;
+    }
+
+    return true;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;消息重投与重试&#34;&gt;消息重投与重试&lt;/h4&gt;
+&lt;p&gt;生产者在发送消息时，同步消息失败会重投，异步消息有重试，oneway没有任何保证。消息重投保证消息尽可能发送成功、不丢失，但可能会造成消息重复，消息重复在RocketMQ中是无法避免的问题。消息重复在一般情况下不会发生，当出现消息量大、网络抖动，消息重复就会是大概率事件。另外，生产者主动重发、consumer负载变化也会导致重复消息。如下方法可以设置消息重试策略：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;retryTimesWhenSendFailed：同步发送失败重投次数，默认为2，因此生产者会最多尝试发送retryTimesWhenSendFailed + 1次。不会选择上次失败的broker，尝试向其他broker发送，最大程度保证消息不丢。超过重投次数，抛出异常，由客户端保证消息不丢。当出现RemotingException、MQClientException和部分MQBrokerException时会重投。&lt;/li&gt;
+&lt;li&gt;retryTimesWhenSendAsyncFailed：异步发送失败重试次数，异步重试不会选择其他broker，仅在同一个broker上做重试，不保证消息不丢。&lt;/li&gt;
+&lt;li&gt;retryAnotherBrokerWhenNotStoreOK：消息刷盘（主或备）超时或slave不可用（返回状态非SEND_OK），是否尝试发送到其他broker，默认false。十分重要消息可以开启。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Consumer消费消息失败后，要提供一种重试机制，令消息再消费一次。Consumer消费消息失败通常可以认为有以下几种情况：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;由于消息本身的原因，例如反序列化失败，消息数据本身无法处理（例如话费充值，当前消息的手机号被注销，无法充值）等。这种错误通常需要跳过这条消息，再消费其它消息，而这条失败的消息即使立刻重试消费，99%也不成功，所以最好提供一种定时重试机制，即过10秒后再重试。&lt;/li&gt;
+&lt;li&gt;由于依赖的下游应用服务不可用，例如db连接不可用，外系统网络不可达等。遇到这种错误，即使跳过当前失败的消息，消费其他消息同样也会报错。这种情况建议应用sleep 30s，再消费下一条消息，这样可以减轻Broker重试消息的压力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;RocketMQ会为每个消费组都设置一个Topic名称为“%RETRY%+consumerGroup”的重试队列（这里需要注意的是，这个Topic的重试队列是针对消费组，而不是针对每个Topic设置的），用于暂时保存因为各种异常而导致Consumer端无法消费的消息。考虑到异常恢复起来需要一些时间，会为重试队列设置多个重试级别，每个重试级别都有与之对应的重新投递延时，重试次数越多投递延时就越大。RocketMQ对于重试消息的处理是先保存至Topic名称为“SCHEDULE_TOPIC_XXXX”的延迟队列中，后台定时任务按照对应的时间进行Delay后重新保存至“%RETRY%+consumerGroup”的重试队列中。&lt;/p&gt;
+&lt;p&gt;重试次数过多时，便有必要将消息投递至死信队列中以防止陷入无限重试。&lt;/p&gt;
+&lt;p&gt;死信队列通常用于处理无法被正常消费的消息。当一条消息初次消费失败，消息队列会自动进行消息重试；达到最大重试次数后，若消费依然失败，则表明消费者在正常情况下无法正确地消费该消息，此时，消息队列不会立刻将消息丢弃，而是将其发送到该消费者对应的特殊队列中。&lt;/p&gt;
+&lt;p&gt;RocketMQ将这种正常情况下无法被消费的消息称为死信消息（Dead-Letter Message），将存储死信消息的特殊队列称为死信队列（Dead-Letter Queue）。在RocketMQ中，可以通过使用console控制台对死信队列中的消息进行重发来使得消费者实例再次进行消费。&lt;/p&gt;
+&lt;h4 id=&#34;流量控制与可靠性&#34;&gt;流量控制与可靠性&lt;/h4&gt;
+&lt;p&gt;生产者流控，因为broker处理能力达到瓶颈；消费者流控，因为消费能力达到瓶颈。&lt;/p&gt;
+&lt;h5 id=&#34;生产者流控&#34;&gt;生产者流控&lt;/h5&gt;
+&lt;ul&gt;
+&lt;li&gt;commitLog文件被锁时间超过osPageCacheBusyTimeOutMills时，参数默认为1000ms，返回流控。&lt;/li&gt;
+&lt;li&gt;如果开启transientStorePoolEnable == true，且broker为异步刷盘的主机，且transientStorePool中资源不足，拒绝当前send请求，返回流控。&lt;/li&gt;
+&lt;li&gt;broker每隔10ms检查send请求队列头部请求的等待时间，如果超过waitTimeMillsInSendQueue，默认200ms，拒绝当前send请求，返回流控。&lt;/li&gt;
+&lt;li&gt;broker通过拒绝send 请求方式实现流量控制。&lt;/li&gt;
+&lt;li&gt;注意，生产者流控，不会尝试消息重投。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h5 id=&#34;消费者流控&#34;&gt;消费者流控&lt;/h5&gt;
+&lt;ul&gt;
+&lt;li&gt;消费者本地缓存消息数超过pullThresholdForQueue时，默认1000。&lt;/li&gt;
+&lt;li&gt;消费者本地缓存消息大小超过pullThresholdSizeForQueue时，默认100MB。&lt;/li&gt;
+&lt;li&gt;消费者本地缓存消息跨度超过consumeConcurrentlyMaxSpan时，默认2000。&lt;/li&gt;
+&lt;li&gt;消费者流控的结果是降低拉取频率。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h5 id=&#34;rocketmq支持消息的高可靠影响消息可靠性的几种情况&#34;&gt;RocketMQ支持消息的高可靠，影响消息可靠性的几种情况&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;Broker非正常关闭&lt;/li&gt;
+&lt;li&gt;Broker异常Crash&lt;/li&gt;
+&lt;li&gt;OS Crash&lt;/li&gt;
+&lt;li&gt;机器掉电，但是能立即恢复供电情况&lt;/li&gt;
+&lt;li&gt;机器无法开机（可能是cpu、主板、内存等关键设备损坏）&lt;/li&gt;
+&lt;li&gt;磁盘设备损坏&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;1)、2)、3)、4) 四种情况都属于硬件资源可立即恢复情况，RocketMQ在这四种情况下能保证消息不丢，或者丢失少量数据（依赖刷盘方式是同步还是异步）。&lt;/p&gt;
+&lt;p&gt;5)、6)属于单点故障，且无法恢复，一旦发生，在此单点上的消息全部丢失。RocketMQ在这两种情况下，通过异步复制，可保证99%的消息不丢，但是仍然会有极少量的消息可能丢失。通过同步双写技术可以完全避免单点，同步双写势必会影响性能，适合对消息可靠性要求极高的场合，例如与Money相关的应用。注：RocketMQ从3.0版本开始支持同步双写。&lt;/p&gt;
+">RocketMQ安装与简介</a>
+      </div>
       
       <div class="item">
         <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/i18n-sdk-shi-yong-shou-ce/"" data-c="

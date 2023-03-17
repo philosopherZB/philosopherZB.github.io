@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-03-17T06:36:28.763Z</updated>
+    <updated>2023-03-17T09:01:42.110Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,391 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[RocketMQ安装与简介]]></title>
+        <id>https://philosopherzb.github.io/post/rocketmq-an-zhuang-yu-jian-jie/</id>
+        <link href="https://philosopherzb.github.io/post/rocketmq-an-zhuang-yu-jian-jie/">
+        </link>
+        <updated>2022-09-09T08:11:16.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Rocketmq的安装以及基本概念和特性。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/river-1589616_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="安装与运行">安装与运行</h2>
+<h3 id="安装与运行-2">安装与运行</h3>
+<p>以win10为例，下载安装rocketmq并单机运行；详细操作如下：</p>
+<ol>
+<li>安装包下载地址：<a href="https://rocketmq.apache.org/release_notes/">点击此处跳转下载页面</a></li>
+<li>选择合适的版本，点击进去选择Binary版下载，然后解压即可（最好使用英文目录，不包括特殊字符）</li>
+<li>win10配置系统变量，右击此电脑--选择属性--选择高级系统设置--点击环境变量，在系统变量下方选择新建：变量名：ROCKETMQ_HOME；变量值：${解压目录}\rocketmq-all-对应版本号-bin-release</li>
+<li>开启cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqnamesrv.cmd 启动 nameService</li>
+<li>再开启一个cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true 启动 broker</li>
+</ol>
+<pre><code># 启动成功如下所示
+D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\mqnamesrv.cmd
+Java HotSpot(TM) 64-Bit Server VM warning: Using the DefNew young collector with the CMS collector is deprecated and will likely be removed in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: UseCMSCompactAtFullCollection is deprecated and will likely be removed in a future release.
+The Name Server boot success. serializeType=JSON
+
+D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true
+The broker[LAPTOP-1TAHGGN6, 1.2.3.4:11111] boot success. serializeType=JSON and name server is localhost:9876
+
+</code></pre>
+<ol start="6">
+<li>测试款已经发送消费消息：在此之前需要进入rocketmq解压目录的bin目录下，打开tools.cmd，在其中的set &quot;JAVA=%JAVA_HOME%\bin\java.exe&quot;前一行输入set NAMESRV_ADDR=localhost:9876</li>
+</ol>
+<pre><code># 键入NAMESRV_ADDR，否则无法使用该工具
+set NAMESRV_ADDR=localhost:9876
+set &quot;JAVA=%JAVA_HOME%\bin\java.exe&quot;
+
+</code></pre>
+<pre><code># 发送消息
+D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Producer
+SendResult [sendStatus=SEND_OK, msgId=7F00000115807ADF9F5F63FC1C7B0010, offsetMsgId=0A1450C100002A9F000000000000114C, messageQueue=MessageQueue [topic=TopicTest, brokerName=LAPTOP-1TAHGGN6, queueId=1], queueOffset=4]
+
+# 消费消息
+D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Consumer
+Consumer Started.
+ConsumeMessageThread_please_rename_unique_group_name_4_1 Receive New Messages: [MessageExt [brokerName=LAPTOP-1TAHGGN6, queueId=0, storeSize=190, queueOffset=0, sysFlag=0, bornTimestamp=1650419866707, bornHost=/10.20.80.193:60236, storeTimestamp=1650419866709, storeHost=/10.20.80.193:10911, msgId=0A1450C100002A9F00000000000007A0, commitLogOffset=1952, bodyCRC=1032136437, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic='TopicTest', flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=250, CONSUME_START_TIME=1650419883935, UNIQ_KEY=7F00000115807ADF9F5F63FC1C530003, CLUSTER=DefaultCluster, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 82, 111, 99, 107, 101, 116, 77, 81, 32, 51], transactionId='null'}]]
+
+</code></pre>
+<h3 id="运行console">运行console</h3>
+<p>以win10为例，下载rocketmq-console并运行；详细操作如下：</p>
+<ol>
+<li>下载地址：<a href="https://github.com/apache/rocketmq-externals/tree/release-rocketmq-console-1.0.0">点击此处跳转下载页面</a></li>
+<li>直接使用IDEA打开，修改其中的配置文件，即可启动</li>
+</ol>
+<pre><code># 修改配置文件
+rocketmq.config.namesrvAddr=localhost:9876
+</code></pre>
+<pre><code># 打包运行
+mvn clean package -Dmaven.test.skip=true
+java -jar target/rocketmq-console-ng-1.0.0.jar
+</code></pre>
+<h2 id="rocketmq">RocketMQ</h2>
+<h3 id="简介">简介</h3>
+<p>rocketmq 是由 alibaba 公司开发，现已转接给apache管理的开源项目；它是一个分布式的，支持多消息队列、主从同步，基于 nameService 的发布订阅模式的消息引擎系统；底层通信与连接基于netty实现，以达到更高速的网络处理效率。</p>
+<h3 id="基本术语">基本术语</h3>
+<p>RocketMQ主要由 Producer、Broker、Consumer 三部分组成，其中Producer 负责生产消息，Consumer 负责消费消息，Broker 负责存储消息。Broker 在实际部署过程中对应一台服务器，每个 Broker 可以存储多个Topic的消息，每个Topic的消息也可以分片存储于不同的 Broker。Message Queue 用于存储消息的物理地址，每个Topic中的消息地址存储于多个 Message Queue 中。ConsumerGroup 由多个Consumer 实例构成。</p>
+<ul>
+<li>生产者(Producer)：负责生产消息，一般由业务系统负责生产消息。一个消息生产者会把业务应用系统里产生的消息发送到broker服务器。RocketMQ提供多种发送方式，同步发送、异步发送、顺序发送、单向发送。同步和异步方式均需要Broker返回确认信息，单向发送不需要。</li>
+<li>消费者(Consumer)：负责消费消息，一般是后台系统负责异步消费。一个消息消费者会从Broker服务器拉取消息、并将其提供给应用程序。从用户应用的角度而言提供了两种消费模式：拉取式消费、推动式消费（本质上也是pull模式）。同时还支持两种消费方式：集群消费（集群消费模式下,相同Consumer Group的每个Consumer实例平均分摊消息）和广播消费（广播消费模式下，相同Consumer Group的每个Consumer实例都接收全量的消息）。</li>
+<li>主题(Topic)：用于存储同一类消息事件，每个主题包含若干条消息，每条消息只能属于一个主题，是RocketMQ进行消息订阅的基本单位。打个简单的比喻：主题类似于文件系统中的文件夹，而消息事件则类似于文件夹中的文件。</li>
+<li>消息(Message)：消息系统所传输信息的物理载体，生产和消费数据的最小单位，每条消息必须属于一个主题。RocketMQ中每个消息拥有唯一的Message ID，且可以携带具有业务标识的Key。系统提供了通过Message ID和Key查询消息的功能。</li>
+<li>偏移量(Offset)：是一种元数据，且是一个不断递增的整数值（java Long类型），用于标识消息队列中的消息位置；当消费者处理完消息后，将会提交offset+1到broker中。</li>
+<li>broker： 一个独立的 rocketmq 服务就被称为 broker；它作为消息中转角色，负责存储消息、转发消息。代理服务器在RocketMQ系统中负责接收从生产者发送来的消息并存储、同时为消费者的拉取请求作准备。代理服务器也存储消息相关的元数据，包括消费者组、消费进度偏移和主题和队列消息等。每个broker都会与所有的nameServer保持长连接并发送心跳，以便定时将topic信息注册到nameServer（低层通信与连接使用的是netty）。Master角色的Broker支持读和写，Slave角色的Broker仅支持读。</li>
+<li>nameServer：名称服务充当路由消息的提供者。生产者或消费者能够通过名字服务查找各主题相应的Broker IP列表。多个Namesrv实例组成集群，但相互独立，没有信息交换。所有的内容在nameServer上都是内存式存储，并不会进行持久化，因此也被称为无状态节点。</li>
+<li>组（group）：分为ProducerGroup，ConsumerGroup（要注意的是，消费者组的消费者实例必须订阅完全相同的Topic），代表某一类的生产者和消费者，同一个组中的生产者或消费者处理消息的逻辑是一致的。</li>
+<li>消息队列（Message Queue）：在一个主题中可以存在一个或多个消息队列，每个消息队列中消息有序；它是消息的逻辑存储介质（实际存储文件为commitLog）。同一Topic下的多个Message Queue可以部署在多个Broker组上（相同Broker名称，不同 brokerId的机器组成一个Broker组），这样当一个Broker组的Master不可用后，其他组的Master仍然可用，Producer仍然可以发送消息（消息发送的高可用性）。</li>
+<li>标签（tag）：为消息设置的标志，用于同一主题下区分不同类型的消息。来自同一业务单元的消息，可以根据不同业务目的在同一主题下设置不同标签。标签能够有效地保持代码的清晰度和连贯性，并优化RocketMQ提供的查询系统。消费者可以根据Tag实现对不同子主题的不同消费逻辑，实现更好的扩展性。</li>
+</ul>
+<h3 id="基本特性">基本特性</h3>
+<h4 id="顺序消息">顺序消息</h4>
+<p>消息有序指的是一类消息消费时，能按照发送的顺序来消费。例如：一个订单产生了三条消息分别是订单创建、订单付款、订单完成。消费时要按照这个顺序消费才能有意义，但是同时订单之间是可以并行消费的。</p>
+<p>RocketMQ可以严格的保证消息有序（单个message queue是有序的：FIFO）。顺序消息分为全局顺序消息与分区顺序消息，全局顺序是指某个Topic下的所有消息都要保证顺序；部分顺序消息只要保证每一组消息被顺序消费即可。</p>
+<ul>
+<li>全局顺序：对于指定的一个 Topic，所有消息按照严格的先入先出（FIFO）的顺序进行发布和消费。 适用场景：性能要求不高，所有的消息严格按照 FIFO 原则进行消息发布和消费的场景</li>
+<li>分区顺序：对于指定的一个 Topic，所有消息根据 sharding key 进行区块分区。同一个分区内的消息按照严格的 FIFO 顺序进行发布和消费。 Sharding key 是顺序消息中用来区分不同分区的关键字段，和普通消息的 Key 是完全不同的概念。适用场景：性能要求高，以 sharding key 作为分区字段，在同一个区块中严格的按照 FIFO 原则进行消息发布和消费的场景。</li>
+</ul>
+<pre><code>// 顺序消息需自定义消息路由规则
+try {
+    DefaultMQProducer producer = new DefaultMQProducer(&quot;unique_group_name&quot;);
+    producer.setNamesrvAddr(&quot;localhost:9876&quot;);
+    producer.start();
+
+    Message message = new Message(&quot;topicName&quot;, &quot;tagName&quot;, &quot;msgContent&quot;.getBytes(StandardCharsets.UTF_8));
+    message.setKeys(&quot;key&quot;);
+    SendResult sendResult = producer.send(message, (mqs, msg, arg) -&gt; {
+        Integer id = (Integer) arg;
+        int index = id % mqs.size(); 
+        return mqs.get(index);
+    }, 1);// 此处的1即使消息队列使用的arg参数值，对应上面的Integer id = (Integer) arg;
+  
+    System.out.printf(&quot;%s%n&quot;, sendResult);
+    producer.shutdown();
+} catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+    e.printStackTrace();
+}
+
+</code></pre>
+<pre><code>// 自带的消息路由规则
+// 取arg参数的hashcode的绝对值，然后对mqs.size()取余，得到目标队列在mqs的下标
+public class SelectMessageQueueByHash implements MessageQueueSelector {
+
+    @Override
+    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
+        int value = arg.hashCode() % mqs.size();
+        if (value &lt; 0) {
+            value = Math.abs(value);
+        }
+        return mqs.get(value);
+    }
+}
+
+// 直接根据mqs.size()随机一个值作为目标队列在mqs的下标
+public class SelectMessageQueueByRandom implements MessageQueueSelector {
+    private Random random = new Random(System.currentTimeMillis());
+
+    @Override
+    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
+        int value = random.nextInt(mqs.size());
+        return mqs.get(value);
+    }
+}
+
+// 指定机房，目前return null，暂无实现逻辑
+public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
+    private Set&lt;String&gt; consumeridcs;
+
+    @Override
+    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
+        return null;
+    }
+
+    public Set&lt;String&gt; getConsumeridcs() {
+        return consumeridcs;
+    }
+
+    public void setConsumeridcs(Set&lt;String&gt; consumeridcs) {
+        this.consumeridcs = consumeridcs;
+    }
+}
+
+</code></pre>
+<pre><code>// 未指定MessageQueueSelector 时，rocketmq 将使用默认的规则选择一个message queue
+// 文件地址：org.apache.rocketmq.client.impl.producer.TopicPublishInfo
+public MessageQueue selectOneMessageQueue() {
+    // 每次请求都递增然后对messageQueueSize取模，如果小于0便直接取0
+    int index = this.sendWhichQueue.incrementAndGet();
+    int pos = Math.abs(index) % this.messageQueueList.size();
+    if (pos &lt; 0)
+        pos = 0;
+    return this.messageQueueList.get(pos);
+}
+
+// 文件地址：org.apache.rocketmq.client.common.ThreadLocalIndex
+public int incrementAndGet() {
+    Integer index = this.threadLocalIndex.get();
+    if (null == index) {
+        // 为空时随机取一个index
+        index = Math.abs(random.nextInt());
+        this.threadLocalIndex.set(index);
+    }
+    // 不为空便直接递增index
+    this.threadLocalIndex.set(++index);
+    return Math.abs(index);
+}
+
+</code></pre>
+<h4 id="事务消息">事务消息</h4>
+<p>RocketMQ(4.3.0版本及之后)事务消息（Transactional Message）是指应用本地事务和发送消息操作可以被定义到全局事务中，要么同时成功，要么同时失败。RocketMQ的事务消息提供类似 X/Open XA 的分布事务功能，通过事务消息能达到分布式事务的最终一致。关于事务消息的处理流程，有必要了解如下两个概念：半消息及消息状态检查：</p>
+<p>半消息（Half(Prepare) Message）：指暂时无法投递的消息。当一条消息成功发送到MQ服务器，但服务器没有收到生产者对消息的第二次确认，则将该消息标记为“暂时无法投递”。这种状态的消息称为半消息。</p>
+<p>消息状态检查（Message Status Check）：网络断开或生产者应用程序重启可能会导致事务消息的第二次确认丢失。当 MQ 服务器发现一条消息长时间处于半消息状态时，会向消息生产者发送请求，检查消息的最终状态（Commit 或 Rollback）。</p>
+<p>详细设计可参考：<a href="https://rocketmq.apache.org/rocketmq/the-design-of-transactional-message/">点击此处跳转详情页面</a></p>
+<p>事务消息发送流程如下：</p>
+<ol>
+<li>生产者向 MQ 服务器发送半消息。</li>
+<li>发送半消息成功后，执行本地事务。</li>
+<li>根据本地事务结果向 MQ 服务器发送提交或回滚消息。</li>
+<li>如果本地事务执行过程中提交/回滚消息丢失或生产者挂起，MQ 服务器将向同一组中的每个生产者发送检查消息以获取事务状态。</li>
+<li>生产者根据本地事务状态回复提交/回滚消息。</li>
+<li>提交的消息将被传递给消费者，但回滚的消息将被 MQ 服务器丢弃。</li>
+</ol>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317011.png" alt="" loading="lazy"></figure>
+<pre><code>// 实现事务监听器
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class TransactionListenerImpl implements TransactionListener {
+    private AtomicInteger transactionIndex = new AtomicInteger(0);
+
+    private ConcurrentHashMap&lt;String, Integer&gt; localTrans = new ConcurrentHashMap&lt;&gt;();
+
+    @Override
+    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+        int value = transactionIndex.getAndIncrement();
+        int status = value % 3;
+        localTrans.put(msg.getTransactionId(), status);
+        return LocalTransactionState.UNKNOW;
+    }
+
+    @Override
+    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+        Integer status = localTrans.get(msg.getTransactionId());
+        if (null != status) {
+            switch (status) {
+                case 0:
+                    return LocalTransactionState.UNKNOW;
+                case 1:
+                    return LocalTransactionState.COMMIT_MESSAGE;
+                case 2:
+                    return LocalTransactionState.ROLLBACK_MESSAGE;
+                default:
+                    return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        }
+        return LocalTransactionState.COMMIT_MESSAGE;
+    }
+}
+
+</code></pre>
+<pre><code>// 发送事务消息
+public static void main(String[] args) throws MQClientException, InterruptedException {
+    TransactionListener transactionListener = new TransactionListenerImpl();
+    TransactionMQProducer producer = new TransactionMQProducer(&quot;unique_group_name&quot;);
+    ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue&lt;&gt;(2000), r -&gt; {
+        Thread thread = new Thread(r);
+        thread.setName(&quot;client-transaction-msg-check-thread&quot;);
+        return thread;
+    });
+
+    producer.setExecutorService(executorService);
+    producer.setTransactionListener(transactionListener);
+    producer.start();
+
+    String[] tags = new String[] {&quot;TagA&quot;, &quot;TagB&quot;, &quot;TagC&quot;, &quot;TagD&quot;, &quot;TagE&quot;};
+    for (int i = 0; i &lt; 10; i++) {
+        try {
+            Message msg =
+                new Message(&quot;topicName&quot;, tags[i % tags.length], &quot;KEY&quot; + i,
+                    (&quot;Hello RocketMQ &quot; + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+            SendResult sendResult = producer.sendMessageInTransaction(msg, null);
+            System.out.printf(&quot;%s%n&quot;, sendResult);
+
+            Thread.sleep(10);
+        } catch (MQClientException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    for (int i = 0; i &lt; 100000; i++) {
+        Thread.sleep(1000);
+    }
+    producer.shutdown();
+}
+
+</code></pre>
+<h4 id="定时消息">定时消息</h4>
+<p>定时消息（延迟队列）是指消息发送到broker后，不会立即被消费，等待特定时间投递给真正的topic。 broker有配置项messageDelayLevel，默认值为“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”，18个level。可以配置自定义messageDelayLevel。注意，messageDelayLevel是broker的属性，不属于某个topic。发消息时，设置delayLevel等级即可：msg.setDelayLevel(level)。对level设值时会出现以下是那种情形：</p>
+<ul>
+<li>level == 0，消息为非延迟消息</li>
+<li>1&lt;=level&lt;=maxLevel，消息延迟特定时间，例如level==1，延迟1s</li>
+<li>level &gt; maxLevel，则level== maxLevel，例如level==20，延迟2h</li>
+</ul>
+<p>定时消息会暂存在名为SCHEDULE_TOPIC_XXXX的topic中，并根据delayTimeLevel存入特定的queue，queueId = delayTimeLevel – 1，即一个queue只存相同延迟的消息，保证具有相同发送延迟的消息能够顺序消费。broker会调度地消费SCHEDULE_TOPIC_XXXX，将消息写入真实的topic。</p>
+<p>需要注意的是，定时消息会在第一次写入和调度写入真实topic时都会计数，因此发送数量、tps都会变高。</p>
+<pre><code>// 发送定时消息
+public static void main(String[] args) throws Exception {
+    // 初始化 producer 以发送定时消息
+    DefaultMQProducer producer = new DefaultMQProducer(&quot;ExampleProducerGroup&quot;);
+    // 启动producer
+    producer.start();
+    int totalMessagesToSend = 100;
+    for (int i = 0; i &lt; totalMessagesToSend; i++) {
+        Message message = new Message(&quot;TestTopic&quot;, (&quot;Hello scheduled message &quot; + i).getBytes());
+        // 此处设置3表示消息将会延迟10秒后发送，具体可见下述源码
+        message.setDelayTimeLevel(3);
+        // Send the message
+        producer.send(message);
+    }
+  
+    // Shutdown producer after use.
+    producer.shutdown();
+}
+
+</code></pre>
+<pre><code>// 文件地址：org.apache.rocketmq.store.schedule.ScheduleMessageService
+// 转换延迟等级，将“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”按从左到右的顺序匹配1~18
+public boolean parseDelayLevel() {
+    // 存储时间单位
+    HashMap&lt;String, Long&gt; timeUnitTable = new HashMap&lt;String, Long&gt;();
+    timeUnitTable.put(&quot;s&quot;, 1000L);
+    timeUnitTable.put(&quot;m&quot;, 1000L * 60);
+    timeUnitTable.put(&quot;h&quot;, 1000L * 60 * 60);
+    timeUnitTable.put(&quot;d&quot;, 1000L * 60 * 60 * 24);
+
+    // 获取“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”
+    String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
+    try {
+        // 切割获取对应的数组
+        String[] levelArray = levelString.split(&quot; &quot;);
+        for (int i = 0; i &lt; levelArray.length; i++) {
+            String value = levelArray[i];
+            String ch = value.substring(value.length() - 1);
+            Long tu = timeUnitTable.get(ch);
+
+            int level = i + 1;
+            if (level &gt; this.maxDelayLevel) {
+                this.maxDelayLevel = level;
+            }
+            long num = Long.parseLong(value.substring(0, value.length() - 1));
+            long delayTimeMillis = tu * num;
+            // 匹配1~18放入ConcurrentMap中
+            this.delayLevelTable.put(level, delayTimeMillis);
+            if (this.enableAsyncDeliver) {
+                this.deliverPendingTable.put(level, new LinkedBlockingQueue&lt;&gt;());
+            }
+        }
+    } catch (Exception e) {
+        log.error(&quot;parseDelayLevel exception&quot;, e);
+        log.info(&quot;levelString String = {}&quot;, levelString);
+        return false;
+    }
+
+    return true;
+}
+
+</code></pre>
+<h4 id="消息重投与重试">消息重投与重试</h4>
+<p>生产者在发送消息时，同步消息失败会重投，异步消息有重试，oneway没有任何保证。消息重投保证消息尽可能发送成功、不丢失，但可能会造成消息重复，消息重复在RocketMQ中是无法避免的问题。消息重复在一般情况下不会发生，当出现消息量大、网络抖动，消息重复就会是大概率事件。另外，生产者主动重发、consumer负载变化也会导致重复消息。如下方法可以设置消息重试策略：</p>
+<ul>
+<li>retryTimesWhenSendFailed：同步发送失败重投次数，默认为2，因此生产者会最多尝试发送retryTimesWhenSendFailed + 1次。不会选择上次失败的broker，尝试向其他broker发送，最大程度保证消息不丢。超过重投次数，抛出异常，由客户端保证消息不丢。当出现RemotingException、MQClientException和部分MQBrokerException时会重投。</li>
+<li>retryTimesWhenSendAsyncFailed：异步发送失败重试次数，异步重试不会选择其他broker，仅在同一个broker上做重试，不保证消息不丢。</li>
+<li>retryAnotherBrokerWhenNotStoreOK：消息刷盘（主或备）超时或slave不可用（返回状态非SEND_OK），是否尝试发送到其他broker，默认false。十分重要消息可以开启。</li>
+</ul>
+<p>Consumer消费消息失败后，要提供一种重试机制，令消息再消费一次。Consumer消费消息失败通常可以认为有以下几种情况：</p>
+<ul>
+<li>由于消息本身的原因，例如反序列化失败，消息数据本身无法处理（例如话费充值，当前消息的手机号被注销，无法充值）等。这种错误通常需要跳过这条消息，再消费其它消息，而这条失败的消息即使立刻重试消费，99%也不成功，所以最好提供一种定时重试机制，即过10秒后再重试。</li>
+<li>由于依赖的下游应用服务不可用，例如db连接不可用，外系统网络不可达等。遇到这种错误，即使跳过当前失败的消息，消费其他消息同样也会报错。这种情况建议应用sleep 30s，再消费下一条消息，这样可以减轻Broker重试消息的压力。</li>
+</ul>
+<p>RocketMQ会为每个消费组都设置一个Topic名称为“%RETRY%+consumerGroup”的重试队列（这里需要注意的是，这个Topic的重试队列是针对消费组，而不是针对每个Topic设置的），用于暂时保存因为各种异常而导致Consumer端无法消费的消息。考虑到异常恢复起来需要一些时间，会为重试队列设置多个重试级别，每个重试级别都有与之对应的重新投递延时，重试次数越多投递延时就越大。RocketMQ对于重试消息的处理是先保存至Topic名称为“SCHEDULE_TOPIC_XXXX”的延迟队列中，后台定时任务按照对应的时间进行Delay后重新保存至“%RETRY%+consumerGroup”的重试队列中。</p>
+<p>重试次数过多时，便有必要将消息投递至死信队列中以防止陷入无限重试。</p>
+<p>死信队列通常用于处理无法被正常消费的消息。当一条消息初次消费失败，消息队列会自动进行消息重试；达到最大重试次数后，若消费依然失败，则表明消费者在正常情况下无法正确地消费该消息，此时，消息队列不会立刻将消息丢弃，而是将其发送到该消费者对应的特殊队列中。</p>
+<p>RocketMQ将这种正常情况下无法被消费的消息称为死信消息（Dead-Letter Message），将存储死信消息的特殊队列称为死信队列（Dead-Letter Queue）。在RocketMQ中，可以通过使用console控制台对死信队列中的消息进行重发来使得消费者实例再次进行消费。</p>
+<h4 id="流量控制与可靠性">流量控制与可靠性</h4>
+<p>生产者流控，因为broker处理能力达到瓶颈；消费者流控，因为消费能力达到瓶颈。</p>
+<h5 id="生产者流控">生产者流控</h5>
+<ul>
+<li>commitLog文件被锁时间超过osPageCacheBusyTimeOutMills时，参数默认为1000ms，返回流控。</li>
+<li>如果开启transientStorePoolEnable == true，且broker为异步刷盘的主机，且transientStorePool中资源不足，拒绝当前send请求，返回流控。</li>
+<li>broker每隔10ms检查send请求队列头部请求的等待时间，如果超过waitTimeMillsInSendQueue，默认200ms，拒绝当前send请求，返回流控。</li>
+<li>broker通过拒绝send 请求方式实现流量控制。</li>
+<li>注意，生产者流控，不会尝试消息重投。</li>
+</ul>
+<h5 id="消费者流控">消费者流控</h5>
+<ul>
+<li>消费者本地缓存消息数超过pullThresholdForQueue时，默认1000。</li>
+<li>消费者本地缓存消息大小超过pullThresholdSizeForQueue时，默认100MB。</li>
+<li>消费者本地缓存消息跨度超过consumeConcurrentlyMaxSpan时，默认2000。</li>
+<li>消费者流控的结果是降低拉取频率。</li>
+</ul>
+<h5 id="rocketmq支持消息的高可靠影响消息可靠性的几种情况">RocketMQ支持消息的高可靠，影响消息可靠性的几种情况</h5>
+<ol>
+<li>Broker非正常关闭</li>
+<li>Broker异常Crash</li>
+<li>OS Crash</li>
+<li>机器掉电，但是能立即恢复供电情况</li>
+<li>机器无法开机（可能是cpu、主板、内存等关键设备损坏）</li>
+<li>磁盘设备损坏</li>
+</ol>
+<p>1)、2)、3)、4) 四种情况都属于硬件资源可立即恢复情况，RocketMQ在这四种情况下能保证消息不丢，或者丢失少量数据（依赖刷盘方式是同步还是异步）。</p>
+<p>5)、6)属于单点故障，且无法恢复，一旦发生，在此单点上的消息全部丢失。RocketMQ在这两种情况下，通过异步复制，可保证99%的消息不丢，但是仍然会有极少量的消息可能丢失。通过同步双写技术可以完全避免单点，同步双写势必会影响性能，适合对消息可靠性要求极高的场合，例如与Money相关的应用。注：RocketMQ从3.0版本开始支持同步双写。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[i18n-sdk 使用手册]]></title>
         <id>https://philosopherzb.github.io/post/i18n-sdk-shi-yong-shou-ce/</id>
@@ -4579,203 +4964,6 @@ public interface ProducerInterceptor&lt;K, V&gt; extends Configurable {
 <p>关于消息的推送拉取，kafka采用的是：Producer push数据到broker，Consumer从broker pull数据。针对消费者而言，无论是pull-based还是push-based都有各自的优缺点。</p>
 <p>pull-based：数据传输速率由Consumer控制，可防止服务因大量数据冲击而宕机，同时也简化了broker的设计；且，此模式中，Producer可以达到最大化量产消息。当然，其缺点就是如果 broker 中没有数据，consumer 可能会在一个紧密的循环中结束轮询，实际上却是在忙于等待数据的到达。为了避免 busy-waiting，kafka在 pull 请求中加入参数，使得 consumer 在一个“long pull”中阻塞等待，直到数据到来（还可以选择等待给定字节长度的数据来确保传输长度）。</p>
 <p>push-based：消息能最快的被指定消费者所消费，但是相应的broker设计将会更复杂，且数据传输速率过大时，容易冲击消费者服务，导致其宕机无法提供服务。</p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[kafka安装&使用&配置]]></title>
-        <id>https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/</id>
-        <link href="https://philosopherzb.github.io/post/kafka-an-zhuang-andshi-yong-andpei-zhi/">
-        </link>
-        <updated>2022-06-04T08:42:31.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述kafka安装，使用以及spring-kafka配置信息。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-6278825_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="win10下部署kafka">Win10下部署kafka</h2>
-<p>主要涉及Java，zookeeper，kafka，步骤如下。</p>
-<h3 id="java安装">Java安装</h3>
-<p>JDK下载：<a href="https://www.oracle.com/java/technologies/javase-downloads.html">点此此处跳转官网下载页面</a></p>
-<p>安装过程比较简单，基本都是下一步即可，唯一需要注意的是环境变量的设置；安装完后效果如下图所示（注意：Java安装路径不要太深（目录过多），同时文件夹命名不要存在空格，否则将导致kafka部署失败）</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314001.png" alt="" loading="lazy"></figure>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314002.png" alt="img" loading="lazy"></figure>
-<h3 id="zookeeper安装">zookeeper安装</h3>
-<p>下载地址：<a href="https://zookeeper.apache.org/releases.html">点击此处跳转官网下载页面</a></p>
-<p>找一个稳定的版本下载即可：</p>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314003.png" alt="img" loading="lazy"></figure>
-<ol>
-<li>下载后解压到一个目录：eg: D:\Program\zookeeper\zookeeper-3.4.14</li>
-<li>在zookeeper-3.4.14目录下，新建两个文件夹，并命名(eg: data,log)，(路径：D:\Program\zookeeper\zookeeper-3.4.14\data,D:\Program\zookeeper\zookeeper-3.4.14\log)</li>
-<li>进入Zookeeper设置目录，eg: D:\Program\zookeeper\zookeeper-3.4.14\conf；复制“zoo_sample.cfg”副本并将副本重命名为“zoo.cfg”；在任意文本编辑器（eg：记事本）中打开zoo.cfg；找到并编辑dataDir=D:\Program\zookeeper\zookeeper-3.4.14\data；dataLogDir=D:\Program\zookeeper\zookeeper-3.4.14\log</li>
-<li>进入D:\Program\zookeeper\zookeeper-3.4.14\bin目录，双击zkServer.cmd即可运行zk。</li>
-</ol>
-<h3 id="kafka安装">kafka安装</h3>
-<p>下载地址：<a href="http://kafka.apache.org/downloads.html">点击此处跳转官网下载页面</a></p>
-<p>2.8之后kafka支持不依赖zookeeper启动：<a href="https://kafka.apache.org/quickstart">点击此处跳转详细说明页面</a></p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314004.png" alt="" loading="lazy"></figure>
-<ol>
-<li>
-<p>下载后解压缩。eg: D:\Program\kafka_2.13-2.7.0</p>
-</li>
-<li>
-<p>建立一个空文件夹 logs. eg: D:\Program\kafka_2.13-2.7.0\logs</p>
-</li>
-<li>
-<p>进入config目录，编辑 server.properties文件(eg: 用“写字板”打开)。；找到并编辑log.dirs=D:\Program\kafka_2.13-2.7.0\logs；找到并编辑zookeeper.connect=localhost:2181。表示本地运行。(Kafka会按照默认，在9092端口上运行，并连接zookeeper的默认端口：2181)</p>
-</li>
-<li>
-<p>运行：命令行下切入D:\Program\kafka_2.13-2.7.0目录，随后执行如下命令即可（注意先开启zookeeper）：.\bin\windows\kafka-server-start.bat .\config\server.properties</p>
-</li>
-<li>
-<p>可能存在的报错：</p>
-<p>输入行太长。 命令语法不正确：目录树太深了，减少几个目录即可。</p>
-<p>找不到或无法加载主类 Files\java\jdk8\lib;D:\Program：此错误由目录存在空格所导致。解决：找到D:\Program\kafka_2.13-2.7.0\bin\windows，用编辑器（eg：记事本）打开kafka-run-class.bat，查看配置是否有加上双引号</p>
-</li>
-</ol>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314005.png" alt="img" loading="lazy"></figure>
-<p>如果加了双引号仍然无法启动，那可以去查看java安装路径中的文件夹是否存在空格，如果存在，将空格去掉即可。</p>
-<p>启动图如下：</p>
-<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314006.png" alt="img" loading="lazy"></figure>
-<h2 id="简单kafka命令">简单kafka命令</h2>
-<p>部分kafka命令，基于win10（如果非win系统，使用bin目录下的.sh即可）</p>
-<h3 id="创建topic两个副本-四个分区">创建topic（两个副本。四个分区）</h3>
-<pre><code>kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 2 --partitions 4 --topic testTopic  
-$ bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --topic topic_test( Kafka 版本 &gt;= 2.2 支持此方式（推荐）)  
-$ bin/kafka-topics.sh --create --topic quickstart-events --bootstrap-server localhost:9092
-</code></pre>
-<h3 id="查看topic">查看topic</h3>
-<p>查看topic列表：kafka-topics.bat --list --zookeeper localhost:2181</p>
-<p>查看topic详情：bin/kafka-topics.sh --zookeeper host12:2181  --describe --topic ltopicName</p>
-<pre><code>$ bin/kafka-topics.sh --describe --topic quickstart-events --bootstrap-server localhost:9092
-Topic:quickstart-events  PartitionCount:1    ReplicationFactor:1 Configs:
-Topic: quickstart-events Partition: 0    Leader: 0   Replicas: 0 Isr: 0
-</code></pre>
-<p>清除Kafka topic下所有消息：kafka-topics.sh --zookeeper zookeeper地址:端口 --delete --topic topic_name</p>
-<h3 id="删除topic">删除topic</h3>
-<p>linux：./bin/kafka-topics  --delete --zookeeper 【zookeeper server】  --topic 【topic name】</p>
-<p>win：kafka-topics.bat --delete --zookeeper localhost:2181 --topic testTopic</p>
-<p>如果kafaka启动时加载的配置文件中server.properties没有配置delete.topic.enable=true，那么此时的删除并不是真正的删除，而是把topic标记为：marked for deletion</p>
-<p>彻底删除topic，可以如下操作：</p>
-<ol>
-<li>删除kafka存储目录（server.properties文件log.dirs配置，默认为&quot;/tmp/kafka-logs&quot;）相关topic目录</li>
-<li>登录zookeeper客户端：命令：./bin/zookeeper-client</li>
-<li>找到topic所在的目录：ls /brokers/topics</li>
-<li>找到要删除的topic，执行命令：rmr /brokers/topics/【topic name】即可，此时topic被彻底删除。</li>
-</ol>
-<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230314007.png" alt="img" loading="lazy"></figure>
-<h3 id="发送消息至topic">发送消息至topic</h3>
-<pre><code>$ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
-This is my first event
-This is my second event
-</code></pre>
-<h3 id="消费topic消息">消费topic消息</h3>
-<p>从头开始查看kafka topic下的数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --from-beginning</p>
-<p>按照偏移量查看topic下数据：kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic topic_name --offset latest --partition 0</p>
-<p>--offset设置偏移量 latest代表最后 ，可以设置区间，不设置结尾的话默认为查询到latest(最后)</p>
-<p>--partition 设置分区 使用偏移量查询时一定要设置分区才能查询</p>
-<pre><code>$ bin/kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap-server localhost:9092
-This is my first event
-This is my second event
-</code></pre>
-<h2 id="spring-kafka属性配置">spring-kafka属性配置</h2>
-<p>spring已经封装了kafka，所以在springboot项目中可以非常便捷的集成kafka，引入其依赖，如下：</p>
-<pre><code>&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.kafka&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-kafka&lt;/artifactId&gt;
-  &lt;version&gt;${last.version}&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre>
-<p>文档地址：<a href="https://docs.spring.io/spring-kafka/docs/current/reference/html/">点击此处跳转官网页面</a></p>
-<p>属性配置：<a href="https://docs.spring.io/spring-boot/docs/current/reference/html/appendix-application-properties.html#spring.kafka.admin.client-id">点击此处跳转说明页面</a></p>
-<h3 id="producer的配置参数">producer的配置参数</h3>
-<pre><code>#procedure要求leader在考虑完成请求之前收到的确认数，用于控制发送记录在服务端的持久化，其值可以为如下：
-#acks = 0 如果设置为零，则生产者将不会等待来自服务器的任何确认，该记录将立即添加到套接字缓冲区并视为已发送。在这种情况下，无法保证服务器已收到记录，并且重试配置将不会生效（因为客户端通常不会知道任何故障），为每条记录返回的偏移量始终设置为-1。
-#acks = 1 这意味着leader会将记录写入其本地日志，但无需等待所有副本服务器的完全确认即可做出回应，在这种情况下，如果leader在确认记录后立即失败，但在将数据复制到所有的副本服务器之前，则记录将会丢失。
-#acks = all 这意味着leader将等待完整的同步副本集以确认记录，这保证了只要至少一个同步副本服务器仍然存活，记录就不会丢失，这是最强有力的保证，这相当于acks = -1的设置。
-#可以设置的值为：all(-1), 0, 1
-spring.kafka.producer.acks=1
- 
-#每当多个记录被发送到同一分区时，生产者将尝试将记录一起批量处理为更少的请求， 
-#这有助于提升客户端和服务器上的性能，此配置控制默认批量大小（以字节为单位），默认值为16384
-spring.kafka.producer.batch-size=16384
- 
-#以逗号分隔的主机：端口对列表，用于建立与Kafka集群的初始连接
-spring.kafka.producer.bootstrap-servers
- 
-#生产者可用于缓冲等待发送到服务器的记录的内存总字节数，默认值为33554432
-spring.kafka.producer.buffer-memory=33554432
- 
-#ID在发出请求时传递给服务器，用于服务器端日志记录
-spring.kafka.producer.client-id
- 
-#生产者生成的所有数据的压缩类型，此配置接受标准压缩编解码器（'gzip'，'snappy'，'lz4'），
-#它还接受'uncompressed'以及'producer'，分别表示没有压缩以及保留生产者设置的原始压缩编解码器，
-#默认值为producer
-spring.kafka.producer.compression-type=producer
- 
-#key的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
-spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
- 
-#值的Serializer类，实现类实现了接口org.apache.kafka.common.serialization.Serializer
-spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
- 
-#如果该值大于零时，表示启用重试失败的发送次数
-spring.kafka.producer.retries
-</code></pre>
-<h3 id="consumer的配置参数">consumer的配置参数</h3>
-<pre><code>#当'enable.auto.commit'为true时，该配置表示消费者offset自动提交给Kafka的频率（以毫秒为单位），默认值为5000。
-spring.kafka.consumer.auto-commit-interval;
- 
-#当Kafka中没有初始偏移量或者服务器上不再存在当前偏移量时该怎么办，默认值为latest，表示自动将偏移重置为最新的偏移量
-#可选的值为latest, earliest, none
-spring.kafka.consumer.auto-offset-reset=latest;
- 
-#以逗号分隔的主机：端口对列表，用于建立与Kafka群集的初始连接。
-spring.kafka.consumer.bootstrap-servers;
- 
-#ID在发出请求时传递给服务器;用于服务器端日志记录。
-spring.kafka.consumer.client-id;
- 
-#如果为true，则消费者的偏移量将在后台定期提交，默认值为true(2.3后默认为false)
-spring.kafka.consumer.enable-auto-commit=true;
- 
-#如果没有足够的数据立即满足“fetch.min.bytes”给出的要求，服务器在回答获取请求之前将阻塞的最长时间（以毫秒为单位）
-#默认值为500
-spring.kafka.consumer.fetch-max-wait;
- 
-#服务器应以字节为单位返回获取请求的最小数据量，默认值为1，对应的kafka的参数为fetch.min.bytes。
-spring.kafka.consumer.fetch-min-size;
- 
-#用于标识此使用者所属的使用者组的唯一字符串。
-spring.kafka.consumer.group-id;
- 
-#心跳与消费者协调员之间的预期时间（以毫秒为单位），默认值为3000
-spring.kafka.consumer.heartbeat-interval;
- 
-#密钥的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
-spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
- 
-#值的反序列化器类，实现类实现了接口org.apache.kafka.common.serialization.Deserializer
-spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
- 
-#一次调用poll()操作时返回的最大记录数，默认值为500
-spring.kafka.consumer.max-poll-records;
-</code></pre>
-<h3 id="listener的配置参数">listener的配置参数</h3>
-<pre><code>#侦听器的AckMode
-#当enable.auto.commit的值设置为false时，该值会生效；为true时不会生效
-spring.kafka.listener.ack-mode;
- 
-#在侦听器容器中运行的线程数
-spring.kafka.listener.concurrency;
- 
-#轮询消费者时使用的超时（以毫秒为单位）
-spring.kafka.listener.poll-timeout;
- 
-#当ackMode为“COUNT”或“COUNT_TIME”时，偏移提交之间的记录数
-spring.kafka.listener.ack-count;
- 
-#当ackMode为“TIME”或“COUNT_TIME”时，偏移提交之间的时间（以毫秒为单位）
-spring.kafka.listener.ack-time;
-</code></pre>
 ]]></content>
     </entry>
 </feed>
