@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-03-16T08:18:30.049Z</updated>
+    <updated>2023-03-17T06:00:44.847Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,1493 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[kafka深入理解之日志&事务&扩展]]></title>
+        <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-ri-zhi-andshi-wu-andkuo-zhan/</id>
+        <link href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-ri-zhi-andshi-wu-andkuo-zhan/">
+        </link>
+        <updated>2022-08-06T02:07:21.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述kafka的日志存储，事务操作以及扩展的mmp，零拷贝等信息。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lake-1681485_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="日志">日志</h2>
+<h3 id="简介">简介</h3>
+<p>Kafka 中的消息是以主题为基本单位进行归类的，各个主题在逻辑上相互独立。每个主题又可以分为一个或多个分区。不考虑多副本的情况，一个分区对应一个日志（Log）；本质上其实是一个副本对应一个日志（log）。</p>
+<p>为了防止 Log 过大，Kafka 中引入了日志分段（LogSegment）的概念，所谓日志分段，就是当一个日志文件大小到达一定条件之后，就新建一个新的日志分段，然后在新的日志分段写入数据。</p>
+<p>Log 和 LogSegment 也不是纯粹物理意义上的概念，Log 在物理上只以文件夹的形式存储，而每个 LogSegment 对应于磁盘上的一个日志文件（.log）和两个索引文件（.index，.timeindex），以及可能的其他文件（比如以“.txnindex”为后缀的事务索引文件）</p>
+<p>日志分段文件中的索引文件主要是用来提高查找消息的效率:</p>
+<ul>
+<li>偏移量索引文件用来建立消息偏移量（offset）到物理地址之间的映射关系，方便快速定位消息所在的物理文件位置。</li>
+<li>时间戳索引文件则根据指定的时间戳（timestamp）来查找对应的偏移量信息。</li>
+</ul>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317001.png" alt="img" loading="lazy"></figure>
+<h3 id="日志操作">日志操作</h3>
+<p>日志实现图</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317002.png" alt="img" loading="lazy"></figure>
+<h4 id="写操作writes">写操作（Writes）</h4>
+<p>日志允许在文件的尾部进行串行化追加数据。当这个文件达到可配置的大小（比如 1GB）时，它会滚动到一个新文件。日志有两个重要的配置参数：M：表示操作系统强制将文件刷新到磁盘之前要写入的消息数；S：表示经过多少秒才能强制刷新到磁盘。这种特性保证了在系统崩溃时最多丢失M条消息或S秒数据。</p>
+<h4 id="读操作reads">读操作（Reads）</h4>
+<p>读取依赖消息的 64-bit逻辑偏移量以及S-byte最大块大小。此操作将返回S-byte缓冲区中所包含的消息迭代器。S旨在大于任何单个消息，但在消息异常大的情况下，可以多次重试读取，每次将缓冲区大小加倍，直到成功读取消息。可以指定最大消息和缓冲区大小以使服务器拒绝大于某个大小的消息，并为客户端提供它需要读取的最大值以获得完整的消息。读取缓冲区很可能以部分消息结尾，这很容易通过分隔大小来检测。</p>
+<p>偏移量的实际读取过程需要首先找到存储数据的日志段文件，从而根据全局偏移量值计算文件特定的偏移量，然后从该文件偏移量中读取。搜索的实际处理过程是通过为每个文件维护的内存范围的简单二进制搜索变体来完成的。</p>
+<p>该日志提供了获取最近写入消息的能力，以允许客户端从“现在”开始订阅。这在消费者未能在其 SLA 指定的天数内使用其数据的情况下也很有用。在这种情况下，当客户端尝试使用不存在的偏移量时，将返回OutOfRangeException 并且可以根据用例自行重置或失败。</p>
+<h4 id="删除操作deletes">删除操作（Deletes）</h4>
+<p>数据一次删除一个日志段。日志管理器应用两个指标来识别符合删除条件的段：时间和大小。对于基于时间的策略，会考虑记录时间戳，段文件中的最大时间戳（记录顺序不相关）定义整个段的保留时间。默认情况下会禁用基于大小的保留策略。启用后，日志管理器依然会继续删除最旧的段文件，直到分区的总大小再次在配置的限制内。如果同时启用这两个策略，则将删除符合任一策略段。</p>
+<p>为了避免锁定读取，同时仍然允许修改段列表的删除，kafka使用了写时复制(copy-on-write )样式的段列表实现，该实现提供了一致的视图，以允许在日志段的不可变静态快照视图上进行二分查找，即使该日志段正在进行删除操作。</p>
+<h3 id="日志保留log-retention">日志保留（Log Retention）</h3>
+<p>日志保留指的是按照一定的保留策略直接删除不符合条件的日志分段，也可以简单理解为日志删除操作。可以通过服务端的参数 log.cleanup.policy来进行配置，此值默认为delete（表示删除），还有一个可选值compact（表示压缩）。</p>
+<h4 id="基于时间">基于时间</h4>
+<p>kafka默认是基于时间对日志进行删除操作的。</p>
+<p>日志删除任务会检查当前日志文件中是否有保留时间超过设定的阈值（retention.ms）来寻找可删除的日志分段文件集合（deletableSegments）。</p>
+<p>retention.ms 可以通过 broker 端参数 log.retention.hours、log.retention.minutes 和 log.retention.ms 来配置，优先级：log.retention.ms &gt; log.retention.minutes &gt; log.retention.hours 。默认情况下只配置了 log.retention.hours 参数，其值为168，故默认情况下日志分段文件的保留时间为7天。</p>
+<p>删除日志分段时，首先会从 Log 对象中所维护日志分段的跳跃表中移除待删除的日志分段，以保证没有线程对这些日志分段进行读取操作。然后将日志分段所对应的所有文件添加上“.deleted”的后缀（当然也包括对应的索引文件）。最后交由一个以“delete-file”命名的延迟任务来删除这些以“.deleted”为后缀的文件，这个任务的延迟执行时间可以通过 file.delete.delay.ms 参数来调配，此参数的默认值为60000，即1分钟。</p>
+<h4 id="基于日志大小">基于日志大小</h4>
+<p>日志删除任务会检查当前日志的大小是否超过设定的阈值（retention.bytes）来寻找可删除的日志分段的文件集合（deletableSegments）。</p>
+<p>retention.bytes 可以通过 broker 端参数 log.retention.bytes 来配置，默认值为-1，表示无穷大(即只有时间限制，没有大小限制)。</p>
+<p>注意：log.retention.bytes 配置的是分区（由日志段组成）的最大大小，而不是单个日志分段（确切地说应该为 .log 日志文件）的大小。</p>
+<p>单个日志分段的大小(segment.bytes)由 broker 端参数 log.segment.bytes 来限制，默认值为1073741824，即 1GB。此参数控制着日志分段达到多大才会新建一个新的日志分段。</p>
+<p>删除操作和基于时间的保留策略的删除操作相同。</p>
+<h4 id="基于lso手动删除">基于LSO（手动删除）</h4>
+<p>基于LSO（日志起始偏移量）的保留策略的判断依据是某日志分段的下一个日志分段的起始偏移量 baseOffset 是否小于等于 logStartOffset，若是，则可以删除此日志分段（放入deletableSegments中）。</p>
+<p>一般情况下，日志文件的起始偏移量 logStartOffset 等于第一个日志分段的 baseOffset，但这并不是绝对的，logStartOffset 的值可以通过 DeleteRecordsRequest 请求(比如使用 KafkaAdminClient 的 deleteRecords()方法、使用 kafka-delete-records.sh 脚本、日志的清理和截断等操作）进行修改。</p>
+<p>删除操作和基于时间的保留策略的删除操作相同。</p>
+<pre><code>// 使用命令删除记录
+// 假设现在存在一个名为‘test-topic'的topic，要求删除其所有记录。
+// 首先需要定义一个名为delete-test.config 的文件，文件内容如下：
+{
+  &quot;partitions&quot;: [
+    {
+      &quot;topic&quot;: &quot;test-topic&quot;,
+      &quot;partition&quot;: 0,
+      &quot;offset&quot;: -1 // -1 表示无穷大偏移量，即删除所有记录数据
+    }
+  ],
+  &quot;version&quot;: 1
+}
+// 然后运行kafka-delete-records.sh
+kafka-delete-records.sh --bootstrap-server localhost:9092 --offset-json-file ./delete-test.config
+
+</code></pre>
+<h4 id="日志压缩log-compaction">日志压缩（Log Compaction）</h4>
+<p>日志压缩（Log Compaction）：Kafka 将始终为单个主题分区的数据日志中的每个消息键至少保留最后一个已知值；即针对每个消息的 key 进行整合，对于有相同 key 的不同 value 值，只保留最后一个版本。这对于解决某些应用程序崩溃、系统故障后恢复或者应用在运行维护过程中重启后重新加载缓存的场景很有效。</p>
+<p>采用日志压缩的清理策略时需要将 log.cleanup.policy 设置为“compact”，并且还需要将 log.cleaner.enable （默认值为 true）设定为 true（此值如果设置为false，那么日志将不会被压缩，且一直增长）。除此之外还有两个参数可以控制日志压缩：log.cleaner.min.compaction.lag.ms（防止比该时间更小的更新消息被压缩） 和 log.cleaner.max.compaction.lag.ms（防止某些消息一直进行不恰当的压缩操作）</p>
+<p>Kafka 日志的逻辑结构以及每条消息的偏移量，如下所示：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317003.png" alt="img" loading="lazy"></figure>
+<p>日志头部与传统的kafka日志一样，它具有紧凑的顺序偏移并保留所有的消息。与此同时，日志压缩还提供了已被压缩的日志尾部，就如上图所示。</p>
+<p>注意：</p>
+<ul>
+<li>日志尾部的消息保留了第一次写入时分配的原始偏移量且该值永远不会改变。</li>
+<li>所有偏移量在日志中仍然具备有效位置（即使已被压缩）；如上图所示，36,37,38的偏移位置是等效的；即从这些偏移量位置中无论选择了哪一个，都会从返回从38开始的消息集。</li>
+</ul>
+<p>压缩还允许删除。带有键和空负载的消息将被视为从日志中删除。这样的记录有时被称为墓碑（tombstone）。此删除标记将导致删除具有该键的任何先前消息（与具有该键的任何新消息一样），但删除标记的特殊之处在于它们本身将在一段时间后从日志中清除以释放空间. 删除不再保留的时间点在上图中标记为“删除保留点”。</p>
+<p>压缩是通过定期重新复制日志段在后台完成的。清理不会阻塞读取，并且可以限制为使用不超过可配置量的 I/O 吞吐量，以避免影响生产者和消费者。压缩日志段的实际过程如下所示：</p>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317004.png" alt="img" loading="lazy"></figure>
+<h2 id="事务">事务</h2>
+<h3 id="简介-2">简介</h3>
+<ul>
+<li>kafka的事务机制是其实现端到端有且仅有一次语义（end-to-end EOS)（Exactly once：每条消息会传递一次且仅有一次）的基础。</li>
+<li>transactional producer 和 transactional consumer 两者配合使用，才能实现端到端有且仅有一次的语义（end-to-end EOS)，即事务消息。</li>
+<li>kafka的事务机制在底层依赖于幂等生产者，幂等生产者是 kafka 事务的必要不充分条件；事实上，开启 kafka事务时，kafka 会自动开启幂等生产者。</li>
+<li>内部topic：__transaction_state：用来存储事务日志消息；__consumer_offsets：作用是保存 Kafka 消费者的位移信息。</li>
+</ul>
+<h3 id="内部事务支持">内部事务支持</h3>
+<p>为支持事务机制，kafka引入了两个新的组件：TransactionCoordinator 和 __transaction_state（内部Topic）</p>
+<ul>
+<li>__transaction_state 有多个分区，每个分区副本都有一个 leader，该 leade对应哪个 kafka broker，哪个 broker 上的 TransactionCoordinator 就负责对这些分区副本的写操作（所有的事务状态值都会持久化到 __transaction_state 这个内部topic中）。</li>
+<li>由于 TransactionCoordinator 是 kafka broker 内部的一个模块，而 __transaction_state 是 kakfa 的一个内部 topic, 所以 kafka可以通过内部的复制协议和选举机制（replication protocol and leader election processes)，来确保 TransactionCoordinator 的可用性和 transaction state 的持久性。</li>
+<li>__transaction_state 内部存储的只是事务的最新状态和其相关元数据信息，kafka producer 生产的原始消息，仍然是只存储在kafka producer指定的 topic 中。</li>
+<li>实际上，每个 transactional.id 通过 hash 都对应到 了 __transaction_state 的一个分区，所以每个 transactional.id 都有且仅有一个 TransactionCoordinator 负责。</li>
+</ul>
+<pre><code>// 事务状态
+public enum TransactionState {
+    ONGOING(&quot;Ongoing&quot;),
+    PREPARE_ABORT(&quot;PrepareAbort&quot;),
+    PREPARE_COMMIT(&quot;PrepareCommit&quot;),
+    COMPLETE_ABORT(&quot;CompleteAbort&quot;),
+    COMPLETE_COMMIT(&quot;CompleteCommit&quot;),
+    EMPTY(&quot;Empty&quot;),
+    PREPARE_EPOCH_FENCE(&quot;PrepareEpochFence&quot;),
+   UNKNOWN(&quot;Unknown&quot;);
+}  
+
+</code></pre>
+<h3 id="使用及流程">使用及流程</h3>
+<h4 id="使用配置">使用配置</h4>
+<p>producer端需配置acks = all，retries &gt; 1，transactional.id = some unique id；consumer端根据需要配置isolation.level 为 read_committed 或 read_uncommitted(此为默认值)。</p>
+<pre><code># producer config
+enable.idempotence = true # 默认为true，表示是否开启producer 幂等性
+acks = all
+retries &gt; 1
+transactional.id = some unique id
+
+# consumer config
+isolation.level = read_committed # 可选值 read_committed，read_uncommitted(此为默认值)
+
+</code></pre>
+<h4 id="流程">流程</h4>
+<p>Kafka中的事务可以使应用程序将消费消息、生产消息、提交消费位移当作原子操作来处理，同时成功或失败，即使该生产或消费会跨多个分区。</p>
+<pre><code>// 简单发送消息示例代码
+try {
+    producer.initTransactions();
+    producer.beginTransaction();
+    producer.send(new ProducerRecord&lt;&gt;(&quot;topic0&quot;, &quot;key0&quot;, &quot;msg0&quot;));
+    producer.send(new ProducerRecord&lt;&gt;(&quot;topic1&quot;, &quot;key1&quot;, &quot;msg1&quot;));
+    producer.commitTransaction();
+} catch (KafkaException e) {
+   producer.abortTransaction();
+}
+
+</code></pre>
+<ul>
+<li>生产者必须提供唯一的transactionalId，启动后请求事务协调器获取一个PID，transactionalId与PID一一对应。（使用spring-kafka时，可以通过配置spring.kafka.producer.transaction-id-prefix属性及@Transactional启动事务：详见：<a href="https://docs.spring.io/spring-kafka/docs/current/reference/html/#transactions">点击此处跳转详情页面</a>）</li>
+<li>每次发送数据给&lt;Topic, Partition&gt;前，需要先向事务协调器发送AddPartitionsToTxnRequest，事务协调器会将该&lt;Transaction, Topic, Partition&gt;存于__transaction_state内，并将其状态置为Ongoing。</li>
+<li>在处理完 AddOffsetsToTxnRequest 之后，生产者还会发送 TxnOffsetCommitRequest 请求给 GroupCoordinator，从而将本次事务中包含的消费位移信息 offsets 存储到主题 __consumer_offsets 中。</li>
+<li>一旦上述数据写入操作完成，应用程序必须调用KafkaProducer的commitTransaction方法或者abortTransaction方法以结束当前事务。无论调用 commitTransaction() 方法还是 abortTransaction() 方法，生产者都会向 TransactionCoordinator 发送 EndTxnRequest 请求。</li>
+<li>TransactionCoordinator 收到请求后首先会将 PrepareCommit或 PrepareAbort消息写入主题 __transaction_state；然后通过 WriteTxnMarkersRequest 请求将 commit或 abort信息写入用户所使用的普通主题和 __consumer_offsets；最后将 CompleteCommit或 CompleteAbort信息写入内部主题 __transaction_state标明该事务结束。</li>
+</ul>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.ADD_PARTITIONS_TO_TXN =&gt; handleAddPartitionToTxnRequest(request, requestLocal)
+case ApiKeys.ADD_OFFSETS_TO_TXN =&gt; handleAddOffsetsToTxnRequest(request, requestLocal)
+case ApiKeys.END_TXN =&gt; handleEndTxnRequest(request, requestLocal)
+case ApiKeys.WRITE_TXN_MARKERS =&gt; handleWriteTxnMarkersRequest(request, requestLocal)
+case ApiKeys.TXN_OFFSET_COMMIT =&gt; handleTxnOffsetCommitRequest(request, requestLocal)
+
+</code></pre>
+<h2 id="扩展">扩展</h2>
+<h3 id="延迟队列">延迟队列</h3>
+<p>Kafka 在发送延时消息的时候并不是先投递到要发送的真实主题（real_topic）中，而是先投递到一些 Kafka 内部的主题（delay_topic）中，这些内部主题对用户不可见，然后通过一个自定义的服务拉取这些内部主题中的消息，并将满足条件的消息再投递到要发送的真实的主题中，消费者所订阅的还是真实的主题。</p>
+<p>如果采用这种方案，那么一般是按照不同的延时等级来划分的，比如设定5s、10s、30s、1min、2min、5min、10min、20min、30min、45min、1hour、2hour这些按延时时间递增的延时等级，延时的消息按照延时时间投递到不同等级的主题中，投递到同一主题中的消息的延时时间会被强转为与此主题延时等级一致的延时时间，这样延时误差控制在两个延时等级的时间差范围之内（比如延时时间为17s的消息投递到30s的延时主题中，之后按照延时时间为30s进行计算，延时误差为13s）。虽然有一定的延时误差，但是误差可控，并且这样只需增加少许的主题就能实现延时队列的功能。</p>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317005.png" alt="" loading="lazy"></figure>
+<p>发送到内部主题（delaytopic）中的消息会被一个独立的 DelayService 进程消费，这个 DelayService 进程和 Kafka broker 进程以一对一的配比进行同机部署（参考下图），以保证服务的可用性。</p>
+<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317006.png" alt="" loading="lazy"></figure>
+<p>针对不同延时级别的主题，在 DelayService 的内部都会有单独的线程来进行消息的拉取，以及单独的 DelayQueue（这里用的是 JUC 中 DelayQueue）进行消息的暂存。与此同时，在 DelayService 内部还会有专门的消息发送线程来获取 DelayQueue 的消息并转发到真实的主题中。从消费、暂存再到转发，线程之间都是一一对应的关系。如下图所示，DelayService 的设计应当尽量保持简单，避免锁机制产生的隐患。</p>
+<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317007.png" alt="img" loading="lazy"></figure>
+<p>为了保障内部 DelayQueue 不会因为未处理的消息过多而导致内存的占用过大，DelayService 会对主题中的每个分区进行计数，当达到一定的阈值之后，就会暂停拉取该分区中的消息。</p>
+<p>因为一个主题中一般不止一个分区，分区之间的消息并不会按照投递时间进行排序，DelayQueue的作用是将消息按照再次投递时间进行有序排序，这样下游的消息发送线程就能够按照先后顺序获取最先满足投递条件的消息。</p>
+<h3 id="重试队列与死信队列">重试队列与死信队列</h3>
+<p>Kafka 中的死信可以看作消费者不能处理的receive消息，也可以看作消费者不想处理的receive消息，还可以看作不符合处理要求的消息。比如消息内包含的消息内容无法被消费者解析，为了确保消息的可靠性而不被随意丢弃，故将其投递到死信队列中，这里的死信就可以看作消费者不能处理的消息。再比如超过既定的重试次数之后将消息投入死信队列，这里就可以将死信看作不符合处理要求的消息。</p>
+<p>重试队列其实可以看作一种回退队列，具体指消费端消费消息失败时，为了防止消息无故丢失而重新将消息回滚到 broker 中。与回退队列不同的是，重试队列一般分成多个重试等级，每个重试等级一般也会设置重新投递延时，重试次数越多投递延时就越大。</p>
+<p>一般情况下，重试队列可以通过延迟队列来实现，同时与死信队列配合使用。在实际操作过程中，重试越多次重新投递的时间就越久，并且需要设置一个上限，超过投递次数就进入死信队列。</p>
+<h3 id="页缓存">页缓存</h3>
+<p>页缓存是操作系统实现的一种主要的磁盘缓存，以此用来减少对磁盘 I/O 的操作。具体来说，就是把磁盘中的数据缓存到内存中，把对磁盘的访问变为对内存的访问。</p>
+<p>当一个进程准备读取磁盘上的文件内容时，操作系统会先查看待读取的数据所在的页（page）是否在页缓存（pagecache）中，如果存在（命中）则直接返回数据，从而避免了对物理磁盘的 I/O 操作；如果没有命中，则操作系统会向磁盘发起读取请求并将读取的数据页存入页缓存，之后再将数据返回给进程。</p>
+<p>同样，如果一个进程需要将数据写入磁盘，那么操作系统也会检测数据对应的页是否在页缓存中，如果不存在，则会先在页缓存中添加相应的页，最后将数据写入对应的页。被修改过后的页也就变成了脏页，操作系统会在合适的时间把脏页中的数据写入磁盘，以保持数据的一致性。</p>
+<p>使用页缓存时，操作系统读的时候会预读，根据局部性原理当读取的时候会把相邻的磁盘块读入页缓存中。在写入的时候会延迟写，写入的也是页缓存，这样可以将一些小的写入操作合并成大的写入（类似于批量写入），然后再刷盘。</p>
+<p>当然这样的写入操作存在数据丢失的风险，例如机器突然断电，那些还未刷盘的脏页就丢失了。不过可以调用 fsync 强制刷盘，但是这样对于性能的损耗较大。</p>
+<p>因此一般建议通过多副本机制来保证消息的可靠，而不是同步刷盘。（例如：kafka的分区多副本）</p>
+<h3 id="文件内存映射mmap">文件内存映射（mmap）</h3>
+<p>Memory Mapped Files：简称 mmap，也有叫 MMFile 的，使用 mmap 的目的是将内核中读缓冲区（read buffer）的地址与用户空间的缓冲区（user buffer）进行映射。从而实现内核缓冲区与应用程序内存的共享，省去了将数据从内核读缓冲区（read buffer）拷贝到用户缓冲区（user buffer）的过程。它的工作原理是直接利用操作系统的 Page 来实现文件到物理内存的直接映射。完成映射之后用户对物理内存的操作会被同步到硬盘上。</p>
+<p>使用这种方式可以获取很大的 I/O 提升，省去了用户空间到内核空间复制的开销。</p>
+<p>mmap 也有一个很明显的缺陷——不可靠，写到 mmap 中的数据并没有被真正的写到硬盘，操作系统会在程序主动调用 flush 的时候才把数据真正的写到硬盘。Kafka 提供了一个参数：producer.type 来控制是不是主动 flush；如果 Kafka 写入到 mmap 之后就立即 flush 然后再返回 Producer 叫同步(sync)；写入 mmap 之后立即返回 Producer 不调用 flush 就叫异步(async)，默认是 sync。</p>
+<figure data-type="image" tabindex="9"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317008.png" alt="img" loading="lazy"></figure>
+<h3 id="零拷贝zero-copy">零拷贝（Zero-copy）</h3>
+<p>零拷贝（Zero-copy）技术指在计算机执行操作时，CPU 不需要先将数据从一个内存区域复制到另一个内存区域，从而可以减少上下文切换以及 CPU 的拷贝时间。</p>
+<p>它的作用是在数据报从网络设备到用户程序空间传递的过程中，减少数据拷贝次数，减少系统调用，实现 CPU 的零参与，彻底消除 CPU 在这方面的负载。</p>
+<p>对 Linux（Linux 2.4+）操作系统而言，零拷贝技术依赖于底层的 sendfile()方法实现（数据通过 DMA 拷贝到内核态 Buffer 后，直接通过 DMA 拷贝到 NIC Buffer，无需 CPU 拷贝）。对应于Java 语言 FileChannal.transferTo() 方法的底层实现就是 sendfile() 方法。</p>
+<p>DMA（Direct Memory Access）：直接存储器访问。DMA 是一种无需 CPU 的参与，让外设和系统内存之间进行双向数据传输的硬件机制。使用 DMA 可以使系统 CPU 从实际的 I/O 数据传输过程中摆脱出来，从而大大提高系统的吞吐率。</p>
+<p>以磁盘文件通过网络发送为例，如果未使用零拷贝技术，那么总共需要经过如下四次上下文切换：</p>
+<ol>
+<li>首先通过系统调用将文件数据读入到内核态 Buffer（DMA 拷贝）</li>
+<li>然后应用程序将内核态 Buffer 数据读入到用户态 Buffer（CPU 拷贝）</li>
+<li>接着用户程序通过 Socket 发送数据时将用户态 Buffer 数据拷贝到内核态 Buffer（CPU 拷贝）</li>
+<li>最后通过 DMA 拷贝将数据拷贝到 NIC Buffer（NIC：Network Interface Card，一般称为网卡，也叫网络适配器，是电脑与局域网相互连接的设备）</li>
+</ol>
+<figure data-type="image" tabindex="10"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317009.png" alt="img" loading="lazy"></figure>
+<p>如果使用了零拷贝技术（Linux2.4 版本的 sendfile + 带 「分散-收集（Scatter-gather）」的DMA），那么只需要经过如下两次上下文切换，且没有冗余</p>
+<p>Kafka 在这里采用的方案是通过 NIO 的 transferTo/transferFrom 调用操作系统的 sendfile 实现零拷贝。总共发生 2 次内核数据拷贝、2 次上下文切换和一次系统调用，消除了 CPU 数据拷贝。</p>
+<ol>
+<li>首先通过系统调用sendfile 将文件数据读入到内核态 Buffer（DMA 拷贝）</li>
+<li>操作结果响应回用户态，并将内核态 Buffer 数据通过 DMA拷贝至 NIC Buffer</li>
+</ol>
+<figure data-type="image" tabindex="11"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317010.png" alt="img" loading="lazy"></figure>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[kafka深入理解之消费者重平衡]]></title>
+        <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-chong-ping-heng/</id>
+        <link href="https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-chong-ping-heng/">
+        </link>
+        <updated>2022-07-30T01:45:22.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述kafka 消费者重平衡机制和源码。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sunset-5800386_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="重平衡">重平衡</h2>
+<h3 id="简介">简介</h3>
+<p>重平衡(Rebalance)是指在一个消费组内分区的所属权从一个消费者转移到另一消费者的行为，它为消费组具备高可用性和伸缩性提供了保障，使我们可以既方便又安全地添加或删除消费组内的消费者。</p>
+<p>注意：当消费者手动分配分区时，重平衡机制将不会生效；重平衡过程可能会导致消息重复消费。</p>
+<p>重平衡时机：新增消费者，移除消费者（消费者crash），新增主题分区。</p>
+<p>关于消费者crash的重平衡：在此场景中，消费组中的每个consumer都会定期向coordinator发送心跳请求来表明其还存活；如果某个consumer无法及时发送心跳，那么coordinator便会认为其已经crash，将开始新一轮的rebalance。</p>
+<p>通常来说，kafka提供了三个参数来控制consumer是否存活：session.timeout.ms &amp; heartbeat.interval.ms &amp; max.poll.interval.ms</p>
+<ul>
+<li>session.timeout.ms：默认10s，表示如果10s内未曾收到consumer的心跳，则认为该consumer已经crash。需要注意的是，此值配置应在group.min.session.timeout.ms(默认6s) 和 group.max.session.timeout.ms(默认30min)之间。</li>
+<li>heartbeat.interval.ms：默认3s，表示consumer向coordinator发送心跳的间隔，一般此值不应该大于session.timeout.ms的三分之一，可以通过调低此值来控制重平衡的预期时间。例如将其调整为2s，那么在默认的session.timeout.ms配置下，将会发送5次心跳（原3s只会发送3次心跳）。</li>
+<li>max.poll.interval.ms：默认5min，表示消费者两次poll数据之间的最大延迟间隔。如果在间隔时间内未进行poll操作，则认为该消费者crash，消费组将会进行重平衡。在此过程中，如果消费者具备非空group.instance.id，那么消费组并不会立刻发起重平衡，而是停止该消费者的心跳发送动作，等待session.timeout.ms超时再发起重平衡。这也体现了已关闭的静态消费者行为。针对线上某些数据处理时间过长，可以适当调整此参数，防止非必要的重平衡出现。</li>
+</ul>
+<h3 id="消费组状态">消费组状态</h3>
+<p>Kafka 为消费者组定义了 5 种状态，它们分别是：Empty、Dead、PreparingRebalance、CompletingRebalance 和 Stable。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/coordinator/group/GroupMetadata.scala
+private[group] sealed trait GroupState {
+  val validPreviousStates: Set[GroupState]
+}
+
+/**
+ * 准备重平衡
+ *
+ * action: 使用 REBALANCE_IN_PROGRESS 响应心跳
+ *        使用 REBALANCE_IN_PROGRESS 响应同步组
+ *        移除离开组请求的成员
+ *        保留来自新成员或现有成员的加入群组请求，直到所有预期成员都加入
+ *        允许前一代的offset提交
+ *        允许获取offset
+ * transition: 某些成员在超时之前加入 =&gt; CompletingRebalance
+ *             所有成员离开群组 =&gt; Empty
+ *             组被分区迁移所移除 =&gt; Dead
+ */
+private[group] case object PreparingRebalance extends GroupState {
+  val validPreviousStates: Set[GroupState] = Set(Stable, CompletingRebalance, Empty)
+}
+
+/**
+ * 组开始等待leader进行状态分配
+ *
+ * action: 使用 REBALANCE_IN_PROGRESS 响应心跳
+ *         使用 REBALANCE_IN_PROGRESS 响应offset提交
+ *         保留followers的同步组请求，直到状态过渡为 Stable 
+ *         允许获取offset
+ * transition: 将从leader接收到的状态分配同步到组 =&gt; Stable
+ *             新成员或有更新元数据的现有成员加入组 =&gt; PreparingRebalance
+ *             已有成员离开组 =&gt; PreparingRebalance
+ *             检测到成员故障 =&gt; PreparingRebalance
+ *             组被分区迁移所移除 =&gt; Dead
+ */
+private[group] case object CompletingRebalance extends GroupState {
+  val validPreviousStates: Set[GroupState] = Set(PreparingRebalance)
+}
+
+/**
+ * 重平衡完成，消费组处于稳定状态
+ *
+ * action: 正常响应成员的心跳请求
+ *         将具备当前分配策略的任何成员同步到组
+ *         将元数据与当前组元数据相匹配的 follower 加入进来
+ *         允许当前代的offset提交
+ *         允许获取offset
+ * transition: 通过心跳检测到成员故障 =&gt; PreparingRebalance
+ *             已有成员离开群组 =&gt; PreparingRebalance
+ *             leader 收到加入组的请求 =&gt; PreparingRebalance
+ *             使用新元数据的 follower 加入组 =&gt; PreparingRebalance
+ *             组被分区迁移所移除 =&gt; Dead
+ */
+private[group] case object Stable extends GroupState {
+  val validPreviousStates: Set[GroupState] = Set(CompletingRebalance)
+}
+
+/**
+ * 组中没有成员，且其元数据正在被删除
+ *
+ * action: 使用 UNKNOWN_MEMBER_ID 响应加入组请求
+ *         使用 UNKNOWN_MEMBER_ID 响应同步组请求
+ *         使用 UNKNOWN_MEMBER_ID 响应心跳请求
+ *         使用 UNKNOWN_MEMBER_ID 响应成员离开组请求
+ *         使用 UNKNOWN_MEMBER_ID 响应offset 提交
+ *         允许获取offset
+ * transition: Dead 是清除元数据之前的最终状态，因此其没有可过渡的其余状态
+ */
+private[group] case object Dead extends GroupState {
+  val validPreviousStates: Set[GroupState] = Set(Stable, PreparingRebalance, CompletingRebalance, Empty, Dead)
+}
+
+/**
+  * 组中没有成员，但仍会存活直到所有的offset到期.
+  * 此状态还表示仅将 Kafka 用于offset提交且没有成员的组
+  *
+  * action: 对于新成员加入组请求正常响应
+  *          使用 UNKNOWN_MEMBER_ID 响应同步组请求
+  *          使用 UNKNOWN_MEMBER_ID 响应心跳请求
+  *          使用 UNKNOWN_MEMBER_ID 响应成员离开组请求
+  *          使用 UNKNOWN_MEMBER_ID 响应offset 提交
+  *          允许获取offset
+  * transition: 在周期性过期任务中最后一个offsets被移除 =&gt; Dead
+  *             新成员加入组 =&gt; PreparingRebalance
+  *             组被分区迁移所移除 =&gt; Dead
+  *             组到期被移除 =&gt; Dead
+  */
+private[group] case object Empty extends GroupState {
+  val validPreviousStates: Set[GroupState] = Set(PreparingRebalance)
+}
+
+</code></pre>
+<h3 id="重平衡过程">重平衡过程</h3>
+<p>Kafka 重平衡期间主要分为如下几个阶段：</p>
+<ol>
+<li>寻找协调器（FIND_COORDINATOR）：消费者需要确定它所属的消费组对应的 GroupCoordinator 所在的 broker，并创建与该 broker 相互通信的网络连接。如果消费者已经保存了与消费组对应的 GroupCoordinator 节点的信息，并且与它之间的网络连接是正常的，那么就可以进入第二阶段。否则，就需要向集群中的某个节点发送 FindCoordinatorRequest 请求来查找对应的 GroupCoordinator，这里的“某个节点”并非是集群中的任意节点，而是负载最小的节点。</li>
+<li>请求加入组（JOIN_GROUP）：在成功找到消费组所对应的 GroupCoordinator 之后就进入加入消费组的阶段，在此阶段的消费者会向 GroupCoordinator 发送 JoinGroupRequest 请求，并处理响应。如果消费组内还没有 leader，那么第一个加入消费组的消费者即为消费组的 leader。如果某一时刻 leader 消费者由于某些原因退出了消费组，那么会重新选举一个新的 leader。</li>
+<li>同步组（SYNC_GROUP）：leader 消费者根据在第二阶段中选举出来的分区分配策略来实施具体的分区分配，在此之后需要将分配的方案同步给各个消费者，通过 GroupCoordinator 这个“中间人”来负责转发同步分配方案的。</li>
+<li>发送心跳（HEARTBEAT）：进入这个阶段之后，消费组中的所有消费者就会处于正常工作状态。在正式消费之前，消费者还需要确定拉取消息的起始位置。假设之前已经将最后的消费位移提交到了 GroupCoordinator，并且 GroupCoordinator 将其保存到了 Kafka 内部的 __consumer_offsets 主题中，此时消费者可以通过 OffsetFetchRequest 请求获取上次提交的消费位移并从此处继续消费。消费者通过向 GroupCoordinator 发送心跳来维持它们与消费组的从属关系，以及它们对分区的所有权关系。只要消费者以正常的时间间隔发送心跳，就被认为是活跃的，说明它还在读取分区中的消息。心跳线程是一个独立的线程，可以在轮询消息的空档发送心跳。如果消费者停止发送心跳的时间足够长，则整个会话就被判定为过期，GroupCoordinator 也会认为这个消费者已经死亡，就会触发一次再均衡行为。</li>
+</ol>
+<p>补充：关于选举分区分配策略：</p>
+<ol>
+<li>收集各个消费者支持的所有分配策略，组成候选集 candidates。</li>
+<li>每个消费者从候选集 candidates 中找出第一个自身支持的策略，为这个策略投上一票。</li>
+<li>计算候选集中各个策略的选票数，选票数最多的策略即为当前消费组的分配策略。</li>
+</ol>
+<p>Kafka 重平衡期间主要流程图如下所示：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230316009.png" alt="" loading="lazy"></figure>
+<p>Kafka 服务端处理重平衡请求入口函数如下所示：</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.FIND_COORDINATOR =&gt; handleFindCoordinatorRequest(request)
+case ApiKeys.JOIN_GROUP =&gt; handleJoinGroupRequest(request, requestLocal)
+case ApiKeys.HEARTBEAT =&gt; handleHeartbeatRequest(request)
+case ApiKeys.LEAVE_GROUP =&gt; handleLeaveGroupRequest(request)
+case ApiKeys.SYNC_GROUP =&gt; handleSyncGroupRequest(request, requestLocal)
+
+</code></pre>
+<h4 id="寻找组协调器find_coordinator">寻找组协调器（FIND_COORDINATOR）</h4>
+<p>在 Kafka 中，客户端的每个消费者都会对应一个消费者协调器（ConsumerCoordinator）， 而服务端的每个broker也会有个组协调器（GroupCoordinator）。</p>
+<h5 id="消费者端的寻找协调器函数源码">消费者端的寻找协调器函数源码</h5>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/consumer/internals/AbstractCoordinator.java
+protected synchronized boolean ensureCoordinatorReady(final Timer timer) {
+    // 如果已经找到了coordinator，则直接返回
+    if (!coordinatorUnknown())
+        return true;
+
+    do {
+        if (fatalFindCoordinatorException != null) {
+            final RuntimeException fatalException = fatalFindCoordinatorException;
+            fatalFindCoordinatorException = null;
+            throw fatalException;
+        }
+        // 核心函数，发送请求向服务端(broker)获取coordinator
+        final RequestFuture&lt;Void&gt; future = lookupCoordinator();
+        client.poll(future, timer);
+
+        if (!future.isDone()) {
+            // ran out of time
+            break;
+        }
+
+        RuntimeException fatalException = null;
+
+        if (future.failed()) {
+            // 引入重试机制
+            if (future.isRetriable()) {
+                log.debug(&quot;Coordinator discovery failed, refreshing metadata&quot;, future.exception());
+                client.awaitMetadataUpdate(timer);
+            } else {
+                fatalException = future.exception();
+                log.info(&quot;FindCoordinator request hit fatal exception&quot;, fatalException);
+            }
+        } else if (coordinator != null &amp;&amp; client.isUnavailable(coordinator)) {
+            // we found the coordinator, but the connection has failed, so mark
+            // it dead and backoff before retrying discovery
+            // coordinator已找到，但连接断开，此时将其标记为dead
+            markCoordinatorUnknown(&quot;coordinator unavailable&quot;);
+            timer.sleep(rebalanceConfig.retryBackoffMs);
+        }
+
+        clearFindCoordinatorFuture();
+        if (fatalException != null)
+            throw fatalException;
+    } while (coordinatorUnknown() &amp;&amp; timer.notExpired()); // 未超时且未获取到coordinator，便一直轮询
+
+    return !coordinatorUnknown();
+}
+
+// 查找coordinator
+protected synchronized RequestFuture&lt;Void&gt; lookupCoordinator() {
+    if (findCoordinatorFuture == null) {
+        // find a node to ask about the coordinator
+        Node node = this.client.leastLoadedNode();
+        if (node == null) {
+            log.debug(&quot;No broker available to send FindCoordinator request&quot;);
+            return RequestFuture.noBrokersAvailable();
+        } else {
+            // 发送请求至broker获取coordinator
+            findCoordinatorFuture = sendFindCoordinatorRequest(node);
+        }
+    }
+    return findCoordinatorFuture;
+}
+// 发送请求至broker获取消费组的当前coordinator，此函数会选择一台负载最小的broker构建请求。
+private RequestFuture&lt;Void&gt; sendFindCoordinatorRequest(Node node) {
+    // initiate the group metadata request
+    log.debug(&quot;Sending FindCoordinator request to broker {}&quot;, node);
+    FindCoordinatorRequestData data = new FindCoordinatorRequestData()
+            .setKeyType(CoordinatorType.GROUP.id())
+            .setKey(this.rebalanceConfig.groupId);
+    FindCoordinatorRequest.Builder requestBuilder = new FindCoordinatorRequest.Builder(data);
+    return client.send(node, requestBuilder)
+            .compose(new FindCoordinatorResponseHandler());
+}
+
+</code></pre>
+<h5 id="服务端的寻找协调器函数源码">服务端的寻找协调器函数源码</h5>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.FIND_COORDINATOR =&gt; handleFindCoordinatorRequest(request)
+
+// 寻找coordinator的核心处理函数
+private def getCoordinator(request: RequestChannel.Request, keyType: Byte, key: String): (Errors, Node) = {
+  // 验证请求的合法性
+  if (keyType == CoordinatorType.GROUP.id &amp;&amp;
+      !authHelper.authorize(request.context, DESCRIBE, GROUP, key))
+    (Errors.GROUP_AUTHORIZATION_FAILED, Node.noNode)
+  else if (keyType == CoordinatorType.TRANSACTION.id &amp;&amp;
+      !authHelper.authorize(request.context, DESCRIBE, TRANSACTIONAL_ID, key))
+    (Errors.TRANSACTIONAL_ID_AUTHORIZATION_FAILED, Node.noNode)
+  else {
+    // 获取分区及内部topic name
+    val (partition, internalTopicName) = CoordinatorType.forId(keyType) match {
+      case CoordinatorType.GROUP =&gt;
+        // 根据消费组的名称，取hashcode，接着与kafka内部topic(__consumer_offsets)的分区个数取模，随后返回该分区所在的物理broker作为消费组的分组协调器
+        // 文件地址：core/src/main/scala/kafka/coordinator/group/GroupMetadataManager.scala
+        // 核心函数：def partitionFor(groupId: String): Int = Utils.abs(groupId.hashCode) % groupMetadataTopicPartitionCount
+        (groupCoordinator.partitionFor(key), GROUP_METADATA_TOPIC_NAME)
+
+      case CoordinatorType.TRANSACTION =&gt;
+        // 根据消费组的名称，取hashcode，接着与kafka内部topic(__consumer_offsets)的分区个数取模，随后返回该分区所在的物理broker作为消费组的分组协调器
+        // 文件地址：core/src/main/scala/kafka/coordinator/transaction/TransactionStateManager.scala
+        // 核心函数：def partitionFor(transactionalId: String): Int = Utils.abs(transactionalId.hashCode) % transactionTopicPartitionCount
+        (txnCoordinator.partitionFor(key), TRANSACTION_STATE_TOPIC_NAME)
+    }
+
+    // 通过给定的topics及listener返回topic元数据
+    val topicMetadata = metadataCache.getTopicMetadata(Set(internalTopicName), request.context.listenerName)
+
+    if (topicMetadata.headOption.isEmpty) {
+      val controllerMutationQuota = quotas.controllerMutation.newPermissiveQuotaFor(request)
+      autoTopicCreationManager.createTopics(Seq(internalTopicName).toSet, controllerMutationQuota, None)
+      (Errors.COORDINATOR_NOT_AVAILABLE, Node.noNode)
+    } else {
+      if (topicMetadata.head.errorCode != Errors.NONE.code) {
+        (Errors.COORDINATOR_NOT_AVAILABLE, Node.noNode)
+      } else {
+        // 构建响应体  
+        val coordinatorEndpoint = topicMetadata.head.partitions.asScala
+          .find(_.partitionIndex == partition)
+          .filter(_.leaderId != MetadataResponse.NO_LEADER_ID)
+          .flatMap(metadata =&gt; metadataCache.
+              getAliveBrokerNode(metadata.leaderId, request.context.listenerName))
+
+        coordinatorEndpoint match {
+          case Some(endpoint) =&gt;
+            (Errors.NONE, endpoint)
+          case _ =&gt;
+            (Errors.COORDINATOR_NOT_AVAILABLE, Node.noNode)
+        }
+      }
+    }
+  }
+}
+
+</code></pre>
+<h4 id="加入组join_group">加入组（JOIN_GROUP）</h4>
+<p>消费者获取到coordinator之后，便准备加入组。</p>
+<h5 id="消费者端的加入组函数源码">消费者端的加入组函数源码</h5>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/consumer/internals/ConsumerCoordinator.java
+// 在加入组之前需执行如下函数
+protected boolean onJoinPrepare(int generation, String memberId) {
+    log.debug(&quot;Executing onJoinPrepare with generation {} and memberId {}&quot;, generation, memberId);
+    boolean onJoinPrepareAsyncCommitCompleted = false;
+    // 如果启用了自动提交(auto-commit)，那么在重平衡之前需要先提交offset
+    RequestFuture&lt;Void&gt; future = maybeAutoCommitOffsetsAsync();
+    // 返回如下结果：
+    // 1. future 为空, 这意味着没有发送提交请求，所以它仍然被认为是完成的
+    // 2. offset 提交完成
+    // 3. offset 因不可重试异常而提交失败
+    if (future == null)
+        onJoinPrepareAsyncCommitCompleted = true;
+    else if (future.succeeded())
+        onJoinPrepareAsyncCommitCompleted = true;
+    else if (future.failed() &amp;&amp; !future.isRetriable()) {
+        log.error(&quot;Asynchronous auto-commit of offsets failed: {}&quot;, future.exception().getMessage());
+        onJoinPrepareAsyncCommitCompleted = true;
+    }
+
+
+    // 当发生错误时，心跳线程可能会重新生成memberId;
+    // 在这种情况下，之前所拥有的所有分区都将丢失，此时需要触发回调并清理分区分配。
+    // 对应的，如果未发生错误，那么便可依据协议撤销分区分配并正常退出；
+    // 在这种情况下，应该只在触发撤销回调之后再更改分配，以便用户仍然可以访问先前拥有的分区以提交偏移量等。
+    Exception exception = null;
+    final SortedSet&lt;TopicPartition&gt; revokedPartitions = new TreeSet&lt;&gt;(COMPARATOR);
+    if (generation == Generation.NO_GENERATION.generationId ||
+        memberId.equals(Generation.NO_GENERATION.memberId)) {
+        revokedPartitions.addAll(subscriptions.assignedPartitions());
+
+        if (!revokedPartitions.isEmpty()) {
+            log.info(&quot;Giving away all assigned partitions as lost since generation/memberID has been reset,&quot; +
+                &quot;indicating that consumer is in old state or no longer part of the group&quot;);
+            exception = invokePartitionsLost(revokedPartitions);
+
+            subscriptions.assignFromSubscribed(Collections.emptySet());
+        }
+    } else {
+        switch (protocol) {
+            case EAGER:
+                // 撤销所有分区
+                revokedPartitions.addAll(subscriptions.assignedPartitions());
+                exception = invokePartitionsRevoked(revokedPartitions);
+
+                subscriptions.assignFromSubscribed(Collections.emptySet());
+
+                break;
+
+            case COOPERATIVE:
+                // 只撤销那些不再订阅的分区。此处也说明了CooperativeStickyAssignor分区分配器并不会终止消费。
+                Set&lt;TopicPartition&gt; ownedPartitions = new HashSet&lt;&gt;(subscriptions.assignedPartitions());
+                revokedPartitions.addAll(ownedPartitions.stream()
+                    .filter(tp -&gt; !subscriptions.subscription().contains(tp.topic()))
+                    .collect(Collectors.toSet()));
+
+                if (!revokedPartitions.isEmpty()) {
+                    exception = invokePartitionsRevoked(revokedPartitions);
+
+                    ownedPartitions.removeAll(revokedPartitions);
+                    subscriptions.assignFromSubscribed(ownedPartitions);
+                }
+
+                break;
+        }
+    }
+
+    isLeader = false;
+    subscriptions.resetGroupSubscription();
+
+    if (exception != null) {
+        throw new KafkaException(&quot;User rebalance callback throws an error&quot;, exception);
+    }
+    return onJoinPrepareAsyncCommitCompleted;
+}
+
+</code></pre>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/consumer/internals/AbstractCoordinator.java
+boolean ensureActiveGroup(final Timer timer) {
+    // always ensure that the coordinator is ready because we may have been disconnected
+    // when sending heartbeats and does not necessarily require us to rejoin the group.
+    // 确保消费者已找到coordinator，对应第一步寻找协调器源码
+    if (!ensureCoordinatorReady(timer)) {
+        return false;
+    }
+     // 构建心跳线程: 当消费者加入到消费组后处于MemberState.STABLE后需要定时向协调器上报心跳，表示存活，否则将从消费组中移除。
+    startHeartbeatThreadIfNeeded();
+    // 加入群组
+    return joinGroupIfNeeded(timer);
+}
+
+/**
+ * 不启动心跳线程下加入组
+ * 如果此函数返回true，则说明消费者状态稳定，且心跳已开启
+ * 否则将存在如下几种状态：
+ *  * UNJOINED: 在重试之前超时或者得到了错误的响应结果, 心跳关闭
+ *  * PREPARING_REBALANCE: 超时前尚未收到加入组响应, 心跳关闭
+ *  * COMPLETING_REBALANCE: 超时前尚未收到同步组响应, 心跳关闭
+ *
+ */
+boolean joinGroupIfNeeded(final Timer timer) {
+    while (rejoinNeededOrPending()) {
+        if (!ensureCoordinatorReady(timer)) {
+            return false;
+        }
+    
+        // 依据flag判断是否需要调用onJoinPrepare函数。
+        // 此判断块中有针对性的设置了flag，以防止在未完成的重平衡之前重复调用。
+        // 这必须在循环的每次迭代中调用，因为需要重平衡的事件（例如订阅集改变所导致的元数据刷新）可能会在另一个重平衡期间发生。
+        if (needsJoinPrepare) {
+            // 需要在调用 onJoinPrepare 之前设置标志，因为用户回调可能会抛出异常，在这种情况下进行重试时不应该重复调用 onJoinPrepare。
+            needsJoinPrepare = false;
+            // 在onJoinPrepare 等待提交offset时，返回false
+            if (!onJoinPrepare(generation.generationId, generation.memberId)) {
+                needsJoinPrepare = true;
+                //should not initiateJoinGroup if needsJoinPrepare still is true
+                return false;
+            }
+        }
+
+        // 开始进行加入组操作
+        final RequestFuture&lt;ByteBuffer&gt; future = initiateJoinGroup();
+        client.poll(future, timer);
+        if (!future.isDone()) {
+            // we ran out of time
+            return false;
+        }
+
+        if (future.succeeded()) {
+            Generation generationSnapshot;
+            MemberState stateSnapshot;
+
+            // 生成数据的同时可以会被心跳线程所清除
+            // 对于 {@code onJoinComplete} 不能直接加同步锁, 因为其处理逻辑过长且不应该阻塞心跳线程
+            // See {@link PlaintextConsumerTest#testMaxPollIntervalMsDelayInAssignment}
+            synchronized (AbstractCoordinator.this) {
+                generationSnapshot = this.generation;
+                stateSnapshot = this.state;
+            }
+
+            if (!hasGenerationReset(generationSnapshot) &amp;&amp; stateSnapshot == MemberState.STABLE) {
+                // 复制缓冲区以防 `onJoinComplete` 未完成并需要重试。
+                ByteBuffer memberAssignment = future.value().duplicate();
+                // 在加入组完成后执行相关的逻辑操作（一般为等待分配分区策略）
+                onJoinComplete(generationSnapshot.generationId, generationSnapshot.memberId, generationSnapshot.protocolName, memberAssignment);
+
+                // 一般来说，一旦future完成，便需要执行resetJoinGroupFuture，然而在此处只有完成回调返回后才能重置加入组future。
+                // 这确保了如果回调被唤醒，在下一次 joinGroupIfNeeded 时将会进行重试操作。
+                // 因此，有必要在其他条件下显式地触发 resetJoinGroupFuture。
+                resetJoinGroupFuture();
+                needsJoinPrepare = true;
+            } else {
+                final String reason = String.format(&quot;rebalance failed since the generation/state was &quot; +
+                        &quot;modified by heartbeat thread to %s/%s before the rebalance callback triggered&quot;,
+                        generationSnapshot, stateSnapshot);
+
+                resetStateAndRejoin(reason, true);
+                resetJoinGroupFuture();
+            }
+        } else {
+            final RuntimeException exception = future.exception();
+            // 异常时，重置加入组请求
+            resetJoinGroupFuture();
+            synchronized (AbstractCoordinator.this) {
+                rejoinReason = String.format(&quot;rebalance failed due to '%s' (%s)&quot;, exception.getMessage(), exception.getClass().getSimpleName());
+                rejoinNeeded = true;
+            }
+
+            if (exception instanceof UnknownMemberIdException ||
+                exception instanceof IllegalGenerationException ||
+                exception instanceof RebalanceInProgressException ||
+                exception instanceof MemberIdRequiredException)
+                continue;
+            else if (!future.isRetriable())
+                throw exception;
+
+            timer.sleep(rebalanceConfig.retryBackoffMs);
+        }
+    }
+    return true;
+}
+
+// 初始化加入组
+private synchronized RequestFuture&lt;ByteBuffer&gt; initiateJoinGroup() {
+    // 存储 joinFuture ，防止在重平衡完成之前重复的调用加入组请求
+    if (joinFuture == null) {
+        state = MemberState.PREPARING_REBALANCE;
+        // 异常情况下连续发起加入组请求，并不会去更新重平衡开始时间
+        if (lastRebalanceStartMs == -1L)
+            lastRebalanceStartMs = time.milliseconds();
+        // 发送加入组请求  
+        joinFuture = sendJoinGroupRequest();
+        joinFuture.addListener(new RequestFutureListener&lt;ByteBuffer&gt;() {
+            @Override
+            public void onSuccess(ByteBuffer value) {
+                // do nothing since all the handler logic are in SyncGroupResponseHandler already
+            }
+
+            @Override
+            public void onFailure(RuntimeException e) {
+                // 失败处理：如果在唤醒之后加入请求完成，那么将会被忽略并重新发起加入请求
+                // 这可以在加入或同步失败的情况下触发
+                synchronized (AbstractCoordinator.this) {
+                    sensors.failedRebalanceSensor.record();
+                }
+            }
+        });
+    }
+    return joinFuture;
+}
+
+/**
+ * 加入组并返回新一代的分区分配策略.简而言之此函数同时处理了加入组及同步组的操作。
+ * 如果leader已被协调选举出来，那么将会委托给{@link #onLeaderElected(String, String, List, boolean)}函数进行相关逻辑处理
+ *
+ * @return A request future which wraps the assignment returned from the group leader
+ */
+RequestFuture&lt;ByteBuffer&gt; sendJoinGroupRequest() {
+    if (coordinatorUnknown())
+        return RequestFuture.coordinatorNotAvailable();
+
+    // s给协调者发送加入组请求
+    log.info(&quot;(Re-)joining group&quot;);
+    // 构建请求参数
+    JoinGroupRequest.Builder requestBuilder = new JoinGroupRequest.Builder(
+            new JoinGroupRequestData()
+                    .setGroupId(rebalanceConfig.groupId)
+                    .setSessionTimeoutMs(this.rebalanceConfig.sessionTimeoutMs)
+                     // memberId 消费组成员id,第一次为null，后续服务端会为该消费者分配一个唯一的id,构成为客户端id + uuid
+                    .setMemberId(this.generation.memberId)
+                    .setGroupInstanceId(this.rebalanceConfig.groupInstanceId.orElse(null))
+                    .setProtocolType(protocolType())
+                    .setProtocols(metadata())
+                    .setRebalanceTimeoutMs(this.rebalanceConfig.rebalanceTimeoutMs)
+                    .setReason(this.rejoinReason)
+    );
+
+    log.debug(&quot;Sending JoinGroup ({}) to coordinator {}&quot;, requestBuilder, this.coordinator);
+
+    // 重平衡超时时间将会覆盖请求超时时间，因为这可能也是请求在协调器上阻塞的最大时间 
+    // 针对部分延迟场景会额外再增加5s
+    int joinGroupTimeoutMs = Math.max(
+        client.defaultRequestTimeoutMs(),
+        Math.max(
+            rebalanceConfig.rebalanceTimeoutMs + JOIN_GROUP_TIMEOUT_LAPSE,
+            rebalanceConfig.rebalanceTimeoutMs) // 此处防止溢出，因为重平衡超时时间可能是MAX_VALUE
+        );
+    // 接收到响应结果后，将会执行JoinGroupResponseHandler
+    // 队列的负载算法是由Leader节点来分配，将分配结果通过向组协调器发送SYNC_GROUP请求，
+    // 然后组协调器从Leader节点获取分配算法后，再返回给所有的消费者，从而开始进行消费。
+    return client.send(coordinator, requestBuilder, joinGroupTimeoutMs)
+            .compose(new JoinGroupResponseHandler(generation));
+}
+
+</code></pre>
+<h5 id="服务端的加入组函数源码">服务端的加入组函数源码</h5>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.JOIN_GROUP =&gt; handleJoinGroupRequest(request, requestLocal)
+
+def handleJoinGroupRequest(request: RequestChannel.Request, requestLocal: RequestLocal): Unit = {
+  val joinGroupRequest = request.body[JoinGroupRequest]
+
+  // 响应加入组请求
+  def sendResponseCallback(joinResult: JoinGroupResult): Unit = {
+    def createResponse(requestThrottleMs: Int): AbstractResponse = {
+      val protocolName = if (request.context.apiVersion() &gt;= 7)
+        joinResult.protocolName.orNull
+      else
+        joinResult.protocolName.getOrElse(GroupCoordinator.NoProtocol)
+      // 构建响应体 
+      val responseBody = new JoinGroupResponse(
+        new JoinGroupResponseData()
+          .setThrottleTimeMs(requestThrottleMs)
+          .setErrorCode(joinResult.error.code)
+          .setGenerationId(joinResult.generationId)
+          .setProtocolType(joinResult.protocolType.orNull)
+          .setProtocolName(protocolName)
+          .setLeader(joinResult.leaderId)
+          .setSkipAssignment(joinResult.skipAssignment)
+          .setMemberId(joinResult.memberId)
+          .setMembers(joinResult.members.asJava)
+      )
+
+      trace(&quot;Sending join group response %s for correlation id %d to client %s.&quot;
+        .format(responseBody, request.header.correlationId, request.header.clientId))
+      responseBody
+    }
+    requestHelper.sendResponseMaybeThrottle(request, createResponse)
+  }
+
+  if (joinGroupRequest.data.groupInstanceId != null &amp;&amp; config.interBrokerProtocolVersion &lt; KAFKA_2_3_IV0) {
+    // 只有版本&gt;=2.3时才会启用静态membership；因为在确定broker都支持（静态 membership）之前，贸然使用此逻辑并不安全。
+    // 例如：如果静态组被较老的协调器加载，那它将会丢弃group.instance.id字段，从而导致其意外的变为“动态”，进而出现错误状态。
+    sendResponseCallback(JoinGroupResult(JoinGroupRequest.UNKNOWN_MEMBER_ID, Errors.UNSUPPORTED_VERSION))
+  } else if (!authHelper.authorize(request.context, READ, GROUP, joinGroupRequest.data.groupId)) {
+    sendResponseCallback(JoinGroupResult(JoinGroupRequest.UNKNOWN_MEMBER_ID, Errors.GROUP_AUTHORIZATION_FAILED))
+  } else {
+    // 得到 groupInstanceId 
+    val groupInstanceId = Option(joinGroupRequest.data.groupInstanceId)
+
+    // 如果 joinGroupRequest 版本 &gt;= 4 并且 groupInstanceId 配置为未知，则仅返回 MEMBER_ID_REQUIRED 错误。
+    val requireKnownMemberId = joinGroupRequest.version &gt;= 4 &amp;&amp; groupInstanceId.isEmpty
+
+    // 让协调器处理join group
+    val protocols = joinGroupRequest.data.protocols.valuesList.asScala.map { protocol =&gt;
+      (protocol.name, protocol.metadata)
+    }.toList
+
+    val supportSkippingAssignment = joinGroupRequest.version &gt;= 9
+    // 实际由groupCoordinator进行逻辑处理
+    groupCoordinator.handleJoinGroup(
+      joinGroupRequest.data.groupId,
+      joinGroupRequest.data.memberId,
+      groupInstanceId,
+      requireKnownMemberId,
+      supportSkippingAssignment,
+      request.header.clientId,
+      request.context.clientAddress.toString,
+      joinGroupRequest.data.rebalanceTimeoutMs,
+      joinGroupRequest.data.sessionTimeoutMs,
+      joinGroupRequest.data.protocolType,
+      protocols,
+      sendResponseCallback,
+      Option(joinGroupRequest.data.reason),
+      requestLocal)
+  }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/coordinator/group/GroupCoordinator.scala
+def handleJoinGroup(groupId: String,
+                    memberId: String,
+                    groupInstanceId: Option[String],
+                    requireKnownMemberId: Boolean,
+                    supportSkippingAssignment: Boolean,
+                    clientId: String,
+                    clientHost: String,
+                    rebalanceTimeoutMs: Int,
+                    sessionTimeoutMs: Int,
+                    protocolType: String,
+                    protocols: List[(String, Array[Byte])],
+                    responseCallback: JoinCallback,
+                    reason: Option[String] = None,
+                    requestLocal: RequestLocal = RequestLocal.NoCaching): Unit = {
+  // 校验group状态                  
+  validateGroupStatus(groupId, ApiKeys.JOIN_GROUP).foreach { error =&gt;
+    responseCallback(JoinGroupResult(memberId, error))
+    return
+  }
+
+  // 判断会话超时时间
+  if (sessionTimeoutMs &lt; groupConfig.groupMinSessionTimeoutMs ||
+    sessionTimeoutMs &gt; groupConfig.groupMaxSessionTimeoutMs) {
+    responseCallback(JoinGroupResult(memberId, Errors.INVALID_SESSION_TIMEOUT))
+  } else {
+    // 是否为未知的memberId  
+    val isUnknownMember = memberId == JoinGroupRequest.UNKNOWN_MEMBER_ID
+    // 如果组不存在且memberId 是UNKNOW，那么就创建组；
+    // 如果指定了memberId，但组不存在，那么请求将会被拒绝，并返回 UNKNOWN_MEMBER_ID
+    groupManager.getOrMaybeCreateGroup(groupId, isUnknownMember) match {
+      case None =&gt;
+        responseCallback(JoinGroupResult(memberId, Errors.UNKNOWN_MEMBER_ID))
+      case Some(group) =&gt;
+        group.inLock {
+          val joinReason = reason.getOrElse(&quot;not provided&quot;)
+          if (!acceptJoiningMember(group, memberId)) {
+            group.remove(memberId)
+            responseCallback(JoinGroupResult(JoinGroupRequest.UNKNOWN_MEMBER_ID, Errors.GROUP_MAX_SIZE_REACHED))
+          } else if (isUnknownMember) {
+            // 创建组并加入
+            doNewMemberJoinGroup(
+              group,
+              groupInstanceId,
+              requireKnownMemberId,
+              supportSkippingAssignment,
+              clientId,
+              clientHost,
+              rebalanceTimeoutMs,
+              sessionTimeoutMs,
+              protocolType,
+              protocols,
+              responseCallback,
+              requestLocal,
+              joinReason
+            )
+          } else {
+            // 直接加入当前组
+            doCurrentMemberJoinGroup(
+              group,
+              memberId,
+              groupInstanceId,
+              clientId,
+              clientHost,
+              rebalanceTimeoutMs,
+              sessionTimeoutMs,
+              protocolType,
+              protocols,
+              responseCallback,
+              joinReason
+            )
+          }
+
+          // 开始执行完成加入组操作
+          if (group.is(PreparingRebalance)) {
+            rebalancePurgatory.checkAndComplete(GroupJoinKey(group.groupId))
+          }
+        }
+    }
+  }
+}
+// 创建组并加入
+private def doNewMemberJoinGroup(
+  group: GroupMetadata, // 消费组的元信息，并未持久化，存储在内存中，一个消费组当前消费者的信息。
+  groupInstanceId: Option[String],
+  requireKnownMemberId: Boolean,// 是否一定需要知道客户端id,如果客户端请求版本为4,在加入消费组时需要明确知道对方的memberId。
+  supportSkippingAssignment: Boolean,
+  clientId: String,// 客户端ID,消息组的memberId生成规则为 clientId + uuid
+  clientHost: String,// 消费端端ip地址
+  rebalanceTimeoutMs: Int,// 重平衡超时时间，取自消费端参数max.poll.interval.ms，默认为5分钟。
+  sessionTimeoutMs: Int,// 会话超时时间，默认为10s
+  protocolType: String,// 协议类型，默认为consumer
+  protocols: List[(String, Array[Byte])],// 客户端支持的队列负载算法。
+  responseCallback: JoinCallback,
+  requestLocal: RequestLocal,
+  reason: String
+): Unit = {
+  group.inLock {
+    if (group.is(Dead)) {
+      // 如果组状态被标记为为Dead，那这意味着有某个其他线程从协调器元数据中将该组删除了；
+      // 该组很可能已迁移到其他协调器，或者该组处于瞬态不稳定阶段。
+      // 此时就需要让消费者重新寻找协调器进行加入操作。
+      responseCallback(JoinGroupResult(JoinGroupRequest.UNKNOWN_MEMBER_ID, Errors.COORDINATOR_NOT_AVAILABLE))
+    } else if (!group.supportsProtocols(protocolType, MemberMetadata.plainProtocolSet(protocols))) {
+      responseCallback(JoinGroupResult(JoinGroupRequest.UNKNOWN_MEMBER_ID, Errors.INCONSISTENT_GROUP_PROTOCOL))
+    } else {
+      val newMemberId = group.generateMemberId(clientId, groupInstanceId)
+      groupInstanceId match {
+        // 存在instanceId，说明支持静态member加入组操作  
+        case Some(instanceId) =&gt;
+          doStaticNewMemberJoinGroup(
+            group,
+            instanceId,
+            newMemberId,
+            clientId,
+            clientHost,
+            supportSkippingAssignment,
+            rebalanceTimeoutMs,
+            sessionTimeoutMs,
+            protocolType,
+            protocols,
+            responseCallback,
+            requestLocal,
+            reason
+          )
+        // 动态加入  
+        case None =&gt;
+          doDynamicNewMemberJoinGroup(
+            group,
+            requireKnownMemberId,
+            newMemberId,
+            clientId,
+            clientHost,
+            rebalanceTimeoutMs,
+            sessionTimeoutMs,
+            protocolType,
+            protocols,
+            responseCallback,
+            reason
+          )
+      }
+    }
+  }
+}
+// 动态加入
+private def doDynamicNewMemberJoinGroup(
+  group: GroupMetadata,// 消费组的元信息，并未持久化，存储在内存中，一个消费组当前消费者的信息。
+  requireKnownMemberId: Boolean,// 是否一定需要知道客户端id,如果客户端请求版本为4,在加入消费组时需要明确知道对方的memberId。
+  newMemberId: String,// 新的成员id
+  clientId: String,// 客户端ID,消息组的memberId生成规则为 clientId + uuid
+  clientHost: String,// 消费端端ip地址
+  rebalanceTimeoutMs: Int,// 重平衡超时时间，取自消费端参数max.poll.interval.ms，默认为5分钟。
+  sessionTimeoutMs: Int,// 会话超时时间，默认为10s
+  protocolType: String,// 协议类型，默认为consumer
+  protocols: List[(String, Array[Byte])],// 客户端支持的队列负载算法。
+  responseCallback: JoinCallback,
+  reason: String
+): Unit = {
+  if (requireKnownMemberId) {
+    // 如果需要成员 ID，那么将在待处理成员列表中注册该成员，并返回响应以调用具有分配成员 ID 的另一个加入组请求。
+    info(s&quot;Dynamic member with unknown member id joins group ${group.groupId} in &quot; +
+      s&quot;${group.currentState} state. Created a new member id $newMemberId and request the &quot; +
+      s&quot;member to rejoin with this id.&quot;)
+    group.addPendingMember(newMemberId)
+    addPendingMemberExpiration(group, newMemberId, sessionTimeoutMs)
+    responseCallback(JoinGroupResult(newMemberId, Errors.MEMBER_ID_REQUIRED))
+  } else {
+    info(s&quot;Dynamic Member with unknown member id joins group ${group.groupId} in &quot; +
+      s&quot;${group.currentState} state. Created a new member id $newMemberId for this member &quot; +
+      s&quot;and add to the group.&quot;)
+    // 加入组并进行重平衡操作  
+    addMemberAndRebalance(rebalanceTimeoutMs, sessionTimeoutMs, newMemberId, None,
+      clientId, clientHost, protocolType, protocols, group, responseCallback, reason)
+  }
+}
+
+// 核心重平衡处理函数
+private def addMemberAndRebalance(rebalanceTimeoutMs: Int,
+                                  sessionTimeoutMs: Int,
+                                  memberId: String,
+                                  groupInstanceId: Option[String],
+                                  clientId: String,
+                                  clientHost: String,
+                                  protocolType: String,
+                                  protocols: List[(String, Array[Byte])],
+                                  group: GroupMetadata,
+                                  callback: JoinCallback,
+                                  reason: String): Unit = {
+  // 为每个消费者都创建一个MemberMetadata对象                           
+  val member = new MemberMetadata(memberId, groupInstanceId, clientId, clientHost,
+    rebalanceTimeoutMs, sessionTimeoutMs, protocolType, protocols)
+
+  member.isNew = true
+
+  // 如果组已经是PreparingRebalance状态，那么将newMemberAdded  标签设置为true，表示新成员可加入
+  if (group.is(PreparingRebalance) &amp;&amp; group.generationId == 0)
+    group.newMemberAdded = true
+
+  // 加入组中
+  group.add(member, callback)
+
+  // 对于新成员的joinGroup操作设置超时时间，让其自己进行重试（如果新成员依旧存在的话），防止反复的重平衡操作导致大量成员失效
+  completeAndScheduleNextExpiration(group, member, NewMemberJoinTimeoutMs)
+  // 准备重平衡 
+  maybePrepareRebalance(group, s&quot;Adding new member $memberId with group instance id $groupInstanceId; client reason: $reason&quot;)
+}
+
+private def maybePrepareRebalance(group: GroupMetadata, reason: String): Unit = {
+  group.inLock {
+    // 主要判断组状态是否为  PreparingRebalance
+    if (group.canRebalance)
+      prepareRebalance(group, reason)
+  }
+}
+
+// 准备重平衡
+private[group] def prepareRebalance(group: GroupMetadata, reason: String): Unit = {
+  // 如果有任何成员正在等待同步，那便取消其请求并让他们重新加入
+  if (group.is(CompletingRebalance))
+    // 将所有消费者已按分配算法分配到的队列信息置空
+    // 将空的分配结果返回给消费者，并且错误码为REBALANCE_IN_PROGRESS，客户端收到该错会重新加入消费组。
+    resetAndPropagateAssignmentError(group, Errors.REBALANCE_IN_PROGRESS)
+
+  // 如果同步到期了仍处理待办状态，那么便移除该组
+  removeSyncExpiration(group)
+
+  val delayedRebalance = if (group.is(Empty))
+    // 如果组为空，则创建InitialDelayedJoin
+    new InitialDelayedJoin(this,
+      rebalancePurgatory,
+      group,
+      //即：group.initial.rebalance.delay.ms，用于设置消费组进入到PreparingRebalance真正执行其业务逻辑的延迟时间，其主要目的是等待更多的消费者进入。
+      groupConfig.groupInitialRebalanceDelayMs,
+      groupConfig.groupInitialRebalanceDelayMs,
+      max(group.rebalanceTimeoutMs - groupConfig.groupInitialRebalanceDelayMs, 0))
+  else
+    // 否则创建DelayedJoin
+    new DelayedJoin(this, group, group.rebalanceTimeoutMs)
+
+  // 过渡组状态为PreparingRebalance
+  group.transitionTo(PreparingRebalance)
+
+  info(s&quot;Preparing to rebalance group ${group.groupId} in state ${group.currentState} with old generation &quot; +
+    s&quot;${group.generationId} (${Topic.GROUP_METADATA_TOPIC_NAME}-${partitionFor(group.groupId)}) (reason: $reason)&quot;)
+
+  // 尝试完成重平衡操作，如果未完成则创建watch
+  val groupKey = GroupJoinKey(group.groupId)
+  // rebalancePurgatory文件地址：core/src/main/scala/kafka/server/DelayedOperation.scala
+  // 此函数最终仍然是调用了InitialDelayedJoin或者DelayedJoin的tryComplete方法。
+  // InitialDelayedJoin或者DelayedJoin的文件地址：core/src/main/scala/kafka/coordinator/group/DelayedJoin.scala
+  rebalancePurgatory.tryCompleteElseWatch(delayedRebalance, Seq(groupKey))
+}
+
+// 最终实现函数：尝试完成重平衡
+def tryCompleteJoin(group: GroupMetadata, forceComplete: () =&gt; Boolean): Boolean = {
+  group.inLock {
+    // 必须所有成员都已成功加入组才能返回true
+    // def hasAllMembersJoined: Boolean = members.size == numMembersAwaitingJoin &amp;&amp; pendingMembers.isEmpty  
+    if (group.hasAllMembersJoined)
+      // 文件地址：core/src/main/scala/kafka/server/DelayedOperation.scala
+      // 此函数成功将会调用onComplete()方法
+      forceComplete()
+    else false
+  }
+}
+// 进入此函数说明重平衡完成，开始分发分区分配策略
+def onCompleteJoin(group: GroupMetadata): Unit = {
+  group.inLock {
+    ...... 
+    if (group.is(Dead)) {
+      info(s&quot;Group ${group.groupId} is dead, skipping rebalance stage&quot;)
+    } else if (!group.maybeElectNewJoinedLeader() &amp;&amp; group.allMembers.nonEmpty) {
+      // If all members are not rejoining, we will postpone the completion
+      // of rebalance preparing stage, and send out another delayed operation
+      // until session timeout removes all the non-responsive members.
+      error(s&quot;Group ${group.groupId} could not complete rebalance because no members rejoined&quot;)
+      rebalancePurgatory.tryCompleteElseWatch(
+        new DelayedJoin(this, group, group.rebalanceTimeoutMs),
+        Seq(GroupJoinKey(group.groupId)))
+    } else {
+      // 当前的 generationId += 1，并将状态变更为transitionTo(CompletingRebalance)，member为空时则变更为transitionTo(Empty)
+      group.initNextGeneration()
+      if (group.is(Empty)) {
+        info(s&quot;Group ${group.groupId} with generation ${group.generationId} is now empty &quot; +
+          s&quot;(${Topic.GROUP_METADATA_TOPIC_NAME}-${partitionFor(group.groupId)})&quot;)
+
+        groupManager.storeGroup(group, Map.empty, error =&gt; {
+          if (error != Errors.NONE) {
+            // we failed to write the empty group metadata. If the broker fails before another rebalance,
+            // the previous generation written to the log will become active again (and most likely timeout).
+            // This should be safe since there are no active members in an empty generation, so we just warn.
+            warn(s&quot;Failed to write empty metadata for group ${group.groupId}: ${error.message}&quot;)
+          }
+        }, RequestLocal.NoCaching)
+      } else {
+        info(s&quot;Stabilized group ${group.groupId} generation ${group.generationId} &quot; +
+          s&quot;(${Topic.GROUP_METADATA_TOPIC_NAME}-${partitionFor(group.groupId)}) with ${group.size} members&quot;)
+
+        // 重平衡后触发所有成员的等待加入组响应回调
+        for (member &lt;- group.allMemberMetadata) {
+          val joinResult = JoinGroupResult(
+            members = if (group.isLeader(member.memberId)) {
+              group.currentMemberMetadata
+            } else {
+              List.empty
+            },
+            memberId = member.memberId,
+            generationId = group.generationId,
+            protocolType = group.protocolType,//分区分配策略
+            protocolName = group.protocolName,//分区分配策略
+            leaderId = group.leaderOrNull,
+            skipAssignment = false,
+            error = Errors.NONE)
+
+          group.maybeInvokeJoinCallback(member, joinResult)
+          completeAndScheduleNextHeartbeatExpiration(group, member)
+          member.isNew = false
+
+          group.addPendingSyncMember(member.memberId)
+        }
+
+        schedulePendingSync(group)
+      }
+    }
+  }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/coordinator/group/GroupMetadata.scala
+def add(member: MemberMetadata, callback: JoinCallback = null): Unit = {
+  member.groupInstanceId.foreach { instanceId =&gt;
+    if (staticMembers.contains(instanceId))
+      throw new IllegalStateException(s&quot;Static member with groupInstanceId=$instanceId &quot; +
+        s&quot;cannot be added to group $groupId since it is already a member&quot;)
+    staticMembers.put(instanceId, member.memberId)
+  }
+
+  if (members.isEmpty)
+    this.protocolType = Some(member.protocolType)
+
+  assert(this.protocolType.orNull == member.protocolType)
+  assert(supportsProtocols(member.protocolType, MemberMetadata.plainProtocolSet(member.supportedProtocols)))
+
+  // 这里会触发一次消费组选主,选主逻辑：该消费组的第一个加入的消费者成为该消费组中的Leader
+  // leader的主要职责如下：
+  // 1.为每一个消费者创建一个DelayedHeartbeat对象，用于检测会话超时，组协调器如果检测会话超时，会将该消费者移除组，会重新触发重平衡，消费者为了避免被组协调器移除消费组，需要按间隔发送心跳包。
+  // 2.根据当前消费组的状态是否需要进行重平衡。
+  if (leaderId.isEmpty)
+    leaderId = Some(member.memberId)
+
+  members.put(member.memberId, member)
+  incSupportedProtocols(member)
+  member.awaitingJoinCallback = callback
+
+  if (member.isAwaitingJoin)
+    numMembersAwaitingJoin += 1
+
+  pendingMembers.remove(member.memberId)
+}
+
+</code></pre>
+<h4 id="同步组sync_group">同步组（SYNC_GROUP）</h4>
+<p>消费者获得加入组响应结果后，将会发送同步组请求至服务端。</p>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.SYNC_GROUP =&gt; handleSyncGroupRequest(request, requestLocal)
+
+def handleSyncGroupRequest(request: RequestChannel.Request, requestLocal: RequestLocal): Unit = {
+  val syncGroupRequest = request.body[SyncGroupRequest]
+
+  def sendResponseCallback(syncGroupResult: SyncGroupResult): Unit = {
+    requestHelper.sendResponseMaybeThrottle(request, requestThrottleMs =&gt;
+      new SyncGroupResponse(
+        new SyncGroupResponseData()
+          .setErrorCode(syncGroupResult.error.code)
+          .setProtocolType(syncGroupResult.protocolType.orNull)
+          .setProtocolName(syncGroupResult.protocolName.orNull)
+          .setAssignment(syncGroupResult.memberAssignment)
+          .setThrottleTimeMs(requestThrottleMs)
+      ))
+  }
+
+  if (syncGroupRequest.data.groupInstanceId != null &amp;&amp; config.interBrokerProtocolVersion &lt; KAFKA_2_3_IV0) {
+    // 只有版本&gt;=2.3时才会启用静态membership；因为在确定broker都支持（静态 membership）之前，贸然使用此逻辑并不安全。
+    // 例如：如果静态组被较老的协调器加载，那它将会丢弃group.instance.id字段，从而导致其意外的变为“动态”，进而出现错误状态。
+    sendResponseCallback(SyncGroupResult(Errors.UNSUPPORTED_VERSION))
+  } else if (!syncGroupRequest.areMandatoryProtocolTypeAndNamePresent()) {
+    // 从版本 5 开始，ProtocolType 和 ProtocolName 字段是强制性的。
+    sendResponseCallback(SyncGroupResult(Errors.INCONSISTENT_GROUP_PROTOCOL))
+  } else if (!authHelper.authorize(request.context, READ, GROUP, syncGroupRequest.data.groupId)) {
+    sendResponseCallback(SyncGroupResult(Errors.GROUP_AUTHORIZATION_FAILED))
+  } else {
+    val assignmentMap = immutable.Map.newBuilder[String, Array[Byte]]
+    syncGroupRequest.data.assignments.forEach { assignment =&gt;
+      assignmentMap += (assignment.memberId -&gt; assignment.assignment)
+    }
+
+    // 核心处理同步组函数
+    groupCoordinator.handleSyncGroup(
+      syncGroupRequest.data.groupId,
+      syncGroupRequest.data.generationId,
+      syncGroupRequest.data.memberId,
+      Option(syncGroupRequest.data.protocolType),
+      Option(syncGroupRequest.data.protocolName),
+      Option(syncGroupRequest.data.groupInstanceId),
+      assignmentMap.result(),
+      sendResponseCallback,
+      requestLocal
+    )
+  }
+}
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/coordinator/group/GroupCoordinator.scala
+def handleSyncGroup(groupId: String,
+                    generation: Int,
+                    memberId: String,
+                    protocolType: Option[String],
+                    protocolName: Option[String],
+                    groupInstanceId: Option[String],
+                    groupAssignment: Map[String, Array[Byte]],
+                    responseCallback: SyncCallback,
+                    requestLocal: RequestLocal = RequestLocal.NoCaching): Unit = {
+  validateGroupStatus(groupId, ApiKeys.SYNC_GROUP) match {
+    case Some(error) if error == Errors.COORDINATOR_LOAD_IN_PROGRESS =&gt;
+      // 协调器正在加载，这意味着服务端已经失去了活跃重平衡的状态，并且该组将需要从 JoinGroup 重新开始。 
+      // 通过返回正在进行的重平衡，消费者将尝试重新加入，而无需重新发现协调器。 
+      // 请注意，不能直接返回 COORDINATOR_LOAD_IN_PROGRESS，因为旧客户端不希望出现错误。
+      responseCallback(SyncGroupResult(Errors.REBALANCE_IN_PROGRESS))
+
+    case Some(error) =&gt; responseCallback(SyncGroupResult(error))
+
+    case None =&gt;
+      groupManager.getGroup(groupId) match {
+        // 不存在，直接返回错误  
+        case None =&gt; responseCallback(SyncGroupResult(Errors.UNKNOWN_MEMBER_ID))
+        // 执行同步组操作
+        case Some(group) =&gt; doSyncGroup(group, generation, memberId, protocolType, protocolName,
+          groupInstanceId, groupAssignment, requestLocal, responseCallback)
+      }
+  }
+}
+// 执行同步组操作，主要是将分区分配策略发放下去
+private def doSyncGroup(group: GroupMetadata,
+                        generationId: Int,
+                        memberId: String,
+                        protocolType: Option[String],
+                        protocolName: Option[String],
+                        groupInstanceId: Option[String],
+                        groupAssignment: Map[String, Array[Byte]],
+                        requestLocal: RequestLocal,
+                        responseCallback: SyncCallback): Unit = {
+  group.inLock {
+    val validationErrorOpt = validateSyncGroup(
+      group,
+      generationId,
+      memberId,
+      protocolType,
+      protocolName,
+      groupInstanceId
+    )
+
+    validationErrorOpt match {
+      case Some(error) =&gt; responseCallback(SyncGroupResult(error))
+
+      case None =&gt; group.currentState match {
+        // 组状态为Empty ，那么返回 UNKNOWN_MEMBER_ID
+        case Empty =&gt;
+          responseCallback(SyncGroupResult(Errors.UNKNOWN_MEMBER_ID))
+      
+        // 组状态为PreparingRebalance ，那么返回 REBALANCE_IN_PROGRESS
+        case PreparingRebalance =&gt;
+          responseCallback(SyncGroupResult(Errors.REBALANCE_IN_PROGRESS))
+      
+        // 组状态为CompletingRebalance 
+        case CompletingRebalance =&gt;
+          group.get(memberId).awaitingSyncCallback = responseCallback
+          removePendingSyncMember(group, memberId)
+
+          // 如果这是leader，将尝试保持状态并转为到 Stable。（此处对应消费者处理joinGroup请求响应结果）
+          if (group.isLeader(memberId)) {
+            info(s&quot;Assignment received from leader $memberId for group ${group.groupId} for generation ${group.generationId}. &quot; +
+              s&quot;The group has ${group.size} members, ${group.allStaticMembers.size} of which are static.&quot;)
+
+            // fill any missing members with an empty assignment
+            val missing = group.allMembers.diff(groupAssignment.keySet)
+            val assignment = groupAssignment ++ missing.map(_ -&gt; Array.empty[Byte]).toMap
+
+            if (missing.nonEmpty) {
+              warn(s&quot;Setting empty assignments for members $missing of ${group.groupId} for generation ${group.generationId}&quot;)
+            }
+
+            groupManager.storeGroup(group, assignment, (error: Errors) =&gt; {
+              group.inLock {
+                // 另一个成员可能在等待此回调时加入了该组，因此必须确保组状态仍处于 CompletingRebalance 并且在它被调用时处于同一代。 
+                // 如果已经转换到另一个状态，那么什么都不做
+                if (group.is(CompletingRebalance) &amp;&amp; generationId == group.generationId) {
+                  if (error != Errors.NONE) {
+                    resetAndPropagateAssignmentError(group, error)
+                    maybePrepareRebalance(group, s&quot;Error when storing group assignment during SyncGroup (member: $memberId)&quot;)
+                  } else {
+                    setAndPropagateAssignment(group, assignment)
+                    group.transitionTo(Stable)
+                  }
+                }
+              }
+            }, requestLocal)
+            groupCompletedRebalanceSensor.record()
+          }
+
+        // 组状态为Stable 直接返回分区分配策略
+        case Stable =&gt;
+          removePendingSyncMember(group, memberId)
+
+          val memberMetadata = group.get(memberId)
+          responseCallback(SyncGroupResult(group.protocolType, group.protocolName, memberMetadata.assignment, Errors.NONE))
+          completeAndScheduleNextHeartbeatExpiration(group, group.get(memberId))
+
+        // 组状态为Dead 将抛出异常
+        case Dead =&gt;
+          throw new IllegalStateException(s&quot;Reached unexpected condition for Dead group ${group.groupId}&quot;)
+      }
+    }
+  }
+}
+
+</code></pre>
+<h4 id="发送心跳heartbeat">发送心跳（HEARTBEAT）</h4>
+<p>消费者协调器会引入心跳机制，即定时向组协调器发送心跳包，在指定时间内未收到客户端的心跳包，表示会话过期，过期时间通过参数session.timeout.ms设置，默认为10s，心跳间隔参数heartbeat.interval.ms，默认3s。</p>
+<h5 id="消费者端启动心跳线程">消费者端启动心跳线程</h5>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/consumer/internals/AbstractCoordinator.java
+// 此段代码在加入组请求时触发执行
+boolean ensureActiveGroup(final Timer timer) {
+    // always ensure that the coordinator is ready because we may have been disconnected
+    // when sending heartbeats and does not necessarily require us to rejoin the group.
+    if (!ensureCoordinatorReady(timer)) {
+        return false;
+    }
+    // 构建心跳线程: 当消费者加入到消费组后处于MemberState.STABLE后需要定时向协调器上报心跳，表示存活，否则将从消费组中移除。
+    startHeartbeatThreadIfNeeded();
+    return joinGroupIfNeeded(timer);
+}
+
+</code></pre>
+<pre><code>// 文件地址：clients/src/main/java/org/apache/kafka/clients/consumer/internals/AbstractCoordinator.java
+// HeartbeatThread 线程执行函数核心逻辑处理
+// 如果协调器未知那么便寻找协调器
+if (coordinatorUnknown()) {
+    if (findCoordinatorFuture != null) {
+        // clear the future so that after the backoff, if the hb still sees coordinator unknown in
+        // the next iteration it will try to re-discover the coordinator in case the main thread cannot
+        clearFindCoordinatorFuture();
+
+        // backoff properly
+        AbstractCoordinator.this.wait(rebalanceConfig.retryBackoffMs);
+    } else {
+        lookupCoordinator();
+    }
+} else if (heartbeat.sessionTimeoutExpired(now)) {
+    // session超时时间内未受到心跳，此时标记协调器不可知，开始重新寻找协调器
+    markCoordinatorUnknown(&quot;session timed out without receiving a &quot;
+            + &quot;heartbeat response&quot;);
+} else if (heartbeat.pollTimeoutExpired(now)) {
+    // 如果此次心跳发送时间距离上一次心跳发送时间超过了pollTimeout，客户端将发送LEAVE_GROUP，离开消费组，
+    // 并在下一个poll方法调用时重新进入加入消费组的操作，会再次触发重平衡。
+    log.warn(&quot;consumer poll timeout has expired. This means the time between subsequent calls to poll() &quot; +
+        &quot;was longer than the configured max.poll.interval.ms, which typically implies that &quot; +
+        &quot;the poll loop is spending too much time processing messages. You can address this &quot; +
+        &quot;either by increasing max.poll.interval.ms or by reducing the maximum size of batches &quot; +
+        &quot;returned in poll() with max.poll.records.&quot;);
+
+    maybeLeaveGroup(&quot;consumer poll timeout has expired.&quot;);
+} else if (!heartbeat.shouldHeartbeat(now)) {
+    // 等待重试延迟后再次轮询，以防心跳失败或协调器断开连接
+    AbstractCoordinator.this.wait(rebalanceConfig.retryBackoffMs);
+} else {
+    // 正常发送心跳
+    heartbeat.sentHeartbeat(now);
+    final RequestFuture&lt;Void&gt; heartbeatFuture = sendHeartbeatRequest();
+    heartbeatFuture.addListener(new RequestFutureListener&lt;Void&gt;() {
+        @Override
+        public void onSuccess(Void value) {
+            synchronized (AbstractCoordinator.this) {
+                heartbeat.receiveHeartbeat();
+            }
+        }
+
+        @Override
+        public void onFailure(RuntimeException e) {
+            synchronized (AbstractCoordinator.this) {
+                if (e instanceof RebalanceInProgressException) {
+                    // 在组重平衡时继续心跳是有效的。 
+                    // 这确保了协调器将成员保留在组中的时间与重平衡超时的持续时间一样长。
+                    // 然而，如果此时停止发送心跳，那么会话超时可能会在消费者重新加入之前到期。
+                    heartbeat.receiveHeartbeat();
+                } else if (e instanceof FencedInstanceIdException) {
+                    log.error(&quot;Caught fenced group.instance.id {} error in heartbeat thread&quot;, rebalanceConfig.groupInstanceId);
+                    heartbeatThread.failed.set(e);
+                } else {
+                    heartbeat.failHeartbeat();
+                    // wake up the thread if it's sleeping to reschedule the heartbeat
+                    AbstractCoordinator.this.notify();
+                }
+            }
+        }
+    });
+}
+
+</code></pre>
+<h5 id="服务端处理心跳响应">服务端处理心跳响应</h5>
+<pre><code>// 文件地址：core/src/main/scala/kafka/server/KafkaApis.scala
+case ApiKeys.HEARTBEAT =&gt; handleHeartbeatRequest(request)
+
+</code></pre>
+<pre><code>// 文件地址：core/src/main/scala/kafka/coordinator/group/GroupCoordinator.scala
+// 此函数整体比较简单，根据组的状态返回给客户端不同的心跳。
+def handleHeartbeat(groupId: String,
+                    memberId: String,
+                    groupInstanceId: Option[String],
+                    generationId: Int,
+                    responseCallback: Errors =&gt; Unit): Unit = {
+  validateGroupStatus(groupId, ApiKeys.HEARTBEAT).foreach { error =&gt;
+    if (error == Errors.COORDINATOR_LOAD_IN_PROGRESS)
+      // the group is still loading, so respond just blindly
+      responseCallback(Errors.NONE)
+    else
+      responseCallback(error)
+    return
+  }
+
+  val err = groupManager.getGroup(groupId) match {
+    case None =&gt;
+      Errors.UNKNOWN_MEMBER_ID
+
+    case Some(group) =&gt; group.inLock {
+      val validationErrorOpt = validateHeartbeat(
+        group,
+        generationId,
+        memberId,
+        groupInstanceId
+      )
+
+      if (validationErrorOpt.isDefined) {
+        validationErrorOpt.get
+      } else {
+        group.currentState match {
+          case Empty =&gt;
+            Errors.UNKNOWN_MEMBER_ID
+
+          case CompletingRebalance =&gt;
+            // consumers may start sending heartbeat after join-group response, in which case
+            // we should treat them as normal hb request and reset the timer
+            val member = group.get(memberId)
+            completeAndScheduleNextHeartbeatExpiration(group, member)
+            Errors.NONE
+
+          case PreparingRebalance =&gt;
+              val member = group.get(memberId)
+              completeAndScheduleNextHeartbeatExpiration(group, member)
+              Errors.REBALANCE_IN_PROGRESS
+
+          case Stable =&gt;
+              val member = group.get(memberId)
+              completeAndScheduleNextHeartbeatExpiration(group, member)
+              Errors.NONE
+
+          case Dead =&gt;
+            throw new IllegalStateException(s&quot;Reached unexpected condition for Dead group $groupId&quot;)
+        }
+      }
+    }
+  }
+  responseCallback(err)
+}
+
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[kafka深入理解之消费者分配器]]></title>
         <id>https://philosopherzb.github.io/post/kafka-shen-ru-li-jie-zhi-xiao-fei-zhe-fen-pei-qi/</id>
@@ -3511,746 +4998,6 @@ public class GenerateKeyUtils {
 <p>servicecomb-saga是servicecomb中的一部分，比之tcc而言少了一个try操作，更加轻量化，具体可参考：<a href="https://github.com/apache/servicecomb-saga-actuator">点击此处跳转官网地址</a></p>
 <h3 id="seata">Seata</h3>
 <p>阿里开源的分布式事务解决方案，致力于提供高性能和简单易用，包括AT，TCC，SAGA以及XA事务模式。具体可参考：<a href="http://seata.io/zh-cn/">点击此处跳转官网地址</a></p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Bash条件判断详解]]></title>
-        <id>https://philosopherzb.github.io/post/bash-tiao-jian-pan-duan-xiang-jie/</id>
-        <link href="https://philosopherzb.github.io/post/bash-tiao-jian-pan-duan-xiang-jie/">
-        </link>
-        <updated>2022-05-13T09:20:29.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述bash条件判断规则语法。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/rocks-1757593_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="条件判断">条件判断</h2>
-<h3 id="if结构">if结构</h3>
-<p>if是最常用的条件判断结构，只有符合给定条件时，才会执行指定的命令。它的语法如下。</p>
-<p>注意：如果写在同一行，关键字之间需要使用分号隔离。分号是 Bash 的命令分隔符</p>
-<pre><code>if commands; then
-  commands
-[elif commands; then
-  commands...]
-[else
-  commands]
-fi
-
-# 例子 判断环境变量$USER是否等于root
-if test $USER = &quot;root&quot;; then
-  echo &quot;Hello root.&quot;
-else
-  echo &quot;You are not root.&quot;
-fi
-
-# 单行书写例子
-if true; then echo 'hello world'; fi
-
-</code></pre>
-<p>if后面可以跟任意数量的命令。这时，所有命令都会执行，但是判断真伪只看最后一个命令，即使前面所有命令都失败，只要最后一个命令返回0，就会执行then的部分。</p>
-<pre><code>if false; i=3; true; then echo 'hello world'; fi
-echo ${i}
-
-</code></pre>
-<h3 id="test命令">test命令</h3>
-<p>if结构的判断条件，一般使用test命令，有三种形式。</p>
-<pre><code># 写法一
-test expression
-# 写法二
-[ expression ]
-# 写法三
-[[ expression ]]
-
-</code></pre>
-<p>三种形式是等价的，但是第三种形式还支持正则判断，前两种不支持。</p>
-<p>expression是一个表达式。这个表达式为真，test命令执行成功（返回值为0）；表达式为伪，test命令执行失败（返回值为1）。</p>
-<p>注意：第二种和第三种写法，[ ]与内部的表达式之间必须有空格。</p>
-<pre><code>read i
-# 写法一
-if test ${i} == 1 ; then
-  echo &quot;input param: ${i}&quot;
-fi
-# 写法二
-if [ ${i} == 1 ] ; then
-   echo &quot;input param: ${i}&quot;
-fi
-# 写法三
-if [[ ${i} == 1 ]] ; then
-   echo &quot;input param: ${i}&quot;
-fi
-
-</code></pre>
-<h2 id="判断表达式">判断表达式</h2>
-<p>[[ ]]使用在条件判断中，能够防止脚本中的许多逻辑错误。比如，&amp;&amp;、||、&lt; 和 &gt; 操作符能够正常存在于 [[ ]] 条件判断结构中，但是如果出现在 [ ] 结构中的话，会报错。</p>
-<p>执行的时候，需要用bash test.sh；因为[[]]是bash脚本中的命令（bash是sh的增强版本）。</p>
-<p>注意：[[  ]]中操作符与变量之间需要有空格，否则会被当做一个变量处理。</p>
-<h3 id="文件判断">文件判断</h3>
-<ul>
-<li>[ -a file ]：如果 file 存在，则为true。</li>
-<li>[ -b file ]：如果 file 存在并且是一个块（设备）文件，则为true。</li>
-<li>[ -c file ]：如果 file 存在并且是一个字符（设备）文件，则为true。</li>
-<li>[ -d file ]：如果 file 存在并且是一个目录，则为true。</li>
-<li>[ -e file ]：如果 file 存在，则为true。</li>
-<li>[ -f file ]：如果 file 存在并且是一个普通文件，则为true。</li>
-<li>[ -g file ]：如果 file 存在并且设置了组 ID，则为true。</li>
-<li>[ -G file ]：如果 file 存在并且属于有效的组 ID，则为true。</li>
-<li>[ -h file ]：如果 file 存在并且是符号链接，则为true。</li>
-<li>[ -k file ]：如果 file 存在并且设置了它的“sticky bit”，则为true。</li>
-<li>[ -L file ]：如果 file 存在并且是一个符号链接，则为true。</li>
-<li>[ -N file ]：如果 file 存在并且自上次读取后已被修改，则为true。</li>
-<li>[ -O file ]：如果 file 存在并且属于有效的用户 ID，则为true。</li>
-<li>[ -p file ]：如果 file 存在并且是一个命名管道，则为true。</li>
-<li>[ -r file ]：如果 file 存在并且可读（当前用户有可读权限），则为true。</li>
-<li>[ -s file ]：如果 file 存在且其长度大于零，则为true。</li>
-<li>[ -S file ]：如果 file 存在且是一个网络 socket，则为true。</li>
-<li>[ -t fd ]：如果 fd 是一个文件描述符，并且重定向到终端，则为true。 这可以用来判断是否重定向了标准输入／输出错误。</li>
-<li>[ -u file ]：如果 file 存在并且设置了 setuid 位，则为true。</li>
-<li>[ -w file ]：如果 file 存在并且可写（当前用户拥有可写权限），则为true。</li>
-<li>[ -x file ]：如果 file 存在并且可执行（有效用户有执行／搜索权限），则为true。</li>
-<li>[ file1 -nt file2 ]：如果 FILE1 比 FILE2 的更新时间最近，或者 FILE1 存在而 FILE2 不存在，则为true。</li>
-<li>[ file1 -ot file2 ]：如果 FILE1 比 FILE2 的更新时间更旧，或者 FILE2 存在而 FILE1 不存在，则为true。</li>
-<li>[ FILE1 -ef FILE2 ]：如果 FILE1 和 FILE2 引用相同的设备和 inode 编号，则为true。</li>
-</ul>
-<pre><code>file=/opt/shellScriptDir/test1.sh
-if [[ -e ${file} &amp;&amp; -a ${file} ]]; then
-    echo &quot;${file} exist&quot;
-    if [[ -f ${file} ]]; then
-        echo &quot;${file} is normal file&quot;
-    fi
-    if [[ -d ${file} ]]; then
-        echo &quot;${file} is directory&quot;
-    fi
-    if [[ -r ${file} ]]; then
-        echo &quot;${file} is readable&quot;
-    fi
-    if [[ -w ${file} ]]; then
-        echo &quot;${file} is writable&quot;
-    fi
-    if [[ -x ${file} ]]; then
-        echo &quot;${file} is executable/searchable&quot;
-    fi
-else
-    echo &quot;${file} not exist&quot;
-fi
-
-</code></pre>
-<p>注意：上述判断中，如果使用的是单个中括号[]时，$file需要用双引号括起来，否则判断将会失误。因为当$file为空时，-e会判断为真，如果放在双引号中，返回的是空字符串，[ -e &quot;&quot; ]会判断为伪。</p>
-<pre><code># 下面的例子会输出 not exist
-file=
-if [ -e &quot;${file}&quot; ]; then
-    echo &quot;${file} exist&quot;
-else
-    echo &quot;${file} not exist&quot;
-fi
-
-# 下面的例子会输出 exist
-file=
-if [ -e ${file} ]; then
-    echo &quot;${file} exist&quot;
-else
-    echo &quot;${file} not exist&quot;
-fi
-
-</code></pre>
-<h3 id="字符串判断">字符串判断</h3>
-<ul>
-<li>[ string ]：如果string不为空（长度大于0），则判断为真。</li>
-<li>[ -n string ]：如果字符串string的长度大于零，则判断为真。</li>
-<li>[ -z string ]：如果字符串string的长度为零，则判断为真。</li>
-<li>[ string1 = string2 ]：如果string1和string2相同，则判断为真。</li>
-<li>[ string1 == string2 ] 等同于[ string1 = string2 ]。</li>
-<li>[ string1 != string2 ]：如果string1和string2不相同，则判断为真。</li>
-<li>[ string1 '&gt;' string2 ]：如果按照字典顺序string1排列在string2之后，则判断为真。</li>
-<li>[ string1 '&lt;' string2 ]：如果按照字典顺序string1排列在string2之前，则判断为真。</li>
-</ul>
-<p>注意，test命令内部的&gt;和&lt;，必须用引号引起来（或者是用反斜杠转义，或者使用双中括号）。否则，它们会被 shell 解释为重定向操作符。</p>
-<p>字符串判断时，变量要放在双引号之中，比如[ -n &quot;$COUNT&quot; ]，否则变量替换成字符串以后，test命令可能会报错，提示参数过多。另外，如果不放在双引号之中，变量为空时，命令会变成[ -n ]，这时会判断为真。如果放在双引号之中，[ -n &quot;&quot; ]就判断为伪。</p>
-<p>如果不想使用双引号，也可以使用双括号。</p>
-<pre><code>str=fwfw
-if [[ -z ${str} ]]; then
-    echo &quot;${str} length =0&quot;
-elif [[ -n ${str} ]]; then
-    echo &quot;${str} length &gt;0&quot;
-    if [[ ${str} = &quot;fwfw&quot; ]]; then
-        echo &quot;${str} exist&quot;
-    fi
-fi
-
-</code></pre>
-<h3 id="整数判断">整数判断</h3>
-<ul>
-<li>[ integer1 -eq integer2 ]：如果integer1等于integer2，则为true。</li>
-<li>[ integer1 -ne integer2 ]：如果integer1不等于integer2，则为true。</li>
-<li>[ integer1 -le integer2 ]：如果integer1小于或等于integer2，则为true。</li>
-<li>[ integer1 -lt integer2 ]：如果integer1小于integer2，则为true。</li>
-<li>[ integer1 -ge integer2 ]：如果integer1大于或等于integer2，则为true。</li>
-<li>[ integer1 -gt integer2 ]：如果integer1大于integer2，则为true。</li>
-</ul>
-<pre><code>a=10
-b=20
-if [ ${a} -lt ${b} ]
-then
-    echo &quot;${a} &lt; ${b}&quot;
-else
-    echo &quot;${a} &gt;= ${b}&quot;
-fi
-
-# 使用双中括号，效果一致
-if [[ ${a} &lt; ${b} ]]
-then
-    echo &quot;${a} &lt; ${b}&quot;
-else
-    echo &quot;${a} &gt;= ${b}&quot;
-fi
-
-</code></pre>
-<h3 id="正则判断">正则判断</h3>
-<p>[[ expression ]]这种判断形式，支持正则表达式。</p>
-<pre><code># regex是一个正则表示式，=~是正则比较运算符。
-[[ string =~ regex ]]
-</code></pre>
-<pre><code>read input
-if [[ ${input} =~ [0-9] ]]; then
-    echo &quot;match num value = ${input}&quot;
-fi
-
-</code></pre>
-<h3 id="逻辑运算">逻辑运算</h3>
-<ul>
-<li>AND运算：符号&amp;&amp;，也可使用参数-a。</li>
-<li>OR运算：符号||，也可使用参数-o。</li>
-<li>NOT运算：符号!。</li>
-</ul>
-<pre><code>## 使用双中括号，可以直接在命令内容拼接逻辑运算符
-read input
-if [[ ${input} =~ [0-9] &amp;&amp; ${input} == 3 ]]; then
-    echo &quot;match num value = ${input}&quot;
-fi
-
-</code></pre>
-<p>&amp;&amp; 和 || 也被称作命令控制操作符，可以用来聚合多个逻辑运算命令。</p>
-<pre><code>file=/opt/shellScriptDir/temp
-[[ -d  ${file} ]] || echo &quot;${file} not exist&quot;
-</code></pre>
-<h3 id="算术判断">算术判断</h3>
-<p>bash提供了(( ... ))作为算术条件，用于进行算术运算的判断。</p>
-<p>注意，算术判断不需要使用test命令，而是直接使用((...))结构。这个结构的返回值，决定了判断的真伪。</p>
-<p>如果算术计算的结果是非零值，则表示判断成立。这一点跟命令的返回值正好相反，需要小心。</p>
-<pre><code># 输出match num value true
-if [[ 0 ]]; then
-    echo &quot;match num value true&quot;
-else
-    echo &quot;value false&quot;
-fi
-
-# 输出value false
-if (( 0 )); then
-    echo &quot;match num value true&quot;
-else
-    echo &quot;value false&quot;
-fi
-
-</code></pre>
-<p>(( ... ))可以用作变量赋值，赋值完成后将会返回变量的值。</p>
-<pre><code># 输出match num value: 1
-if (( var=1 )); then
-    echo &quot;match num value: ${var}&quot;
-else
-    echo &quot;value false&quot;
-fi
-
-</code></pre>
-<h3 id="case结构判断">case结构判断</h3>
-<p>case结构用于多值判断，可以为每个值指定对应的命令，跟包含多个elif的if结构等价，但是语义更好。</p>
-<pre><code># 语法格式
-# expression是一个表达式，pattern是表达式的值或者一个模式，可以有多条，
-# 用来匹配多个值，每条以两个分号（;）结尾。
-case expression in
-  pattern )
-    commands ;;
-  pattern )
-    commands ;;
-  ...
-esac
-
-</code></pre>
-<pre><code># 简单实例
-echo &quot;input value[1-3]: &quot;
-read input
-case ${input} in
-    1) echo &quot;read value is 1&quot;;;
-    2) echo &quot;read value is 2&quot;;;
-    3) echo &quot;read value is 3&quot;;;
-    *) echo &quot;read value is not match: ${input}&quot;;;
-esac
-
-</code></pre>
-<p>case的匹配模式可以使用各种通配符，类似于下方所示：</p>
-<ul>
-<li>a)：匹配a。</li>
-<li>a|b)：匹配a或b。</li>
-<li>[[:alpha:]])：匹配单个字母。</li>
-<li>???)：匹配3个字符的单词。</li>
-<li>*.txt)：匹配.txt结尾。</li>
-<li>*)：匹配任意输入，通过作为case结构的最后一个模式。</li>
-</ul>
-<pre><code># 匹配数值，单个字符，两个字符
-echo &quot;input value[number or character]: &quot;
-read input
-case ${input} in
-    [0-9]) echo &quot;read number value is: ${input}&quot;;;
-    [[:lower:]] | [[:upper:]]) echo &quot;read character value is: ${input}&quot;;;
-    ??) echo &quot;read double input value is: ${input}&quot;;;
-    *) echo &quot;read value is not match: ${input}&quot;;;
-esac
-
-</code></pre>
-<p>Bash 4.0之前，case结构只能匹配一个条件，然后就会退出case结构。Bash 4.0之后，允许匹配多个条件，这时可以用;;&amp;终止每个条件块。</p>
-<pre><code>echo &quot;input character value: &quot;
-read input
-case ${input} in
-  [[:upper:]])    echo &quot;'${input}' is upper case.&quot; ;;&amp;
-  [[:lower:]])    echo &quot;'${input}' is lower case.&quot; ;;&amp;
-  [[:alpha:]])    echo &quot;'${input}' is alphabetic.&quot; ;;&amp;
-  [[:digit:]])    echo &quot;'${input}' is a digit.&quot; ;;&amp;
-  [[:graph:]])    echo &quot;'${input}' is a visible character.&quot; ;;&amp;
-  [[:punct:]])    echo &quot;'${input}' is a punctuation symbol.&quot; ;;&amp;
-  [[:space:]])    echo &quot;'${input}' is a whitespace character.&quot; ;;&amp;
-  [[:xdigit:]])   echo &quot;'${input}' is a hexadecimal digit.&quot; ;;&amp;
-esac
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Shell基本知识]]></title>
-        <id>https://philosopherzb.github.io/post/shell-ji-ben-zhi-shi/</id>
-        <link href="https://philosopherzb.github.io/post/shell-ji-ben-zhi-shi/">
-        </link>
-        <updated>2022-04-30T09:03:47.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述shell基本知识。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/nature-2147400_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="简介">简介</h2>
-<h3 id="简介-2">简介</h3>
-<p>Shell 是一个用 C 语言编写的程序，它是用户使用 Linux 的桥梁。Shell 既是一种命令语言，又是一种程序设计语言。</p>
-<p>Shell 是指一种应用程序，这个应用程序提供了一个界面，用户通过这个界面访问操作系统内核的服务。</p>
-<p>Shell 脚本（shell script），是一种为 shell 编写的脚本程序。业界所说的 shell 通常都是指 shell 脚本（故此处也沿用该说明），需要注意的是：shell 和 shell script 是两个不同的概念。</p>
-<p>查看安装的shell信息，两种查看方式任选一种键入回车即可得到相关信息。</p>
-<pre><code>ls -l /bin/*sh
-cat /etc/shells
-
-</code></pre>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230307001.png" alt="img" loading="lazy"></figure>
-<h2 id="基本语法bash">基本语法（Bash）</h2>
-<h3 id="变量">变量</h3>
-<h4 id="基础变量">基础变量</h4>
-<p>创建变量时，需遵循如下规则：</p>
-<ul>
-<li>命名只能使用英文字母，数字和下划线，首个字符不能以数字开头。</li>
-<li>不允许出现空格及标点符号。</li>
-<li>不能使用bash里的关键字（可用help命令查看保留关键字）。</li>
-</ul>
-<p>变量声明的语法如下（注意：等号两边不能存在空格，读取时使用$符）：</p>
-<pre><code>variable=vlaue
-</code></pre>
-<pre><code># 简单例子
-# 变量 a 赋值为字符串 hello
-a=hello
-# $a 等效于 ${a}，加花括号是为了帮助解释器识别变量的边界
-# 如：echo $a_world 将不会输出内容，因为变量a_world不存在
-# 但是可以使用echo ${a}_world，将会输出hello_world
-echo ${a}
-
-# 变量值包含空格，就必须放在引号里面        
-b=&quot;world shell&quot;
-echo ${b}
-
-# 变量值可以引用其他变量的值
-c=&quot;${a} ${b} !&quot;
-echo ${c}
-
-# 变量值可以使用转义字符
-d=&quot;\t content \n&quot;
-echo ${d}
-
-# 变量值可以是命令的执行结果
-e=$(ls -l /bin/*sh)
-echo ${e}
-
-# 变量值可以是数学运算的结果
-f=$((4 * 5))
-echo ${f}
-
-# 变量重复赋值，后面的赋值将会覆盖前面的赋值
-foo=1
-foo=2
-echo ${foo}
-
-# 变量的值是变量，如果需要输出，可以使用${!varname}愈发
-myvar=USER
-echo ${!myvar}
-
-</code></pre>
-<h4 id="特殊变量">特殊变量</h4>
-<p>Bash（是shell的一个增强版本）提供了一些特殊变量，特殊变量的值由shell预定义，用户不用进行赋值。</p>
-<ul>
-<li>$?: 表示上一个命令的退出码，用来判断上一个命令是否执行成功，0表示成功，非0表示失败。</li>
-<li>$$: 表示当前shell的进程id，也可以用来命名临时文件</li>
-<li>$_: 表示上个命令的最后一个参数</li>
-<li>$!: 表示最近一个后台执行的异步命令的进程id</li>
-<li>$0: 表示当前shell的名称（在命令直接执行时）或者脚本名（在脚本中执行时）</li>
-<li>$-: 表示当前shell的启动参数</li>
-<li>$@ $#: 表示脚本中的参数数量（两者不同之处：在双引号中体现出来。假设在脚本运行时写了三个参数 1、2、3，，则 &quot; * &quot; 等价于 &quot;1 2 3&quot;（传递了一个参数），而 &quot;@&quot; 等价于 &quot;1&quot; &quot;2&quot; &quot;3&quot;（传递了三个参数）。）</li>
-</ul>
-<pre><code># $? 例子
-ls -l /bin/bash
-echo $?
-ls -l notexistfile
-echo $?
-# 输出结果
--rwxr-xr-x 1 root root 1183448 Jun 18  2020 /bin/bash
-0
-ls: cannot access 'notexistfile': No such file or directory
-2
-
-</code></pre>
-<h4 id="变量默认值">变量默认值</h4>
-<p>Bash 提供四个特殊语法，跟变量的默认值有关，目的是保证变量不为空。</p>
-<ul>
-<li>${varname:-word} 语法含义：如果变量varname存在且不为空，则返回它的值，否则返回word。它的目的是返回一个默认值，比如${count:-0}表示变量count不存在时返回0。</li>
-<li>${varname:=word} 语法含义：如果变量varname存在且不为空，则返回它的值，否则将它设为word，并且返回word。它的目的是设置变量的默认值，比如${count:=0}表示变量count不存在时返回0，且将count设为0。</li>
-<li>${varname:+word} 语法含义：如果变量名存在且不为空，则返回word，否则返回空值。它的目的是测试变量是否存在，比如${count:+1}表示变量count存在时返回1（表示true），否则返回空值。</li>
-<li>${varname:?message} 语法含义：如果变量varname存在且不为空，则返回它的值，否则打印出varname: message，并中断脚本的执行。如果省略了message，则输出默认的信息“parameter null or not set.”。它的目的是防止变量未定义，比如${count:?&quot;undefined!&quot;}表示变量count未定义时就中断执行，抛出错误，返回给定的报错信息undefined!。</li>
-</ul>
-<pre><code>echo ${a:-0}
-echo ${a:=word}
-echo ${a:+1}
-echo ${b:?&quot;undefined!&quot;}
-# 输出结果
-0
-word
-1
-./test1.sh: line 5: b: undefined!
-
-</code></pre>
-<h4 id="变量命令">变量命令</h4>
-<p>declare命令可以声明一些特殊类型的变量，为变量设置一些限制，比如声明只读类型的变量和整数类型的变量。</p>
-<p>declare语法格式：declare OPTION VARIABLE=value，命令的主要参数（OPTION）如下：</p>
-<ul>
-<li>-a：声明数组变量。</li>
-<li>-f：输出所有函数定义。</li>
-<li>-F：输出所有函数名。</li>
-<li>-i：声明整数变量。</li>
-<li>-l：声明变量为小写字母。</li>
-<li>-p：查看变量信息。</li>
-<li>-r：声明只读变量。</li>
-<li>-u：声明变量为大写字母。</li>
-<li>-x：该变量输出为环境变量。</li>
-</ul>
-<p>readonly命令等同于declare -r，用来声明只读变量，不能改变变量值，也不能unset变量。</p>
-<p>let命令声明变量时，可以直接执行算术表达式。</p>
-<h4 id="数组变量">数组变量</h4>
-<p>数组中可以存放多个值。Bash Shell 只支持一维数组（不支持多维数组），初始化时不需要定义数组大小。</p>
-<p>与大部分编程语言类似，数组元素的下标由 0 开始。</p>
-<p>Shell 数组用括号来表示，元素用&quot;空格&quot;符号分割开，语法格式如下：</p>
-<pre><code>array_name=(value1 value2 ... valuen)
-</code></pre>
-<pre><code># 数组例子
-array_test=(&quot;hello&quot; &quot;world&quot; &quot;shell&quot;)
-echo ${array_test[2]}
-# 获取所有元素
-echo ${array_test[@]}
-echo ${array_test[*]}
-
-</code></pre>
-<h4 id="字符串变量进阶例子">字符串变量&lt;进阶例子&gt;</h4>
-<pre><code>var=&quot;opt/temp/test.sh&quot;
-# 字符串长度
-echo ${#var}
-
-# 截取字符串 ${varname:offset:length}: 从位置offset开始（从0开始计算），长度为length
-echo ${var:0:3}
-# 如果省略length，则从位置offset开始，一直返回到字符串的结尾。
-echo ${var:0}
-# 如果offset为负值，表示从字符串的末尾开始算起。
-# 注意，负数前面必须有一个空格（如果不想写空格，可以填0），以防止与${variable:-word}的变量的设置默认值语法混淆。
-# 这时，如果还指定length，则length不能小于零。
-echo ${var: -16:3}
-echo ${var: -13}
-echo ${var:0-16:3}
-echo ${var:0-13}
-
-# 输出大写
-echo ${var^^}
-# 输出小写
-echo ${var,,}
-
-# 匹配删除字符串
-# 匹配模式pattern可以使用*、?、[]等通配符。
-
-# ${variable#pattern}
-# 如果 pattern 匹配变量 variable 的开头，删除最短匹配（非贪婪匹配）的部分，返回剩余部分
-# #*/ 表示从左边开始删除第一个 / 号及左边的所有字符，即删除opt/，结果为：temp/test.sh
-echo ${var#*/}
-
-# ${variable##pattern}
-# 如果 pattern 匹配变量 variable 的开头，删除最长匹配（贪婪匹配）的部分，返回剩余部分
-# ##*/ 表示从左边开始删除最后（最右边）一个 / 号及左边的所有字符，即删除opt/temp/，结果为：test.sh
-echo ${var##*/}
-
-# ${variable%pattern}
-# 如果 pattern 匹配变量 variable 的结尾，删除最短匹配（非贪婪匹配）的部分，返回剩余部分
-# %/* 表示从右边开始，删除第一个 / 号及右边的字符，即删除/test.sh，结果：opt/temp
-echo ${var%/*}
-
-# ${variable%%pattern}
-# 如果 pattern 匹配变量 variable 的结尾，删除最长匹配（贪婪匹配）的部分，返回剩余部分
-# %%/* 表示从右边开始，删除最后（最左边）一个 / 号及右边的字符，即删除/temp/test.sh，结果：opt
-echo ${var%%/*}
-
-</code></pre>
-<h3 id="算术运算符">算术运算符</h3>
-<h4 id="算术表达式">算术表达式</h4>
-<p>((...))语法可以进行整数的算术运算。该表达式可以忽略内部的空格，在其内部可以使用()改变运算顺序。输出结果时，需要在前面加上$符。</p>
-<pre><code>a=2
-echo $(( ${a} + 2 ))
-# 可以不使用$或者${}（花括号是为了确定边界）引用变量
-echo $(( + 2))
-
-# 赋值
-i=$((a + 2))
-echo &quot;i= ${i}&quot;
-
-</code></pre>
-<p>expr命令同样支持算是运算，其可以使用变量替换。</p>
-<p>注意：表达式与运算符之间需要有空格，否则会被当做字符串输出。</p>
-<pre><code>a=2
-expr ${a} + 2
-
-# 赋值，两种方式都可进行赋值，``符号位于esc键下方，并非单引号
-b=$(expr ${a} + 2)
-c=`expr ${a} + 2`
-echo &quot;b= ${b}&quot;
-echo &quot;c= ${c}&quot;
-
-</code></pre>
-<p>((...))语法支持的算术运算符如下。</p>
-<ul>
-<li>+：加法</li>
-<li>-：减法</li>
-<li>*：乘法</li>
-<li>/：除法（整除）</li>
-<li>%：余数</li>
-<li>**：指数</li>
-<li>++：自增运算（作为前缀是先运算后返回值，作为后缀是先返回值后运算）</li>
-<li>--：自减运算（作为前缀是先运算后返回值，作为后缀是先返回值后运算）</li>
-</ul>
-<h4 id="进制数值">进制数值</h4>
-<p>Bash 的数值默认都是十进制，但是在算术表达式中，也可以使用其他进制。</p>
-<ul>
-<li>number：没有任何特殊表示法的数字是十进制数（以10为底）。</li>
-<li>0number：八进制数。</li>
-<li>0xnumber：十六进制数。</li>
-<li>base#number：base进制的数。</li>
-</ul>
-<pre><code>echo $((016))
-echo $((0xee))
-echo $((2#00000011))
-
-</code></pre>
-<h4 id="位运算">位运算</h4>
-<p>Bash 支持二进制位运算符</p>
-<ul>
-<li>&lt;&lt;：位左移运算，把一个数字的所有位向左移动指定的位。</li>
-<li>&gt;&gt;：位右移运算，把一个数字的所有位向右移动指定的位。</li>
-<li>&amp;：位的“与”运算，对两个数字的所有位执行一个AND操作。</li>
-<li>|：位的“或”运算，对两个数字的所有位执行一个OR操作。</li>
-<li>~：位的“否”运算，对一个数字的所有位取反。</li>
-<li>!：逻辑“否”运算</li>
-<li>^：位的异或运算（exclusive or），对两个数字的所有位执行一个异或操作。</li>
-</ul>
-<h4 id="逻辑运算">逻辑运算</h4>
-<p>Bash 支持逻辑运算符</p>
-<ul>
-<li>&lt;/-lt：小于</li>
-<li>&gt;/-gt：大于</li>
-<li>&lt;=/-le：小于或相等</li>
-<li>&gt;=/ge：大于或相等</li>
-<li>==/-eq：相等</li>
-<li>!=/-ne：不相等</li>
-<li>&amp;&amp;：逻辑与</li>
-<li>||：逻辑或</li>
-<li>expr1?expr2:expr3：三元条件运算符。若表达式expr1的计算结果为非零值（算术真），则执行表达式expr2，否则执行表达式expr3。</li>
-</ul>
-<h4 id="赋值与求值运算">赋值与求值运算</h4>
-<p>逗号,在$((...))内部是求值运算符，执行前后两个表达式，并返回后一个表达式的值。</p>
-<pre><code>echo $((foo = 1 + 2, 3 * 4))
-echo ${foo}
-# 输出
-12
-3
-
-</code></pre>
-<p>赋值运算如下：</p>
-<ul>
-<li>parameter = value：简单赋值。</li>
-<li>parameter += value：等价于parameter = parameter + value。</li>
-<li>parameter -= value：等价于parameter = parameter – value。</li>
-<li>parameter *= value：等价于parameter = parameter * value。</li>
-<li>parameter /= value：等价于parameter = parameter / value。</li>
-<li>parameter %= value：等价于parameter = parameter % value。</li>
-<li>parameter &lt;&lt;= value：等价于parameter = parameter &lt;&lt; value。</li>
-<li>parameter &gt;&gt;= value：等价于parameter = parameter &gt;&gt; value。</li>
-<li>parameter &amp;= value：等价于parameter = parameter &amp; value。</li>
-<li>parameter |= value：等价于parameter = parameter | value。</li>
-<li>parameter ^= value：等价于parameter = parameter ^ value。</li>
-</ul>
-<pre><code>echo $((foo = 3))
-echo $((foo *= 2))
-# 输出
-3
-6
-
-</code></pre>
-<h2 id="流程控制">流程控制</h2>
-<h3 id="条件判断">条件判断</h3>
-<p>1、简单if语句</p>
-<pre><code># 简单if语句
-if condition
-then
-    command
-fi
-
-</code></pre>
-<p>2、if else语句</p>
-<pre><code># if else语句
-if condition
-then
-    command
-else
-    command
-fi
-
-</code></pre>
-<p>3、if else-if else语句</p>
-<pre><code># if else-if else语句
-if condition1
-then
-    command1
-elif condition2 
-then 
-    command2
-else
-    commandN
-fi
-
-</code></pre>
-<pre><code># 例子
-a=10
-b=20
-# [[ ]]使用在条件判断中，能够防止脚本中的许多逻辑错误。比如，&amp;&amp;、||、&lt; 和 &gt; 操作符能够正常存在于 [[ ]] 条件判断结构中，但是如果出现在 [ ] 结构中的话，会报错。
-# 执行的时候，需要用bash test.sh；因为[[]]是bash脚本中的命令（bash是sh的增强版本）。
-if [[ ${a} &lt; ${b} ]]
-then
-    echo &quot;a &lt; b&quot;
-else
-    echo &quot;a &gt;= b&quot;
-fi
-
-</code></pre>
-<h3 id="循环语句">循环语句</h3>
-<p>Bash 提供三种循环语法for、while和until。</p>
-<p>while循环有一个判断条件，只要符合条件，就不断循环执行指定的语句。关键字do可以跟while不在同一行，这时两者之间不需要使用分号分隔。</p>
-<pre><code>while condition; do
-  commands
-done
-
-</code></pre>
-<p>until循环与while循环恰好相反，只要不符合判断条件（判断条件失败），就不断循环执行指定的语句。一旦符合判断条件，就退出循环。关键字do可以与until不写在同一行，这时两者之间不需要分号分隔。</p>
-<pre><code>until condition; do
-  commands
-done
-
-</code></pre>
-<p>for...in循环用于遍历列表中的每一项。关键词do可以跟for写在同一行，两者使用分号分隔。</p>
-<pre><code>for variable in list
-do
-  commands
-done
-
-</code></pre>
-<p>for循环支持C语言的循环语法。</p>
-<pre><code># expression1用来初始化循环条件，expression2用来决定循环结束的条件，
-# expression3在每次循环迭代的末尾执行，用于更新值。
-# 注意，循环条件放在双重圆括号之中。另外，圆括号之中使用变量，不必加上美元符号$。
-for (( expression1; expression2; expression3 )); do
-  commands
-done
-
-# 等同于下述表达式
-(( expression1 ))
-while (( expression2 )); do
-  commands
-  (( expression3 ))
-done
-
-# 例子
-for (( i=0; i&lt;5; i=i+1 )); do
-  echo $i
-done
-
-</code></pre>
-<p>Bash 提供了两个内部命令break和continue，用来在循环内部跳出循环。</p>
-<p>break命令立即终止循环，程序继续执行循环块之后的语句，即不再执行剩下的循环。</p>
-<p>continue命令立即终止本轮循环，开始执行下一轮循环。</p>
-<pre><code># break
-a=(first second third)
-for i in ${a[*]}; do
-    echo ${i}
-    if [[ ${i} == &quot;first&quot; ]]; then break; fi
-done
-
-# continue
-a=(first second third)
-for i in ${a[*]}; do
-    if [[ ${i} == &quot;second&quot; ]]; then continue; fi
-    echo ${i}
-done
-
-</code></pre>
-<h2 id="函数">函数</h2>
-<p>函数（function）是可以重复使用的代码片段，有利于代码的复用。它与别名（alias）的区别是，别名只适合封装简单的单个命令，函数则可以封装复杂的多行命令。</p>
-<p>函数总是在当前 Shell 执行，这是跟脚本的一个重大区别，Bash 会新建一个子 Shell 执行脚本。如果函数与脚本同名，函数会优先执行。但是，函数的优先级不如别名，即如果函数与别名同名，那么别名优先执行。</p>
-<pre><code># 第一种
-fn() {
-  # codes
-}
-# 第二种
-function fn() {
-  # codes
-}
-
-</code></pre>
-<p>$1~$9：函数的第一个到第9个的参数。如果函数的参数多于9个，那么第10个参数可以用${10}的形式引用，以此类推</p>
-<pre><code>printParam(){
-    echo &quot;first param is $1&quot;
-}
-printParam wqrwq
-
-function log_msg(){
-    echo &quot;[$(date '+%F %T')]: $@&quot;
-}
-log_msg this is sample log message
-
-</code></pre>
-<p>函数体内支持局部变量的声明。同时，也支持修改全局变量。</p>
-<pre><code>function fn(){
-    local str=paramValue
-    echo &quot;local: str=${str}&quot;
-}
-fn
-echo &quot;global: str=${str}&quot;
-
-</code></pre>
 ]]></content>
     </entry>
 </feed>
