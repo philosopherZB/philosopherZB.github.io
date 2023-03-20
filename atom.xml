@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://philosopherzb.github.io</id>
     <title>Philosopher</title>
-    <updated>2023-03-20T07:42:28.299Z</updated>
+    <updated>2023-03-20T08:34:55.926Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://philosopherzb.github.io"/>
     <link rel="self" href="https://philosopherzb.github.io/atom.xml"/>
@@ -10,6 +10,2150 @@
     <logo>https://philosopherzb.github.io/images/avatar.png</logo>
     <icon>https://philosopherzb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2023, Philosopher</rights>
+    <entry>
+        <title type="html"><![CDATA[深入Redis之持久化]]></title>
+        <id>https://philosopherzb.github.io/post/shen-ru-redis-zhi-chi-jiu-hua/</id>
+        <link href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-chi-jiu-hua/">
+        </link>
+        <updated>2023-01-31T08:26:07.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Redis持久化。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/himalayas-2301040_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="持久化">持久化</h2>
+<h3 id="持久化简介">持久化简介</h3>
+<p>Redis 是一个键值对数据库服务器，服务器中通常包括任意个非空数据库，其中每个非空数据库都允许存在任意个键值对。</p>
+<p>众所周知，Redis是内存数据库，它将自己的数据存储在内存中。这样一旦服务器进程退出(断电、重启等原因)，那么数据将会丢失。为了解决这个问题，Redis提供了两种持久化的方式来将数据持久化到硬盘上，即内存快照(RDB)与AOF日志。</p>
+<h3 id="rdb文件的创建">RDB文件的创建</h3>
+<p>有两个Redis命令可用于手动触发创建RDB文件，分别为SAVE以及BGSAVE。</p>
+<p>其中SAVE命令会阻塞Redis服务器进程（redis为单进程服务），直到RDB文件创建完毕为止，在这个过程中，服务器无法处理其他任何命令请求。</p>
+<p>和SAVE命令直接阻塞服务器进程的做法不同，BGSAVE命令会派生一个子进程，然后由子进程来创建对应的RDB文件，原服务器进程（父进程）任可继续处理其他命令请求。</p>
+<p>注意1：Redis单线程模型就决定了，我们要尽量避免所有会阻塞主线程的操作，由于Save命令执行期间会阻塞服务器进程，对于内存比较大的实例会造成长时间阻塞，因此线上环境不建议使用。</p>
+<p>注意2：在bgsave命令执行的时候，为了避免父进程与子进程同时执行两个rdbSave的调用而产生竞争条件，客户端发送的save命令会被服务器拒绝。如果bgsave命令正在执行，bgrewriteaof（aof重写）命令会被延迟到bgsave命令之后执行，如果bgrewriteaof命令正在执行，那么客户端发送的bgsave命令会被服务器拒绝。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320020.png" alt="" loading="lazy"></figure>
+<h4 id="save命令源码">save命令源码</h4>
+<pre><code>// rdb.c
+// save命令---在redis-cli下调用对应的save时，会触发该函数执行
+void saveCommand(client *c) {
+    // 检测后台是否已存在运行中的save操作，如果是则拒绝当前save操作
+    if (server.child_type == CHILD_TYPE_RDB) {
+        addReplyError(c,&quot;Background save already in progress&quot;);
+        return;
+    }
+    rdbSaveInfo rsi, *rsiptr;
+    rsiptr = rdbPopulateSaveInfo(&amp;rsi);
+    // 执行具体的rdb文件生成操作
+    if (rdbSave(SLAVE_REQ_NONE,server.rdb_filename,rsiptr) == C_OK) {
+        addReply(c,shared.ok);
+    } else {
+        addReplyErrorObject(c,shared.err);
+    }
+}
+
+/* Save the DB on disk. Return C_ERR on error, C_OK on success. */
+int rdbSave(int req, char *filename, rdbSaveInfo *rsi) {
+    char tmpfile[256];
+    char cwd[MAXPATHLEN]; /* Current working dir path for error messages. */
+    FILE *fp = NULL;
+    rio rdb;
+    int error = 0;
+
+    // 1、创建临时文件并打开
+    snprintf(tmpfile,256,&quot;temp-%d.rdb&quot;, (int) getpid());
+    fp = fopen(tmpfile,&quot;w&quot;);
+    if (!fp) {
+        char *str_err = strerror(errno);
+        char *cwdp = getcwd(cwd,MAXPATHLEN);
+        serverLog(LL_WARNING,
+            &quot;Failed opening the temp RDB file %s (in server root dir %s) &quot;
+            &quot;for saving: %s&quot;,
+            tmpfile,
+            cwdp ? cwdp : &quot;unknown&quot;,
+            str_err);
+        return C_ERR;
+    }
+
+    // 2、创建并初始化rio，rio是redis对io的抽象，提供了常用的read，write，flush，checksum等函数
+    rioInitWithFile(&amp;rdb,fp);
+    startSaving(RDBFLAGS_NONE);
+
+    if (server.rdb_save_incremental_fsync)
+        rioSetAutoSync(&amp;rdb,REDIS_AUTOSYNC_BYTES);
+    // 3、将内存信息同步至临时文件中
+    if (rdbSaveRio(req,&amp;rdb,&amp;error,RDBFLAGS_NONE,rsi) == C_ERR) {
+        errno = error;
+        goto werr;
+    }
+
+    /* Make sure data will not remain on the OS's output buffers */
+    // 4、将临时文件的内容刷新至磁盘，最后关闭rio，确保操作系统的输出缓冲区不再保留数据
+    if (fflush(fp)) goto werr;
+    if (fsync(fileno(fp))) goto werr;
+    if (fclose(fp)) { fp = NULL; goto werr; }
+    fp = NULL;
+  
+    /* Use RENAME to make sure the DB file is changed atomically only
+     * if the generate DB file is ok. */
+    // 5、将临时文件重命名为正式文件名
+    if (rename(tmpfile,filename) == -1) {
+        char *str_err = strerror(errno);
+        char *cwdp = getcwd(cwd,MAXPATHLEN);
+        serverLog(LL_WARNING,
+            &quot;Error moving temp DB file %s on the final &quot;
+            &quot;destination %s (in server root dir %s): %s&quot;,
+            tmpfile,
+            filename,
+            cwdp ? cwdp : &quot;unknown&quot;,
+            str_err);
+        unlink(tmpfile);
+        stopSaving(0);
+        return C_ERR;
+    }
+    // 6、将server.dirty清零，server.dirty是用了记录在上次生成rdb后有多少次数据变更，会在serverCron中用到。
+    serverLog(LL_NOTICE,&quot;DB saved on disk&quot;);
+    server.dirty = 0;
+    server.lastsave = time(NULL);
+    server.lastbgsave_status = C_OK;
+    stopSaving(1);
+    return C_OK;
+
+werr:
+    serverLog(LL_WARNING,&quot;Write error saving DB on disk: %s&quot;, strerror(errno));
+    if (fp) fclose(fp);
+    unlink(tmpfile);
+    stopSaving(0);
+    return C_ERR;
+}
+
+</code></pre>
+<h4 id="bgsave命令源码">bgsave命令源码</h4>
+<pre><code>// rdb.c
+// bgsave命令---在redis-cli下调用对应的bgsave时，会触发该函数执行
+/* BGSAVE [SCHEDULE] */
+void bgsaveCommand(client *c) {
+    int schedule = 0;
+
+    /* The SCHEDULE option changes the behavior of BGSAVE when an AOF rewrite
+     * is in progress. Instead of returning an error a BGSAVE gets scheduled. */
+     // 当 AOF 重写正在进行时，SCHEDULE 选项会更改 BGSAVE 的行为。 BGSAVE 将会延时执行而不是返回错误。
+    if (c-&gt;argc &gt; 1) {
+        if (c-&gt;argc == 2 &amp;&amp; !strcasecmp(c-&gt;argv[1]-&gt;ptr,&quot;schedule&quot;)) {
+            schedule = 1;
+        } else {
+            addReplyErrorObject(c,shared.syntaxerr);
+            return;
+        }
+    }
+
+    rdbSaveInfo rsi, *rsiptr;
+    rsiptr = rdbPopulateSaveInfo(&amp;rsi);
+    // 判断是否存在bgsave正在运行
+    if (server.child_type == CHILD_TYPE_RDB) {
+        addReplyError(c,&quot;Background save already in progress&quot;);
+    } else if (hasActiveChildProcess() || server.in_exec) {
+        // 如果bgsave已经在执行中了，这次执行会放到serverCron中执行
+        if (schedule || server.in_exec) {
+            server.rdb_bgsave_scheduled = 1;
+            addReplyStatus(c,&quot;Background saving scheduled&quot;);
+        } else {
+            addReplyError(c,
+            &quot;Another child process is active (AOF?): can't BGSAVE right now. &quot;
+            &quot;Use BGSAVE SCHEDULE in order to schedule a BGSAVE whenever &quot;
+            &quot;possible.&quot;);
+        }
+    } else if (rdbSaveBackground(SLAVE_REQ_NONE,server.rdb_filename,rsiptr) == C_OK) {
+        addReplyStatus(c,&quot;Background saving started&quot;);
+    } else {
+        addReplyErrorObject(c,shared.err);
+    }
+}
+
+// 后台执行rdbsave
+int rdbSaveBackground(int req, char *filename, rdbSaveInfo *rsi) {
+    pid_t childpid;
+
+    if (hasActiveChildProcess()) return C_ERR;
+    server.stat_rdb_saves++;
+
+    server.dirty_before_bgsave = server.dirty;
+    server.lastbgsave_try = time(NULL);
+    // 创建子进程，redisFork函数是对fork的封装
+    if ((childpid = redisFork(CHILD_TYPE_RDB)) == 0) {
+        int retval;
+
+        /* Child */
+        redisSetProcTitle(&quot;redis-rdb-bgsave&quot;);
+        redisSetCpuAffinity(server.bgsave_cpulist);
+        // 实际上依旧是调用了rdbsave函数进行rdb文件生成操作
+        retval = rdbSave(req, filename,rsi);
+        if (retval == C_OK) {
+            sendChildCowInfo(CHILD_INFO_TYPE_RDB_COW_SIZE, &quot;RDB&quot;);
+        }
+        exitFromChild((retval == C_OK) ? 0 : 1);
+    } else {
+        /* Parent */
+        // 创建子进程失败
+        if (childpid == -1) {
+            server.lastbgsave_status = C_ERR;
+            serverLog(LL_WARNING,&quot;Can't save in background: fork: %s&quot;,
+                strerror(errno));
+            return C_ERR;
+        }
+        // 已经存在正在运行的子进程
+        serverLog(LL_NOTICE,&quot;Background saving started by pid %ld&quot;,(long) childpid);
+        server.rdb_save_time_start = time(NULL);
+        server.rdb_child_type = RDB_CHILD_TYPE_DISK;
+        return C_OK;
+    }
+    return C_OK; /* unreached */
+}
+
+</code></pre>
+<h4 id="自动触发">自动触发</h4>
+<p>除了上述说到的两个手动生成rdb文件的命令外，redis还提供了自动生成rdb文件的机制。只需在redis.conf文件中配置对应的save选项，便可让服务器每隔一段时间自动执行一次bgsave命令。源码如下：</p>
+<pre><code>// redis.conf
+# Save the DB to disk.
+#
+# save &lt;seconds&gt; &lt;changes&gt; [&lt;seconds&gt; &lt;changes&gt; ...]
+#
+# Redis will save the DB if the given number of seconds elapsed and it
+# surpassed the given number of write operations against the DB.
+#
+# Snapshotting can be completely disabled with a single empty string argument
+# as in following example:
+#
+# save &quot;&quot;
+#
+# Unless specified otherwise, by default Redis will save the DB:
+#   * After 3600 seconds (an hour) if at least 1 change was performed
+#   * After 300 seconds (5 minutes) if at least 100 changes were performed
+#   * After 60 seconds if at least 10000 changes were performed
+#
+# You can set these explicitly by uncommenting the following line.
+#
+# save 3600 1 300 100 60 10000
+// 以下配置生效后，将会在对应的时刻自动触发bgsave命令执行，从而生成快照rdb文件
+save 3600 1 # 服务器在3600秒内对数据库进行了至少1次修改
+save 300 100 # 服务器在300秒内对数据库进行了至少100次修改
+save 60 10000 # 服务器在60秒内对数据库进行了至少10000次修改
+
+</code></pre>
+<h4 id="快照数据">快照数据</h4>
+<p>Redis的快照本质上是在某一时刻对内存中的全量数据进行一次写入磁盘操作。在此过程中，redis采用了写时复制(copy-on-write)技术，以保证数据修改可以同步至快照中。</p>
+<p>在redis的写时复制流程中，bgsave fork子进程的时候，并不会完全复制主进程的内存数据，而是只复制必要的虚拟数据结构，并不为其分配真实的物理空间，它与父进程共享同一个物理内存空间。</p>
+<p>bgsave 子进程运行后，开始读取主线程的内存数据，并把它们写入 RDB 文件。此时，如果主线程对这些数据也都是读操作，那么，主线程和 bgsave 子进程相互不影响。但是，如果主线程要修改一块数据，此时会给子进程分配一块物理内存空间，把要修改的数据复制一份，生成该数据的副本到子进程的物理内存空间。然后，bgsave 子进程会把这个副本数据写入 RDB 文件，而在这个过程中，主线程仍然可以直接修改原来的数据。</p>
+<p>写入时复制（英语：Copy-on-write，简称COW）是一种计算机程式设计领域的优化策略。其核心思想是，如果有多个调用者（callers）同时请求相同资源（如内存或磁盘上的数据存储），他们会共同取得相同的指标指向相同的资源，直到某个调用者试图修改资源的内容时，系统才会真正复制一份专用副本（private copy）给该调用者，而其他调用者所见到的最初的资源仍然保持不变。这过程对其他的调用者都是透明的。此作法主要的优点是如果调用者没有修改该资源，就不会有副本（private copy）被建立，因此多个调用者只是读取操作时可以共享同一份资源。</p>
+<p>快照执行间隔时间越长，那么出现意外导致的数据丢失就会越多，为了防止大量数据丢失，是不是可以尽可能的降低快照执行间隔呢？</p>
+<p>其实不然，一方面，持久化是一个写入磁盘的过程，频繁将全量数据写入磁盘，会给磁盘带来很大压力，频繁执行快照也容易导致前一个快照还没有执行完，后一个又开始了，这样多个快照竞争有限的磁盘带宽，容易造成恶性循环。</p>
+<p>再者，bgsave所fork出来的子进程执行操作虽然并不会阻塞父进程的操作，但是fork出子进程的操作却是由主进程完成的，会阻塞主进程，fork子进程需要拷贝进程必要的数据结构，其中有一项就是拷贝内存页表（虚拟内存和物理内存的映射索引表），这个拷贝过程会消耗大量CPU资源，拷贝完成之前整个进程是会阻塞的，阻塞时间取决于整个实例的内存大小，实例越大，内存页表越大，fork阻塞时间也就越久。</p>
+<p>所以快照的执行间隔需要经过严格的数据测试才能得到一个相对合理的时间。</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320021.png" alt="img" loading="lazy"></figure>
+<h3 id="aof持久化的实现">AOF持久化的实现</h3>
+<p>从上节中可以发现，RDB形式的存储方式存在一定的问题，无论是间隔过长导致的数据丢失还是频繁操作所带来的性能消耗在一定程度上都令人无法忍受；为了解决RDB文件存储的劣势，redis还推出了另一种存储方式--AOF。</p>
+<p>与RDB持久化通过保存数据库中的键值对来记录数据库状态不同，AOF持久化是通过保存Redis服务器所执行的写命令来记录数据库状态的。即，每执行一个写命令，就把该命令记录到日志文件中。</p>
+<p>需要注意的是，数据写入日志文件的操作是在Redis执行命令将数据写入内存之后。这样做的好处是不会阻塞当前操作，也可以避免额外的检查开销。</p>
+<p>当然，这样也会出现另外的问题。例如，当写入日志文件失败的时候，操作命令依旧会丢失，且写日志本身也是由主进程来进行处理，当数据过多的情况下，对后续执行命令存在一定的影响。</p>
+<p>为了解决上述可能出现的问题，Redis利用了aof缓冲区来缓存写日志文件的操作命令。即操作命令会同步写入aof_buf中，之后便依据配置的刷盘策略进行数据写入硬盘操作。</p>
+<p>Redis AOF 提供了三种回写磁盘的策略，默认：everysec。</p>
+<ul>
+<li>Always(同步写回): 命令写入 AOF缓冲区后调用系统 fsync操作同步到AOF文件, fsync完成后线程返回。速度最慢但最安全。</li>
+<li>Everysec(每秒写回): 命令写人 AOF缓冲区后调用系统 write操作, write完成后线程返回。fsync同步文件操作由专门线程每秒调用一次。最多丢失一秒钟的数据，速度却得到了很大提升，为默认配置。</li>
+<li>No(操作系统自动写回): 命令写入 AOF缓冲区后调用系统 write操作,不对AOF文件做 fsync同步,同步硬盘操作由操作系统负责,通常同步周期最长30秒。速度最快，但最不安全，一旦出现故障，未同步进硬盘的资源都将丢失。</li>
+</ul>
+<pre><code>// redis.conf
+# The fsync() call tells the Operating System to actually write data on disk
+# instead of waiting for more data in the output buffer. Some OS will really flush
+# data on disk, some other OS will just try to do it ASAP.
+#
+# Redis supports three different modes:
+#
+# no: don't fsync, just let the OS flush the data when it wants. Faster.
+# always: fsync after every write to the append only log. Slow, Safest.
+# everysec: fsync only one time every second. Compromise.
+#
+# The default is &quot;everysec&quot;, as that's usually the right compromise between
+# speed and data safety. It's up to you to understand if you can relax this to
+# &quot;no&quot; that will let the operating system flush the output buffer when
+# it wants, for better performances (but if you can live with the idea of
+# some data loss consider the default persistence mode that's snapshotting),
+# or on the contrary, use &quot;always&quot; that's very slow but a bit safer than
+# everysec.
+#
+# More details please check the following article:
+# http://antirez.com/post/redis-persistence-demystified.html
+#
+# If unsure, use &quot;everysec&quot;.
+
+# appendfsync always
+appendfsync everysec
+# appendfsync no
+
+</code></pre>
+<h4 id="aof重写">AOF重写</h4>
+<p>Redis中AOF命令追加随着时间的增长会导致对应的aof文件越来越大，过大的aof文件不仅让追加命令变慢，还会影响redis服务器以及宿主机(存储资源占用过多)，且还原数据时，也会十分缓慢。这个时候便需要使用AOF重写机制来缩小aof文件大小。</p>
+<pre><code>redis&gt; set key v1
+OK
+redis&gt; set key v2
+OK
+redis&gt; set key v3
+OK
+redis&gt; set key v4
+OK
+
+</code></pre>
+<p>AOF文件是以追加的方式，逐一记录接收到的写命令的。当一个键值对被多条写命令反复修改时，AOF 文件会记录相应的多条命令。如上示例，我们执行完命令后，Redis会在AOF里面追加4条命令。但实际上只需要set key v4一条命令就够了。</p>
+<p>Redis首先会从数据库中读取所有的数据键值，然后用一条命令将其存入aof文件中，用以代替对同一数据键多次的写操作(如果存在多次写操作)。这就是aof重写的基本原理。</p>
+<p>AOF重写时会进行大量的写操作，如果在redis主进程中来处理，将会导致长时间的进程阻塞，很显然，作为一种持久化的辅佐手段，redis是不希望它来阻塞主进程的。</p>
+<p>因此，redis将AOF重写程序放在了子进程中执行，这样有两个好处：</p>
+<ul>
+<li>子进程进行AOF重写期间，redis主进程依旧可以继续处理命令请求。</li>
+<li>子进程带有服务器进程的数据副本，使用子进程而不是线程，可以在避免使用锁的情况下，保证数据的安全性。</li>
+</ul>
+<p>当然，使用子进程处理aof重写，也面临着一个问题，那就是服务进程在aof重写过程中依旧在接受客户端的命令请求，而其中就可能存在写命令操作。写命令操作可能会对现有数据库值进行修改或新增，如果子进程对服务进程的新命令不作任何处理，那么将会导致服务器当前的数据库键值与重写后的aof文件所保存的数据库键值不一致。</p>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>服务器进程</th>
+<th>子进程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>执行命令 set k1 v1</td>
+<td></td>
+</tr>
+<tr>
+<td>T2</td>
+<td>执行命令 set k1 v2</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td>执行命令 set k1 v3</td>
+<td></td>
+</tr>
+<tr>
+<td>T4</td>
+<td>创建子进程，执行aof重写</td>
+<td>开始aof重写</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>执行命令 set k2 v2</td>
+<td>执行重写操作</td>
+</tr>
+<tr>
+<td>T6</td>
+<td>执行命令 set k3 v3</td>
+<td>执行重写操作</td>
+</tr>
+<tr>
+<td>T7</td>
+<td>执行命令 set k4 v4</td>
+<td>完成aof重写操作</td>
+</tr>
+</tbody>
+</table>
+<p>如上表所示，当子进程开始进行aof重写时，数据库仅有k1一个键，但当子进程完成aof重写后，数据库中已经新设置了k2，k3，k4三个键。由此可以看出，重写后的aof文件与当前服务器数据库不一致。</p>
+<p>为了解决上述问题，redis设置了一个aof重写缓冲区，这个缓冲区在服务器创建子进程后开始使用。这个时候，当redis服务器执行新的写命令时，该命令会同时存储到aof缓冲区以及aof重写缓冲区中。</p>
+<p>如下图所示，在子进程执行aof重写期间，服务器进程需要执行以下步骤：</p>
+<ol>
+<li>接受客户端传入的命令。</li>
+<li>执行命令，更新内存中的值。</li>
+<li>将执行命令记录到aof缓冲区。</li>
+<li>将执行命令记录到aof重写后缓冲区。</li>
+</ol>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320022.png" alt="" loading="lazy"></figure>
+<p>当子进程完成aof重写后，它会向服务器进程发送一个信号，服务器进程接收到信号后，将会执行一个信号函数，将aof重写缓冲区中的所有内容追加到新aof文件中，这便可以保证新aof文件与当前数据库中数据状态保持一致。同时，该函数还会对新的aof文件进行重命名，原子的覆盖现有的aof文件，至此，新旧aof文件的替换便已完成。</p>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>服务器进程</th>
+<th>子进程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>执行命令 set k1 v1</td>
+<td></td>
+</tr>
+<tr>
+<td>T2</td>
+<td>执行命令 set k1 v2</td>
+<td></td>
+</tr>
+<tr>
+<td>T3</td>
+<td>执行命令 set k1 v3</td>
+<td></td>
+</tr>
+<tr>
+<td>T4</td>
+<td>创建子进程，执行aof重写</td>
+<td>开始aof重写</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>执行命令 set k2 v2</td>
+<td>执行重写操作</td>
+</tr>
+<tr>
+<td>T6</td>
+<td>执行命令 set k3 v3</td>
+<td>执行重写操作</td>
+</tr>
+<tr>
+<td>T7</td>
+<td>执行命令 set k4 v4</td>
+<td>完成aof重写操作，向服务器进程发送信号</td>
+</tr>
+<tr>
+<td>T8</td>
+<td>接收子进程信号，将T5，T6，T7三个时间点的新命令追加到新aof文件中</td>
+<td></td>
+</tr>
+<tr>
+<td>T9</td>
+<td>用新的aof文件覆盖已有的旧aof文件</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[深入Redis之内存淘汰策略]]></title>
+        <id>https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-cun-tao-tai-ce-lue/</id>
+        <link href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-cun-tao-tai-ce-lue/">
+        </link>
+        <updated>2023-01-07T08:19:43.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Redis内存淘汰策略。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/tree-736881_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="内存淘汰策略">内存淘汰策略</h2>
+<h3 id="内存淘汰概述">内存淘汰概述</h3>
+<p>redis 是内存数据库，可以通过 redis.conf 配置 maxmemory，也可以通过 congfig set 命令进行设置maxmemory，限制 redis 内存使用量。</p>
+<p>当 redis 主库内存超出限制时，命令处理将会触发数据淘汰机制，淘汰（key-value）数据，直至当前内存使用量小于限制阈值。</p>
+<p>由于需要淘汰掉key，所以此时redis不适合用作key-value数据库了，开启了内存淘汰的redis一般用于缓存中，因此很多人也把他叫缓存淘汰和缓存淘汰策略。</p>
+<p>又因为内存淘汰的触发时机是内存使用达到阈值，为了存储新的key然后淘汰旧的key，因此也有人把内存淘汰策略叫做缓存替换策略。</p>
+<p>注意： maxmemory-policy 默认为noeviction；不配置 maxmemory 的值时，将默认为0；如果需要更改maxmemory 值，需要将maxmemory-policy 设置为非noeviction 策略。</p>
+<pre><code>// 文件地址： redis.config
+# In short... if you have replicas attached it is suggested that you set a lower
+# limit for maxmemory so that there is some free RAM on the system for replica
+# output buffers (but this is not needed if the policy is 'noeviction').
+#
+# maxmemory &lt;bytes&gt;
+
+# MAXMEMORY POLICY: how Redis will select what to remove when maxmemory
+# is reached. You can select one from the following behaviors:
+#
+# volatile-lru -&gt; Evict using approximated LRU, only keys with an expire set.
+# allkeys-lru -&gt; Evict any key using approximated LRU.
+# volatile-lfu -&gt; Evict using approximated LFU, only keys with an expire set.
+# allkeys-lfu -&gt; Evict any key using approximated LFU.
+# volatile-random -&gt; Remove a random key having an expire set.
+# allkeys-random -&gt; Remove a random key, any key.
+# volatile-ttl -&gt; Remove the key with the nearest expire time (minor TTL)
+# noeviction -&gt; Don't evict anything, just return an error on write operations.
+
+# LRU means Least Recently Used
+# LFU means Least Frequently Used
+
+# The default is:
+# maxmemory-policy noeviction
+
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>noeviction</td>
+<td>不淘汰任何数据，写入操作将会返回错误，允许读操作以及删除操作</td>
+</tr>
+<tr>
+<td>volatile-random</td>
+<td>随机删除设置了过期时间的键。</td>
+</tr>
+<tr>
+<td>allkeys-random</td>
+<td>删除随机键，任何键。</td>
+</tr>
+<tr>
+<td>volatile-ttl</td>
+<td>删除最接近到期时间（较小的TTL）的键。 在筛选时，会针对设置了过期时间的键值对，根据过期时间的先后进行删除，越早过期的越先被删除</td>
+</tr>
+<tr>
+<td>volatile-lru</td>
+<td>在设置了过期时间的键中，使用近似的LRU算法淘汰最近最少使用的键。</td>
+</tr>
+<tr>
+<td>allkeys-lru</td>
+<td>使用近似的LRU算法淘汰长时间没有使用的键。</td>
+</tr>
+<tr>
+<td>volatile-lfu</td>
+<td>在设置了过期时间的键中，使用近似的LFU算法淘汰使用频率比较低的键。</td>
+</tr>
+<tr>
+<td>allkeys-lfu</td>
+<td>使用近似的LFU算法淘汰整个数据库的键。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="不淘汰配置noeviction">不淘汰配置（noeviction）</h3>
+<p>当内存淘汰策略使用noeviction时，数据并不会被删除，只是禁止了写入操作。使用这种淘汰策略时，maxmemory需要设置为0，根据不同操作位系统有以下区别。</p>
+<ul>
+<li>64 bit系统：maxmemory 设置为 0 表示不限制 Redis 内存使用。需要注意的是，这种不限制策略可能由于操作系统设置了虚拟内存（部分物理存储会转化为虚拟内存，两者可以进行swap）而导致性能降低。</li>
+<li>32 bit系统：maxmemory 设置为 0 表示限制 Redis 内存，不能超过 3G。</li>
+</ul>
+<pre><code>// 文件地址： server.c
+void initServer(void) {
+    /* 32 bit instances are limited to 4GB of address space, so if there is
+     * no explicit limit in the user provided configuration we set a limit
+     * at 3 GB using maxmemory with 'noeviction' policy'. This avoids
+     * useless crashes of the Redis instance for out of memory. */
+    // 32位的系统会限制内存为4GB，为了防止因内存不足而导致redis崩溃，此处会将其限制为3GB 
+    if (server.arch_bits == 32 &amp;&amp; server.maxmemory == 0) {
+        serverLog(LL_WARNING,&quot;Warning: 32 bit instance detected but no memory limit set. Setting 3 GB maxmemory limit with 'noeviction' policy now.&quot;);
+        server.maxmemory = 3072LL*(1024*1024); /* 3 GB */
+        server.maxmemory_policy = MAXMEMORY_NO_EVICTION;
+    }
+}
+
+</code></pre>
+<h3 id="随机淘汰配置random">随机淘汰配置（random）</h3>
+<p>当程序配置了volatile-random 或者 allkeys-random 两种淘汰策略中的一种时，同时也需要将64bit的操作系统的maxmemory设置为大于0。随机淘汰的实现机制比较简单，它不关注数据使用频率，直接从库中随机挑选数据进行删除操作。</p>
+<pre><code>// 文件地址： evict.c
+int performEvictions(void) {
+        /* volatile-random and allkeys-random policy */
+        else if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_RANDOM ||
+                 server.maxmemory_policy == MAXMEMORY_VOLATILE_RANDOM)
+        {
+            /* When evicting a random key, we try to evict a key for
+             * each DB, so we use the static 'next_db' variable to
+             * incrementally visit all DBs. */
+            // 递增访问所有DB并释放key 
+            for (i = 0; i &lt; server.dbnum; i++) {
+                j = (++next_db) % server.dbnum;
+                db = server.db+j;
+                // 判断淘汰策略针对的是否allkeys, db-&gt;dict：数据库中所有key集合，db-&gt;expire：数据库中过期键集合
+                dict = (server.maxmemory_policy == MAXMEMORY_ALLKEYS_RANDOM) ?
+                        db-&gt;dict : db-&gt;expires;
+                if (dictSize(dict) != 0) {
+                    // 从dict中随机获取需要被淘汰的key
+                    de = dictGetRandomKey(dict);
+                    bestkey = dictGetKey(de);
+                    bestdbid = j;
+                    break;
+                }
+            }
+        }
+}
+
+</code></pre>
+<h3 id="最近最少使用淘汰lru">最近最少使用淘汰（LRU）</h3>
+<p>LRU算法全称是最近最少使用算法（Least Recently Use），广泛的应用于缓存机制中。当缓存使用的空间达到上限后，就需要从已有的数据中淘汰一部分以维持缓存的可用性，而淘汰数据的选择就是通过LRU算法完成的。</p>
+<p>LRU算法的基本思想是基于局部性原理中的时间局部性：如果一个信息量正在被访问，那么在近期该信息量很可能会被再次访问。</p>
+<p>Redis LRU算法并没有精确的实现LRU算法，而是尽可能达到LRU的目的，这意味着redis无法百分百精确的淘汰最久未访问的数据项，当然，redis3.0后其采用了pool的机制，让其更加的接近LRU算法行为。</p>
+<p>Redis LRU主要是通过对少量数据键进行采样，并淘汰其中最久未访问的数据键。默认样本值会被设置为5，这对于redis而言是足够好的，无论是性能还是淘汰率；如果设置为10，会更接近于LRU，但对于CPU的消耗会更大；如果设置为3，淘汰速度将会更快，但不怎么准确。</p>
+<pre><code>// 文件地址： redis.config
+# The default of 5 produces good enough results. 10 Approximates very closely
+# true LRU but costs more CPU. 3 is faster but not very accurate.
+#
+# maxmemory-samples 5
+
+</code></pre>
+<p>Redis 并没有使用真正的LRU实现的原因，是因为它需要更多的内存，而内存对于redis而言是无比重要的。不过，实际上对于使用redis的程序来说，Redis LRU基本等效于真正的LRU算法。如下所示：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320019.png" alt="img" loading="lazy"></figure>
+<p>在图中有三种点，形成三个不同的带。</p>
+<ul>
+<li>浅灰色带是被驱逐的对象。</li>
+<li>灰色带是未被驱逐的对象。</li>
+<li>绿色带是添加的对象。</li>
+</ul>
+<p>如上图所示，与 Redis 2.8 相比，Redis 3.0 的 5 个样本做得更好，但大多数最新访问的对象仍由 Redis 2.8 保留。在 Redis 3.0 中使用 10 的样本大小，该近似值非常接近 Redis 3.0 的理论性能。</p>
+<pre><code>// 文件地址：server.c
+// 执行命令或准备服务器以从客户端进行批量读取。
+int processCommand(client *c) {
+    /* Handle the maxmemory directive.
+     *
+     * Note that we do not want to reclaim memory if we are here re-entering
+     * the event loop since there is a busy Lua script running in timeout
+     * condition, to avoid mixing the propagation of scripts with the
+     * propagation of DELs due to eviction. */
+    // 如果配置了 server.maxmemory 并且 lua脚本没有在超时条件下运行 
+    if (server.maxmemory &amp;&amp; !scriptIsTimedout()) {
+        // performEvictions() 是核心的淘汰函数
+        int out_of_memory = (performEvictions() == EVICT_FAIL);
+   }
+}  
+
+</code></pre>
+<pre><code>// 文件地址： evict.c
+/* 检查内存使用是否在当前的“maxmemory”限制内。如果超过“maxmemory”，尝试通过逐出数据来释放内存（如果这样做是安全的）。
+ *
+ * Redis 可能突然显示超过“maxmemory”设置。如果分配量很大（如哈希表调整大小），
+ * 或者即使手动调整了“maxmemory”设置，也会发生这种情况。因此，在一段可控的时间内驱逐很重要,
+ * 否则 Redis 在驱逐时会变得无响应。
+ *
+ * 此功能的目标是改善记忆状况 - 而不是立即解决它。在某些项目已被驱逐但尚未达到“最大内存”限制的情况下，
+ * 将启动一个 aeTimeProc，它将继续驱逐项目，直到没有其他可驱逐的项目。
+ *
+ * 这应该在执行命令之前调用。如果返回 EVICT_FAIL，则应拒绝会导致内存使用量增加的命令。
+ *
+ * 回报：
+ * EVICT_OK - 内存正常或现在无法执行驱逐
+ * EVICT_RUNNING - 内存超过限制，但驱逐仍在处理
+ * EVICT_FAIL - 内存超过限制，没有什么可以驱逐的
+ */
+int performEvictions(void) {
+}  
+
+</code></pre>
+<pre><code>// 文件地址： evict.c#performEvictions
+// 获取内存状态，判断会否需要进行内存淘汰
+if (getMaxmemoryState(&amp;mem_reported,NULL,&amp;mem_tofree,NULL) == C_OK) {
+    result = EVICT_OK;
+    goto update_metrics;
+}
+// 需要释放内存，但noeviction淘汰策略不允许这样做
+if (server.maxmemory_policy == MAXMEMORY_NO_EVICTION) {
+    result = EVICT_FAIL;  /* We need to free memory, but policy forbids. */
+    goto update_metrics;
+}
+
+</code></pre>
+<pre><code>// 文件地址： evict.c
+/* 从maxmemory指令的角度获取内存状态：
+ * 如果使用的内存低于 maxmemory 设置，则返回 C_OK。
+ * 否则，如果超过内存限制，函数返回
+ * C_ERR。
+ *
+ * 该函数可能会通过引用返回附加信息，仅当
+ * 指向相应参数的指针不为 NULL。某些字段是
+ * 仅在返回 C_ERR 时填充：
+ *
+ * 'total' 使用的总字节数。
+ *（为 C_ERR 和 C_OK 填充）
+ *
+ * 'logical' 使用的内存量减去slaves/AOF缓冲区。
+ *（返回 C_ERR 时填充）
+ *
+ * 'tofree' 为了回到内存限制应该释放的内存量
+ *（返回 C_ERR 时填充）
+ *
+ * 'level' 这通常范围从 0 到 1，并报告数量
+ * 当前使用的内存。如果我们超过了内存限制可能会 &gt; 1。
+ *（为 C_ERR 和 C_OK 填充）
+ */
+int getMaxmemoryState(size_t *total, size_t *logical, size_t *tofree, float *level)
+
+</code></pre>
+<pre><code>// 文件地址： evict.c#performEvictions
+// 需要被淘汰的key
+sds bestkey = NULL;
+// 需要被淘汰的key所属的db id
+int bestdbid;
+// redis db
+redisDb *db;
+// 字典
+dict *dict;
+// 哈希表节点
+dictEntry *de;
+
+// 如果淘汰策略选择了LRU或者LFU或者TTL，则进行如下数据键筛选逻辑
+if (server.maxmemory_policy &amp; (MAXMEMORY_FLAG_LRU|MAXMEMORY_FLAG_LFU) ||
+    server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL)
+{   
+    // 淘汰池，是针对旧版LRU的一个优化，让其更符合真实LRU算法行为
+    struct evictionPoolEntry *pool = EvictionPoolLRU;
+
+    while(bestkey == NULL) {
+        unsigned long total_keys = 0, keys;
+
+        /* We don't want to make local-db choices when expiring keys,
+         * so to start populate the eviction pool sampling keys from
+         * every DB. */
+        // 遍历所有数据库，选出采样key填充至淘汰池 
+        for (i = 0; i &lt; server.dbnum; i++) {
+            db = server.db+i;
+            // 判断淘汰策略针对的是否allkeys, db-&gt;dict：数据库中所有key集合，db-&gt;expire：数据库中过期键集合
+            dict = (server.maxmemory_policy &amp; MAXMEMORY_FLAG_ALLKEYS) ?
+                    db-&gt;dict : db-&gt;expires;
+            if ((keys = dictSize(dict)) != 0) {
+                // 将需要驱逐的key填充至淘汰池，淘汰key在池内是有序的：按空闲时间升序
+                evictionPoolPopulate(i, dict, db-&gt;dict, pool);
+                // 已遍历检查过的key数量
+                total_keys += keys;
+            }
+        }
+        if (!total_keys) break; /* No keys to evict. */
+
+        /* Go backward from best to worst element to evict. */
+        // 从驱逐池末尾（空闲时间最长）往前遍历，
+        for (k = EVPOOL_SIZE-1; k &gt;= 0; k--) {
+            if (pool[k].key == NULL) continue;
+            // 获取当前key所在数据库的id
+            bestdbid = pool[k].dbid;
+
+            // 如果针对的是所有数据键，则从dict中取所有数据
+            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_ALLKEYS) {
+                de = dictFind(server.db[bestdbid].dict,
+                    pool[k].key);
+            } else {
+                // 如果针对的是过期数据键，则从expires中取过期数据
+                de = dictFind(server.db[bestdbid].expires,
+                    pool[k].key);
+            }
+
+            /* Remove the entry from the pool. */
+            if (pool[k].key != pool[k].cached)
+                sdsfree(pool[k].key);
+            pool[k].key = NULL;
+            pool[k].idle = 0;
+
+            /* If the key exists, is our pick. Otherwise it is
+             * a ghost and we need to try the next element. */
+            // 如果这个节点存在，就跳出这个循环，否则尝试下一个元素。 
+            if (de) {
+                bestkey = dictGetKey(de);
+                break;
+            } else {
+                /* Ghost... Iterate again. */
+            }
+        }
+    }
+}
+
+</code></pre>
+<pre><code>// 文件地址： evict.c
+// 填充淘汰池
+/* 
+ * 这是 performEvictions() 的辅助函数，用于在每次我们想要key过期时用一些条目填充 evictionPool。
+ * 
+ * 添加空闲时间大于当前key之一的key。 如果有空闲条目，则一直添加key。
+ * 
+ * 我们按升序将键依次插入，因此空闲时间较小的键在左侧，而空闲时间较长的键在右侧。
+ */
+void evictionPoolPopulate(int dbid, dict *sampledict, dict *keydict, struct evictionPoolEntry *pool) {
+    int j, k, count;
+    // 初始化采样集合
+    dictEntry *samples[server.maxmemory_samples];
+    // 针对字典集进行随机采样
+    count = dictGetSomeKeys(sampledict,samples,server.maxmemory_samples);
+    for (j = 0; j &lt; count; j++) {
+        // 这被称为空闲只是因为代码最初处理的是 LRU，但实际上只是一个分数，分数越高意味着候选者越好。
+        unsigned long long idle;
+        sds key;
+        robj *o;
+        dictEntry *de;
+
+        de = samples[j];
+        key = dictGetKey(de);
+
+        /* 如果我们采样的字典不是主字典（而是过期的字典），我们需要在键字典中再次查找键以获得值对象。*/
+        if (server.maxmemory_policy != MAXMEMORY_VOLATILE_TTL) {
+            if (sampledict != keydict) de = dictFind(keydict, key);
+            o = dictGetVal(de);
+        }
+
+        /* 根据策略计算空闲时间。 这被称为空闲只是因为代码最初处理的是 LRU，
+         * 但实际上只是一个分数，分数越高意味着候选者越好。 */
+        if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LRU) {
+            idle = estimateObjectIdleTime(o);
+        } else if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) {
+            /* 当我们使用 LRU 策略时，我们按空闲时间对密钥进行排序，以便我们从更大的空闲时间开始过期密钥。 
+             * 然而，当策略是 LFU 策略时，我们有一个频率估计，我们希望首先驱逐频率较低的键。 
+             * 因此，在池中，我们使用反转频率减去实际频率到最大频率 255 来放置对象。 */
+            idle = 255-LFUDecrAndReturn(o);
+        } else if (server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL) {
+            // 在这种情况下，越早过期越好。
+            idle = ULLONG_MAX - (long)dictGetVal(de);
+        } else {
+            serverPanic(&quot;Unknown eviction policy in evictionPoolPopulate()&quot;);
+        }
+
+        /* 将元素插入池中。 首先，找到空闲时间小于我们空闲时间的第一个空桶或第一个填充桶。 */
+        k = 0;
+        // 遍历淘汰池，从左边开始，找到第一个空桶或者第一个空闲时间小于待选元素的桶，k是该元素的坐标
+        while (k &lt; EVPOOL_SIZE &amp;&amp;
+               pool[k].key &amp;&amp;
+               pool[k].idle &lt; idle) k++;
+        if (k == 0 &amp;&amp; pool[EVPOOL_SIZE-1].key != NULL) {
+             /* 如果元素小于我们拥有的最差元素并且没有空桶，则无法插入。
+             * 
+             * key == 0 说明上面的while循环一次也没有进入
+             * 要么第一个元素就是空的，要么所有已有元素的空闲时间都大于等于待插入元素的空闲时间（待插入元素比已有所有元素都优质）
+             * 又因为数组最后一个key不为空，因为是从左边开始插入的，所以排除了第一个元素是空的
+             */
+            continue;
+        } else if (k &lt; EVPOOL_SIZE &amp;&amp; pool[k].key == NULL) {
+             /* 插入空桶，插入前无需设置 */
+        } else {
+           /* 插入中间，现在 k 指向比要插入的元素空闲时间大的第一个元素 */
+            if (pool[EVPOOL_SIZE-1].key == NULL) {
+                /* 数组末尾有空桶，将所有元素从 k 向右移动到末尾。*/
+                /* 覆盖前保存 SDS */
+                sds cached = pool[EVPOOL_SIZE-1].cached;
+                // 注意这里不设置 pool[k], 只是给 pool[k] 腾位置
+                memmove(pool+k+1,pool+k,
+                    sizeof(pool[0])*(EVPOOL_SIZE-k-1));
+                pool[k].cached = cached;
+            } else {
+                /* 右边没有可用空间？ 在 k-1 处插入 */
+                k--;
+                /*
+                 * 将k（包含）左侧的所有元素向左移动，因此我们丢弃空闲时间较小的元素。
+                 */
+                sds cached = pool[0].cached; /* Save SDS before overwriting. */
+                if (pool[0].key != pool[0].cached) sdsfree(pool[0].key);
+                memmove(pool,pool+1,sizeof(pool[0])*k);
+                pool[k].cached = cached;
+            }
+        }
+
+         /*
+         * 尝试重用在池条目中分配的缓存 SDS 字符串，因为分配和释放此对象的成本很高
+         * 注意真正要复用的sds内存空间，避免重新申请内存，而不是它的值
+         */
+        int klen = sdslen(key);
+        // 判断字符串长度来决定是否复用sds
+        if (klen &gt; EVPOOL_CACHED_SDS_SIZE) {
+            // 复制一个新的 sds 字符串并赋值
+            pool[k].key = sdsdup(key);
+        } else {
+             /*
+             * 内存拷贝函数，从数据源拷贝num个字节的数据到目标数组
+             * 
+             * destination：指向目标数组的指针 
+             * source：指向数据源的指针 
+             * num：要拷贝的字节数
+             *
+             */
+            // 复用sds对象 
+            memcpy(pool[k].cached,key,klen+1);
+            // 重新设置sds长度
+            sdssetlen(pool[k].cached,klen);
+            // 设置真正的key
+            pool[k].key = pool[k].cached;
+        }
+        // 设置空闲时间
+        pool[k].idle = idle;
+        // 设置key所在db的id
+        pool[k].dbid = dbid;
+    }
+}
+
+</code></pre>
+<pre><code>// 文件地址： evict.c#performEvictions
+// 不断循环删除key，直到释放出足够的内存
+while (mem_freed &lt; (long long)mem_tofree) {
+    // 需要被淘汰的key
+    sds bestkey = NULL;
+    if (server.maxmemory_policy &amp; (MAXMEMORY_FLAG_LRU|MAXMEMORY_FLAG_LFU) ||
+            server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL)
+        {
+            // 省略，具体可参见上一节
+    }
+    /* Finally remove the selected key. */
+    if (bestkey) {
+        db = server.db+bestdbid;
+        robj *keyobj = createStringObject(bestkey,sdslen(bestkey));
+         /* 我们单独计算 db*Delete() 释放的内存量。
+          * 实际上，在 AOF 和复制链接中传播 DEL 所需的内存可能大于我们在删除密钥时释放的内存，
+          * 但我们无法解释这一点，否则我们将永远不会退出循环。
+          *
+          * 与 signalModifiedKey 生成的 CSC 失效消息相同。
+          *
+          * AOF 和输出缓冲内存最终会被释放，所以我们只关心键空间使用的内存。 */
+        // 获取已使用内存  
+        delta = (long long) zmalloc_used_memory();
+        // 开始监控
+        latencyStartMonitor(eviction_latency);
+        // 延迟释放时，异步删除键，否则同步删除
+        // lazyfree的原理就是在删除对象时只是进行逻辑删除，然后把对象丢给后台，
+        // 让后台线程去执行真正的destruct，避免由于对象体积过大而造成阻塞。
+        if (server.lazyfree_lazy_eviction)
+            dbAsyncDelete(db,keyobj);
+        else
+            dbSyncDelete(db,keyobj);
+        // 结束监控  
+        latencyEndMonitor(eviction_latency);
+        latencyAddSampleIfNeeded(&quot;eviction-del&quot;,eviction_latency);
+        // 计算删除key后的内存变化量
+        delta -= (long long) zmalloc_used_memory();
+        // 计算已释放内存
+        mem_freed += delta;
+        server.stat_evictedkeys++;
+        signalModifiedKey(NULL,db,keyobj);
+        // 通知事件，从服务器需要知道某个键已被删除
+        notifyKeyspaceEvent(NOTIFY_EVICTED, &quot;evicted&quot;,
+            keyobj, db-&gt;id);
+        propagateDeletion(db,keyobj,server.lazyfree_lazy_eviction);
+        decrRefCount(keyobj);
+        keys_freed++;
+
+        if (keys_freed % 16 == 0) {
+            /* 当要释放的内存足够大时，可能会在这里花费太多时间，
+             * 以至于无法足够快地将数据传递到副本，因此需要强制在循环内传输。 */
+            if (slaves) flushSlavesOutputBuffers();
+
+            /* 循环停止的条件，是已经释放了预先计算的。内存值
+             * 但是，当我们在另一个线程中删除对象时，最好时不时地检查我们是否已经到达阈值（已释放足够的内存），
+             * 因为“mem_freed”数量仅在 dbAsyncDelete() 调用中计算，而线程可以无时无刻的释放内存。 */
+            if (server.lazyfree_lazy_eviction) {
+                if (getMaxmemoryState(NULL,NULL,NULL,NULL) == C_OK) {
+                    break;
+                }
+            }
+
+            // 一段时间后退出循环，防止因释放大量内存而消耗过多的时间
+            if (elapsedUs(evictionTimer) &gt; eviction_time_limit_us) {
+                // 可以启动一个定时器来释放剩余的大量内存
+                startEvictionTimeProc();
+                break;
+            }
+        }
+    } else {
+        goto cant_free; /* nothing to free... */
+    }   
+}  
+
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[深入Redis之过期策略]]></title>
+        <id>https://philosopherzb.github.io/post/shen-ru-redis-zhi-guo-qi-ce-lue/</id>
+        <link href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-guo-qi-ce-lue/">
+        </link>
+        <updated>2022-12-31T08:15:18.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Redis过期策略。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/lago-di-limides-3025780_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="过期策略">过期策略</h2>
+<h3 id="过期键删除策略">过期键删除策略</h3>
+<p>在redis中，数据库键可以设置过期时间，当达到了指定的过期时间，该数据库键将会被redis删除，主要的删除策略如下：</p>
+<ul>
+<li>定时删除：在设置数据库键的过期时间的同时，创建一个特定的定时器，让此定时器在键的过期时间来临时，执行对应的删除操作。</li>
+<li>惰性删除：此种策略不会主动地去查询过期键并删除，而是被动的执行。使用此种策略时，每次从键空间获取键时，都会检查键是否过期，过期则删除该键，否则返回。</li>
+<li>定期删除：每隔一段时间，程序就对数据库进行一次检查，删除里面的过期键。检查的数据库数目以及删除的过期键数量都由特定的算法所决定。</li>
+</ul>
+<h4 id="定时删除">定时删除</h4>
+<p>定时删除策略对于内存而言是友好的。通过特定的定时器，该策略可以保证过期键会被尽快删除，从而释放过期键所占有的内存。</p>
+<p>不过，该策略对于CPU时间是最不友好的：无论是创建定时器还是删除过期键操作，都会耗费不少CPU时间，尤其当定时器以及过期键十分之多的时候，这个缺点造成的影响将无法忽视。</p>
+<p>例如：如果正有大量的命令请求在等待服务器处理，并且服务器当前不缺少内存，那么服务器应该优先将CPU时间用在处理客户端的命令请求上，而不是去删除过期键。</p>
+<p>一般而言，不会使用该过期策略，因为对性能影响太大，且对CPU很不友好。</p>
+<h4 id="惰性删除">惰性删除</h4>
+<p>惰性删除策略对于CPU时间是最友好的，程序只会在取出键的时候才会对键进行过期性检查，这可以保证删除过期键的操作只会在非做不可的情况下进行(此时如果不删除，客户端收到的将是过期键),并且删除的目标仅限于当前处理的键。</p>
+<p>使用这种删除策略，不会在删除其他无关的过期键上花费任何CPU时间，但同样的，它对于内存而言就非常不友好了。如果一个键已经过期，但并没有被惰性策略调用删除，那么它将一直存留在内存中，变成无法回收的垃圾数据(除非手动进行删除)。</p>
+<p>可想而知，一旦这样的数据多起来，用在无用数据上的内存将会非常庞大，这对于极度依赖内存的redis来说，显然不是一个好消息。</p>
+<h4 id="定期删除">定期删除</h4>
+<p>从上面来看，定时删除占用太多CPU时间，影响服务器的响应时间和吞吐量；而惰性删除则浪费了大量内存，可能会造成内存泄露。为了折合上述两种策略的优势，定期删除便应运而生了。</p>
+<p>定期删除策略每隔一段时间执行一次删除过期键操作，且定期时长以及删除过期键的数量都可以通过后台进行配置，从而减少CPU时耗。与此同时，定期删除也能有效减少因过期键过多而带来的内存浪费。</p>
+<p>需要注意的是：使用定期删除策略，需要合理的控制其定时时长以及执行频率，防止退化为定时删除或者惰性删除。</p>
+<h3 id="redis的过期键删除策略">Redis的过期键删除策略</h3>
+<p>在redis中，主要使用的是惰性删除以及定期删除这两种策略；通过配合使用这两种删除策略，服务器可以很好地在合理使用CPU时间以及避免浪费内存之间取得平衡。</p>
+<h4 id="惰性删除策略的实现">惰性删除策略的实现</h4>
+<p>惰性删除主要由函数expireIfNeeded实现，函数内部会判断键是否过期，过期则删除，否则无操作。</p>
+<pre><code>// 文件地址：db.c
+int expireIfNeeded(redisDb *db, robj *key, int force_delete_expired) {
+    // 键未过期，直接返回
+    if (!keyIsExpired(db,key)) return 0;
+  
+    // 删除操作由主副本执行
+    if (server.masterhost != NULL) {
+        if (server.current_client == server.master) return 0;
+        if (!force_delete_expired) return 1;
+    }
+
+    // 如果客户端暂停，我们将保持当前数据集不变，不过redis服务器仍会将其认为正确的状态返回给客户端。 
+    // 通常在暂停结束时，redis会过期该数据键，或者将故障转移并且新的主节点将向redis发送过期消息。
+    if (checkClientPauseTimeoutAndReturnIfPaused()) return 1;
+
+    /* Delete the key */
+    deleteExpiredKeyAndPropagate(db,key);
+    return 1;
+}
+
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320018.png" alt="img" loading="lazy"></figure>
+<h4 id="定期删除策略的实现">定期删除策略的实现</h4>
+<p>定期删除主要由函数activeExpireCycle实现，函数每次运行时，都从一定数量的数据库中取出一定数量的随机键进行检查，并删除其中的过期键。</p>
+<p>函数中的current_db具备一些全局状态，此变量会记录当前activeExpireCycle函数检查的进度，并在下一次activeExpireCycle函数调用时，接着上一次进度进行处理。比如，当前activeExpireCycle函数在遍历3号数据库返回了，那么下一次activeExpireCycle进来时，将从4号数据库开始查找并删除过期键。</p>
+<p>随着activeExpireCycle函数的不断执行，服务器中的所有数据库都会被检查一遍，到了这时，函数中的current_db变量将重置为0，表示下一次将开始新一轮的检查工作。</p>
+<pre><code>// 文件地址：expire.c
+#define ACTIVE_EXPIRE_CYCLE_KEYS_PER_LOOP 20 /* Keys for each DB loop. */
+#define ACTIVE_EXPIRE_CYCLE_FAST_DURATION 1000 /* Microseconds. */
+#define ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC 25 /* Max % of CPU to use. */
+#define ACTIVE_EXPIRE_CYCLE_ACCEPTABLE_STALE 10 /* % of stale keys after which
+                                                   we do extra efforts. */
+void activeExpireCycle(int type) {
+    /* Adjust the running parameters according to the configured expire
+     * effort. The default effort is 1, and the maximum configurable effort
+    * is 10. */
+    unsigned long
+    // 通过配置的过期因子(expire effort)调整运行参数，该值默认为1，最大为10
+    effort = server.active_expire_effort-1, /* Rescale from 0 to 9. */
+    // 每次循环遍历的键个数
+    config_keys_per_loop = ACTIVE_EXPIRE_CYCLE_KEYS_PER_LOOP +
+                           ACTIVE_EXPIRE_CYCLE_KEYS_PER_LOOP/4*effort,
+    // 快速遍历时间范围            
+    config_cycle_fast_duration = ACTIVE_EXPIRE_CYCLE_FAST_DURATION +
+                                 ACTIVE_EXPIRE_CYCLE_FAST_DURATION/4*effort,
+    // 慢速遍历检查时间片                         
+    config_cycle_slow_time_perc = ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC +
+                                  2*effort,
+    //  已经到期的数据/检查数据，得出一个可以接受的比例                         
+    config_cycle_acceptable_stale = ACTIVE_EXPIRE_CYCLE_ACCEPTABLE_STALE-
+                                    effort;
+
+    // 此变量具有一些全局状态，以便在调用之间以增量方式继续工作。
+    static unsigned int current_db = 0; /* Next DB to test. */
+    // 检查是否已超时
+    static int timelimit_exit = 0;      /* Time limit hit in previous call? */
+    // 上一次快速检查数据的起始时间
+    static long long last_fast_cycle = 0; /* When last fast cycle ran. */
+
+    // iteration迭代检查个数，每16次循环遍历，确认一下是否检查超时
+    int j, iteration = 0;
+    // 每次周期性检查的数据库个数，redis默认16个库
+    int dbs_per_call = CRON_DBS_PER_CALL;
+    long long start = ustime(), timelimit, elapsed;
+
+    // 如果客户端被暂停了，此时操作也需被终止。主要是为了保留现场，不允许修改相关数据
+    if (checkClientPauseTimeoutAndReturnIfPaused()) return;
+
+    if (type == ACTIVE_EXPIRE_CYCLE_FAST) {
+        /* Don't start a fast cycle if the previous cycle did not exit
+         * for time limit, unless the percentage of estimated stale keys is
+         * too high. Also never repeat a fast cycle for the same period
+         * as the fast cycle total duration itself. */
+        // 如果前一个循环没有达到时间限制而退出，则不要启动快速循环，除非预估的过期键百分比太高。 
+        // 同时，永远不要在与快速循环总持续时间本身相同的周期内重复快速循环 
+        if (!timelimit_exit &amp;&amp;
+            server.stat_expired_stale_perc &lt; config_cycle_acceptable_stale)
+            return;
+
+        // 限制快速检查频次，在两个config_cycle_fast_duration内，只能执行一次快速检查
+        if (start &lt; last_fast_cycle + (long long)config_cycle_fast_duration*2)
+            return;
+
+        last_fast_cycle = start;
+    }
+
+     /* 我们通常应该在每次迭代时测试 CRON_DBS_PER_CALL，使用
+      * 两个例外：
+      *
+      * 1) 不要测试比我们更多的数据库。
+      * 2) 如果上次我们达到时间限制，我们想扫描所有数据库
+      * 在这个迭代中，因为在某些数据库中需要做一些工作，我们不希望过期的键使用内存太长时间。 */
+    if (dbs_per_call &gt; server.dbnum || timelimit_exit)
+        dbs_per_call = server.dbnum;
+
+    /* 我们可以在每次迭代中使用 CPU 时间的最大“config_cycle_slow_time_perc”百分比。 
+     * 由于此函数以每秒 server.hz 次的频率调用，以下是我们可以在此函数中花费的最大微秒数。
+     * 其中server.hz默认为10，hz是执行后台任务的频率，越大执行越频繁。
+     */
+    timelimit = config_cycle_slow_time_perc*1000000/server.hz/100;
+    timelimit_exit = 0;
+    if (timelimit &lt;= 0) timelimit = 1;
+  
+    // 快速检查模式下，需要更新检查周期时间
+    if (type == ACTIVE_EXPIRE_CYCLE_FAST)
+        timelimit = config_cycle_fast_duration; /* in microseconds. */
+
+    // 过期键操作期间，会累积一些全局统计信息，以了解逻辑上已经过期但仍存在于数据库中的键的数量
+    // 总检查数
+    long total_sampled = 0;
+    // 总过期数
+    long total_expired = 0;
+
+    /* Sanity: There can't be any pending commands to propagate when
+     * we're in cron */
+    // 在定期任务执行过程中，不允许有挂起的命令传播。 
+    serverAssert(server.also_propagate.numops == 0);
+    server.core_propagates = 1;
+    server.propagate_no_multi = 1;
+
+    for (j = 0; j &lt; dbs_per_call &amp;&amp; timelimit_exit == 0; j++) {
+        /* 在单个循环内进行过期检查 */
+        unsigned long expired, sampled;
+
+        redisDb *db = server.db+(current_db % server.dbnum);
+
+        // 递增db 
+        current_db++;
+
+        // 遍历数据库以检查过期数据，直到超出检查周期时间，或者过期数据比例低于阈值
+        do {
+            unsigned long num, slots;
+            long long now, ttl_sum;
+            int ttl_samples;
+            iteration++;
+
+            /* 不存在过期时间，进入下一个db */
+            if ((num = dictSize(db-&gt;expires)) == 0) {
+                db-&gt;avg_ttl = 0;
+                break;
+            }
+            slots = dictSlots(db-&gt;expires);
+            now = mstime();
+
+            /* 过期存储数据结构是字典，数据经过处理后，字典存储的数据可能已经很少，
+             * 但是字典还是大字典，这样遍历数据有效命中率会很低，处理起来会浪费资源，
+             * 后面的访问会很快触发字典的缩容，缩容后再进行处理效率更高。
+             * 因此，遇到这种情况，可以先跳过，进入下一个db处理过期数据*/
+            if (slots &gt; DICT_HT_INITIAL_SIZE &amp;&amp;
+                (num*100/slots &lt; 1)) break;
+
+            /* 主要收集周期。 在具有过期集的密钥中采样随机密钥，检查过期密钥。*/
+            // 过期数
+            expired = 0;
+            // 采样数
+            sampled = 0;
+            // 没有过期的数据时间差之和
+            ttl_sum = 0;
+            // 没有过期的数据个数
+            ttl_samples = 0;
+        
+            // 每次检查的数据限制
+            if (num &gt; config_keys_per_loop)
+                num = config_keys_per_loop;
+
+            // 最大的扫描桶数 
+            long max_buckets = num*20;
+            // 已被检查过的桶数
+            long checked_buckets = 0;
+
+            // 一个桶上有可能有多个数据。所以检查从两方面限制：一个是数据量，一个是桶的数量。
+            while (sampled &lt; num &amp;&amp; checked_buckets &lt; max_buckets) {
+                // 如果dict没有扩容，不需要检查它的第二张表
+                for (int table = 0; table &lt; 2; table++) {
+                    if (table == 1 &amp;&amp; !dictIsRehashing(db-&gt;expires)) break;
+
+                    unsigned long idx = db-&gt;expires_cursor;
+                    idx &amp;= DICTHT_SIZE_MASK(db-&gt;expires-&gt;ht_size_exp[table]);
+                    dictEntry *de = db-&gt;expires-&gt;ht_table[table][idx];
+                    long long ttl;
+
+                    /* 扫描当前表的当前桶。 */
+                    checked_buckets++;
+                    while(de) {
+                        /* 立即获取下一个条目，因为此条目可能会被删除。*/
+                        dictEntry *e = de;
+                        de = de-&gt;next;
+                    
+                        // 检查数据是否已经超时
+                        ttl = dictGetSignedIntegerVal(e)-now;
+                        // 数据过期，便进行回收处理
+                        if (activeExpireCycleTryExpire(db,e,now)) expired++;
+                        if (ttl &gt; 0) {
+                            /* 获取尚未过期键的平均 TTL。*/
+                            ttl_sum += ttl;
+                            ttl_samples++;
+                        }
+                        sampled++;
+                    }
+                }
+                db-&gt;expires_cursor++;
+            }
+            total_expired += expired;
+            total_sampled += sampled;
+
+            /* Update the average TTL stats for this database. */
+            if (ttl_samples) {
+                long long avg_ttl = ttl_sum/ttl_samples;
+
+                /* 用几个样本做一个简单的平均值采样处理。
+                 * 当前估计的权重为 2%，上一次的估计权重为 98%。 */
+                if (db-&gt;avg_ttl == 0) db-&gt;avg_ttl = avg_ttl;
+                db-&gt;avg_ttl = (db-&gt;avg_ttl/50)*49 + (avg_ttl/50);
+            }
+
+            /* 即使有很多密钥要过期，我们也不能在这里永远阻塞。 
+             * 所以在给定的毫秒数之后返回调用者等待另一个活跃的过期周期。 
+             * 即检查是否超时，超时便退出*/
+            if ((iteration &amp; 0xf) == 0) { /* check once every 16 iterations. */
+                elapsed = ustime()-start;
+                if (elapsed &gt; timelimit) {
+                    timelimit_exit = 1;
+                    server.stat_expired_time_cap_reached_count++;
+                    break;
+                }
+            }
+            /* 如果有可接受数量的过期键（逻辑上过期但尚未回收），我们不会为当前数据库重复循环。 
+             * 简而言之，即当前数据库，如果没有检查到数据，或者过期数据已经达到可接受比例
+             * 就退出该数据库检查，进入到下一个数据库检查，防止重复检查。*/
+        } while (sampled == 0 ||
+                 (expired*100/sampled) &gt; config_cycle_acceptable_stale);
+    }
+
+    serverAssert(server.core_propagates); /* This function should not be re-entrant */
+
+    /* 传播 DELs 命令 */
+    propagatePendingCommands();
+
+    server.core_propagates = 0;
+    server.propagate_no_multi = 0;
+    // 统计信息
+    elapsed = ustime()-start;
+    server.stat_expire_cycle_time_used += elapsed;
+    latencyAddSampleIfNeeded(&quot;expire-cycle&quot;,elapsed/1000);
+
+    /* 更新当前过期键的百分比。 此样本运行权重占 5%。 */
+    double current_perc;
+    if (total_sampled) {
+        current_perc = (double)total_expired/total_sampled;
+    } else
+        current_perc = 0;
+    // 通过累加每次检查的过期概率影响，保存过期数据占数据比例。  
+    server.stat_expired_stale_perc = (current_perc*0.05)+
+                                     (server.stat_expired_stale_perc*0.95);
+}
+
+</code></pre>
+<h3 id="持久化及复制时对过期键的处理">持久化及复制时对过期键的处理</h3>
+<h4 id="rdb">RDB</h4>
+<p>在执行SAVE或BGSAVE命令时会创建一个新的RDB文件，后台程序运行期间会对数据库中的键进行检查，已经过期的键不会被保存到新创建的RDB文件中。</p>
+<p>加载RDB文件时，需要区分主从服务器，如下：</p>
+<ul>
+<li>主服务器加载RDB：程序启动时，会自动检查文件中的键，未过期的键可以被载入，而过期键则会被忽略。</li>
+<li>从服务器加载RDB：程序启动时，会自动加载文件中的所有数据键，无论是是否已过期；此处过期键会对从服务器造成脏数据影响，实际上，在主从服务器同步过程中，从服务器的数据会被清空，因此，过期键一般不会对从服务器造成影响。</li>
+</ul>
+<h4 id="aof">AOF</h4>
+<p>如果redis服务器开启了AOF持久化功能，那么当数据库中的某个键过期，但还未被删除时，并不会对AOF持久化形成脏数据。</p>
+<p>因为，当过期键被惰性删除或定期删除时，程序会向AOF文件追加一条DEL命令，来显式地记录该键已被删除。</p>
+<p>例如，如果客户端使用了get命令获取msg时，如果发现该msg已经过期，那么服务器会从数据库中删除该键，同时追加一条DEL命令到AOF文件，随后返回客户端空值。</p>
+<p>重载AOF文件时，基本流程与RDB一样，主服务器都会去检查键是否过期，过期的话将不会载入。</p>
+<h4 id="复制">复制</h4>
+<p>主从复制模式下，从服务器的过期键删除动作由主服务器控制。也即是说，只有当主服务器主动删除了一个过期键，并将此命令显式的同步至从服务器，从服务器才会去删除这个过期键；否则从服务器不会做任何操作。</p>
+<p>这种通过主服务器控制从服务器的模式主要是为了保证主从数据的一致性。不过需要注意的是，在这种模式下，一个数据键如果已经过期，此时，一个get命令进入，并是由从服务器响应，那么从服务器并不会执行过期键操作，而是正常返回，就像这个键并未过期一般。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[深入Redis之内部数据结构(下)]]></title>
+        <id>https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-xia/</id>
+        <link href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-xia/">
+        </link>
+        <updated>2022-12-17T08:11:02.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Redis内部数据结构下篇。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/saturn-341379_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="内部数据结构">内部数据结构</h2>
+<h3 id="字典">字典</h3>
+<p>字典（dict），又称为符号表（symbol table）、关联数组（associative array）或映射（map），是一种用于保存键值对的抽象数据结构。</p>
+<p>字典（dict）是 redis 最重要的数据结构之一，使用频率与SDS不相上下，在redisDb（实现数据库键空间）、hash（底层数据结构）以及服务器内部需要用到hashmap的场景都是用dict来实现的。</p>
+<p>在Redis中，字典以哈希表作为底层实现,一个哈希表有多个哈希节点,而每个哈希节点保存了一个字典的键值对。</p>
+<pre><code>// 文件地址：dict.h
+struct dict {
+    // 特定类型处理函数
+    dictType *type;
+  
+    // 两个hash表---&gt;用于字典扩容与缩减
+    // 一般情况下，字典只使用ht[0] 哈希表, ht[1]哈希表只会对ht[0]哈希表进行rehash时使用。
+    dictEntry **ht_table[2];
+    // hash表的对应的键值对个数-----&gt;即已使用的空间数
+    unsigned long ht_used[2];
+  
+    // 记录rehash进度的标志，如果为-1则表示rehash未进行
+    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+
+    /* Keep small vars at end for optimal (minimal) struct padding */
+    int16_t pauserehash; /* If &gt;0 rehashing is paused (&lt;0 indicates coding error) */
+    signed char ht_size_exp[2]; /* exponent of size. (size = 1&lt;&lt;exp) */
+};
+
+typedef struct dictType {
+    // 计算hash值的函数
+    uint64_t (*hashFunction)(const void *key);
+    // 复制键的函数
+    void *(*keyDup)(dict *d, const void *key);
+    // 复制值的函数
+    void *(*valDup)(dict *d, const void *obj);
+    // 键比较函数
+    int (*keyCompare)(dict *d, const void *key1, const void *key2);
+    // 摧毁键的函数
+    void (*keyDestructor)(dict *d, void *key);
+    // 摧毁值的函数
+    void (*valDestructor)(dict *d, void *obj);
+    // 允许扩展的函数
+    int (*expandAllowed)(size_t moreMem, double usedRatio);
+    /* Allow a dictEntry to carry extra caller-defined metadata.  The
+     * extra memory is initialized to 0 when a dictEntry is allocated. */
+     // 额外的元数据
+    size_t (*dictEntryMetadataBytes)(dict *d);
+} dictType;
+
+typedef struct dictEntry {
+    // 键
+    void *key;
+    // 值
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    // 指向下个hash表的节点，形成链表
+    // 这个指针可以将多个哈希值相同的键值对连接在一起，解决键冲突问题----&gt;典型的拉链法解决hash冲突
+    struct dictEntry *next;     /* Next entry in the same hash bucket. */
+    // 记录了 dictEntryMetadataBytes() 函数返回的字节数
+    void *metadata[];           /* An arbitrary number of bytes (starting at a
+                                 * pointer-aligned address) of size as returned
+                                 * by dictType's dictEntryMetadataBytes(). */
+} dictEntry;
+
+</code></pre>
+<h4 id="rehash">rehash</h4>
+<p>Redis中的字典使用hash表作为底层数据结构，并且使用了拉链法来解决hash冲突的问题；所谓拉链法指的是多个hash值相同的key分配到同一节点上时，列表节点会自动使用链表拉长自己的实体。</p>
+<p>如上述源码所见，每个hash表节点都有一个next指针，该指针便指向了同一个hash桶中的下一个实体，通过不断拉长链表可以解决hash键冲突的问题。</p>
+<p>对于使用拉链法来解决碰撞问题的hash表来说，hash表的性能依赖于它的大小（size 属性）和它所保存的节点的数量（used 属性）之间的比率：</p>
+<ul>
+<li>比率在 1:1 时，哈希表的性能最好；</li>
+<li>如果节点数量比hash表的大小要大很多的话，那么hash表就会退化成多个链表，hash表本身的性能优势就不再存在；</li>
+</ul>
+<p>为了在字典的键值对不断增多的情况下保持良好的性能，字典需要对所使用的哈希表（ht[0]）进行 rehash 操作：在不修改任何键值对的情况下，对哈希表进行扩容，尽量将比率维持在 1:1 左右。</p>
+<p>dictAdd 在每次向字典添加新键值对之前，都会对哈希表 ht[0] 进行检查，对于 ht[0] 的 size 和 used 属性，如果它们之间的比率 ratio = used / size 满足以下任何一个条件的话， rehash 过程就会被激活：</p>
+<ul>
+<li>自然 rehash ：ratio &gt;= 1 ，且变量 dict_can_resize （执行后台任务时，会将其置为假，避免执行自然rehash，从而减少程序对内存的碰撞）为真。</li>
+<li>强 制 rehash ： ratio 大 于 变 量 dict_force_resize_ratio （dict_force_resize_ratio = 5 ）。</li>
+</ul>
+<pre><code>// 文件地址：dict.c
+/* Using dictEnableResize() / dictDisableResize() we make possible to
+ * enable/disable resizing of the hash table as needed. This is very important
+ * for Redis, as we use copy-on-write and don't want to move too much memory
+ * around when there is a child performing saving operations.
+ *
+ * Note that even when dict_can_resize is set to 0, not all resizes are
+ * prevented: a hash table is still allowed to grow if the ratio between
+ * the number of elements and the buckets &gt; dict_force_resize_ratio. */
+// 通过 dict_can_resize  参数可以控制非强制rehash的执行
+static int dict_can_resize = 1;
+// 如果达到了强制rehash比率 dict_force_resize_ratio = 5 那么即使dict_can_resize 为假也可以执行rehash
+static unsigned int dict_force_resize_ratio = 5;
+
+/* 检查dict是否需要扩容 */
+static int _dictExpandIfNeeded(dict *d)
+{
+    /* 已经处于渐进式rehash流程中，直接返回ok */
+    if (dictIsRehashing(d)) return DICT_OK;
+
+    /* If the hash table is empty expand it to the initial size. */
+    if (DICTHT_SIZE(d-&gt;ht_size_exp[0]) == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE);
+
+    /* If we reached the 1:1 ratio, and we are allowed to resize the hash
+     * table (global setting) or we should avoid it but the ratio between
+     * elements/buckets is over the &quot;safe&quot; threshold, we resize doubling
+     * the number of buckets. */
+    //  DICTHT_SIZE(d-&gt;ht_size_exp[0] 会将size左移一位，即乘上2
+    if (d-&gt;ht_used[0] &gt;= DICTHT_SIZE(d-&gt;ht_size_exp[0]) &amp;&amp;
+        (dict_can_resize ||
+         d-&gt;ht_used[0]/ DICTHT_SIZE(d-&gt;ht_size_exp[0]) &gt; dict_force_resize_ratio) &amp;&amp;
+        dictTypeExpandAllowed(d))
+    {
+        return dictExpand(d, d-&gt;ht_used[0] + 1);
+    }
+    return DICT_OK;
+}
+
+</code></pre>
+<pre><code>// 文件地址：dict.c
+// rehash的过程比较简单，主要是利用ht[1]进行复制操作；具体如下：
+// 1. 创建一个比 ht[0]-&gt;table 更大/更小的 ht[1]-&gt;table
+// 2. 将 ht[0]-&gt;table 中的所有键值对迁移到 ht[1]-&gt;table，此过程中会重新计算key的hash值
+// 3. 将原有 ht[0] 的数据清空，并将 ht[1] 替换为新的 ht[0]，腾出ht[1]以方便下次rehash操作
+int dictRehash(dict *d, int n) {
+    int empty_visits = n*10; /* Max number of empty buckets to visit. */
+    if (!dictIsRehashing(d)) return 0;
+
+    while(n-- &amp;&amp; d-&gt;ht_used[0] != 0) {
+        dictEntry *de, *nextde;
+
+        /* Note that rehashidx can't overflow as we are sure there are more
+         * elements because ht[0].used != 0 */
+        assert(DICTHT_SIZE(d-&gt;ht_size_exp[0]) &gt; (unsigned long)d-&gt;rehashidx);
+        while(d-&gt;ht_table[0][d-&gt;rehashidx] == NULL) {
+            d-&gt;rehashidx++;
+            if (--empty_visits == 0) return 1;
+        }
+        de = d-&gt;ht_table[0][d-&gt;rehashidx];
+        /* Move all the keys in this bucket from the old to the new hash HT */
+        // 循环计算ht[0]中的数据并将其放入ht[1]中
+        while(de) {
+            uint64_t h;
+
+            nextde = de-&gt;next;
+            /* Get the index in the new hash table */
+            h = dictHashKey(d, de-&gt;key) &amp; DICTHT_SIZE_MASK(d-&gt;ht_size_exp[1]);
+            de-&gt;next = d-&gt;ht_table[1][h];
+            d-&gt;ht_table[1][h] = de;
+            d-&gt;ht_used[0]--;
+            d-&gt;ht_used[1]++;
+            de = nextde;
+        }
+        d-&gt;ht_table[0][d-&gt;rehashidx] = NULL;
+        d-&gt;rehashidx++;
+    }
+
+    /* Check if we already rehashed the whole table... */
+    // 当完成了迁移操作后
+    if (d-&gt;ht_used[0] == 0) {
+        // 释放ht[0]空间
+        zfree(d-&gt;ht_table[0]);
+        /* Copy the new ht onto the old one */
+        // 将ht[1]赋值给ht[0]，腾出ht[1]以方便下次rehash操作
+        d-&gt;ht_table[0] = d-&gt;ht_table[1];
+        d-&gt;ht_used[0] = d-&gt;ht_used[1];
+        d-&gt;ht_size_exp[0] = d-&gt;ht_size_exp[1];
+        _dictReset(d, 1);
+        d-&gt;rehashidx = -1;
+        return 0;
+    }
+
+    /* More to rehash... */
+    return 1;
+}
+
+</code></pre>
+<h4 id="渐进式rehash">渐进式rehash</h4>
+<p>从上一节可以看出rehash的过程就是循环将ht[0]的数据重新分布到ht[1]中的操作，需要注意的是，此过程并非一次性，集中式的完成，而是分为多次，渐进式的完成。之所以这样做，主要是由于当数据量过大时，集中式的一次性rehash会导致程序整个阻塞，这非常不友好。</p>
+<p>为了解决一次性扩容耗时过多的情况，redis将扩容操作穿插在插入操作的过程中，分批完成。当负载因子触达阈值之后，只申请新空间，但并不将老的数据搬移到新散列表中。当有新数据要插入时，将新数据插入新散列表中，并且从老的散列表中拿出一个数据放入到新散列表。每次插入一个数据到散列表，都重复上面的过程。经过多次插入操作之后，老的散列表中的数据就一点一点全部搬移到新散列表中了。这样没有了集中的一次性数据搬移，插入操作就都变得很快了。</p>
+<p>Redis为了解决这个问题采用渐进式rehash方式。以下是Redis渐进式rehash的详细步骤:</p>
+<ol>
+<li>为 ht[1] 分配空间， 让字典同时持有 ht[0] 和 ht[1] 两个哈希表。</li>
+<li>在字典中维持一个索引计数器变量 rehashidx ，并将它的值设置为 0 ，表示 rehash 工作正式开始。</li>
+<li>在 rehash 进行期间， 每次对字典执行添加、删除、查找或者更新操作时， 程序除了执行指定的操作以外， 还会顺带将 ht[0] 哈希表在 rehashidx 索引上的所有键值对 rehash 到 ht[1] ，当 rehash 工作完成之后，程序将 rehashidx 属性的值增一。</li>
+<li>随着字典操作的不断执行，最终在某个时间点上， ht[0] 的所有键值对都会被 rehash 至 ht[1] ，这时程序将 rehashidx 属性的值设为 -1 ，表示 rehash 操作已完成。</li>
+</ol>
+<h3 id="跳跃表">跳跃表</h3>
+<p>跳跃表（简称跳表，skiplist），是用于有序元素序列快速搜索查找的一个数据结构，跳表是一个随机化的数据结构，实质就是一种可以进行二分查找的有序链表。</p>
+<p>跳表在原有的有序链表上面增加了多级索引，通过索引来实现快速查找。跳表不仅能提高搜索性能，同时也可以提高插入和删除操作的性能。它在性能上和红黑树，AVL树不相上下，但是跳表的原理非常简单，实现也比红黑树简单很多。</p>
+<p>跳跃表支持平均O(logN)，最坏O(N)复杂度的节点查找，还可以通过顺序性操作来批量处理节点。</p>
+<p>Redis使用跳跃表作为有序集合键的底层实现之一,如果一个有序集合包含的元素数量比较多,又或者有序集合中元素的成员是比较长的字符串时, Redis就会使用跳跃表来作为有序集合健的底层实现。</p>
+<p>跳表在原有的有序链表上面增加了多级索引这种操作的本质是以空间换时间。当数据量较多，或者原始链表对象非常大时，使用这种数据结果将会带来显著的性能提升。</p>
+<pre><code>// 文件地址：server.h
+typedef struct zskiplistNode {
+    // 元素，存储实际的数据对象
+    sds ele;
+    // 分值，用于排序
+    double score;
+    // 后退指针
+    struct zskiplistNode *backward;
+    // 跳表层
+    struct zskiplistLevel {
+        // 前进指针
+        struct zskiplistNode *forward;
+        // 跨度
+        unsigned long span;
+    } level[];
+} zskiplistNode;
+
+typedef struct zskiplist {
+    // 头尾节点，通过这两个节点，程序定位表头和表位的时间复杂度为O(1)
+    struct zskiplistNode *header, *tail;
+    // 节点数量，此参数可以让程序以O(1)的复杂度返回跳跃表的长度
+    unsigned long length;
+    // 当前表内节点的最大层数
+    int level;
+} zskiplist;
+
+</code></pre>
+<h4 id="跳跃表的实现">跳跃表的实现</h4>
+<p>Redis的跳跃表由zskiplistNode和zskiplist两个结构共同组成。其中 zskiplistNode结构用于表示跳跃表节点,而 zskiplist结构则用于保存跳跃表节点的相关信息,比如节点的数量,以及指向表头节点和表尾节点的指针等等。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320017.png" alt="img" loading="lazy"></figure>
+<p>上图展示了一个跳跃表示例,其中最左边的是 zskiplist结构,该结构包含以下属性。</p>
+<ul>
+<li>header: 指向跳跃表的表头节点，通过这个指针程序定位表头节点的时间复杂度就为O(1)</li>
+<li>tail: 指向跳跃表的表尾节点,通过这个指针程序定位表尾节点的时间复杂度就为O(1)</li>
+<li>level: 记录目前跳跃表内,层数最大的那个节点的层数(表头节点的层数不计算在内)，通过这个属性可以在O(1)的时间复杂度内获取层高最好的节点的层数。</li>
+<li>length: 记录跳跃表的长度,也即是,跳跃表目前包含节点的数量(表头节点不计算在内)，通过这个属性，程序可以在O(1)的时间复杂度内返回跳跃表的长度。</li>
+</ul>
+<p>结构右方的是四个 zskiplistNode结构,该结构包含以下属性。</p>
+<ul>
+<li>
+<p>层(level):</p>
+<p>节点中用L1、L2、L3等字样标记节点的各个层,L1代表第一层,L2代表第二层,以此类推。</p>
+<p>每个层都带有两个属性: 前进指针和跨度。前进指针用于访问位于表尾方向的其他节点,而跨度则记录了前进指针所指向节点和当前节点的距离(跨度越大、距离越远)。在上图中,连线上带有数字的箭头就代表前进指针,而那个数字就是跨度。当程序从表头向表尾进行遍历时,访问会沿着层的前进指针进行。</p>
+<p>跳跃表节点的level数组可以包含多个元素，每个元素都包含一个指向其他节点的指针，程序可以通过这些层来加快访问其他节点的速度，一般来说，层的数量越多，访问其他节点的速度就越快。</p>
+<p>每次创建一个新跳跃表节点的时候,程序都根据幂次定律(powerlaw,越大的数出现的概率越小)随机生成一个介于1和32之间的值作为level数组的大小,这个大小就是层的“高度”。</p>
+</li>
+<li>
+<p>后退(backward)指针：</p>
+<p>节点中用BW字样标记节点的后退指针,它指向位于当前节点的前一个节点。后退指针在程序从表尾向表头遍历时使用。与前进指针所不同的是每个节点只有一个后退指针，因此每次只能后退一个节点。</p>
+</li>
+<li>
+<p>分值(score):</p>
+<p>节点的分值是一个double类型的浮点数，就如上图中的各个节点的1.0、1.0和3.0便是该节点所保存的分值。在跳跃表中,节点按各自所保存的分值从小到大排列。</p>
+<p>在同一个跳跃表中，分值字段允许重复；分值相同的节点将按照元素在字典序中的大小进行排序，元素对象较小的节点会排在前面(靠近表头的方向),而元素对象较大的节点则会排在后面(靠近表尾的方向)。</p>
+</li>
+<li>
+<p>元素(ele):</p>
+<p>各个节点中的o1、o2和o3是节点所保存的实体元素。需要注意的是，在同一个跳跃表中,各个节点保存的实体元素必须是唯一的。</p>
+</li>
+</ul>
+<h3 id="整数集合">整数集合</h3>
+<p>整数集合(intset)是集合键的底层实现之一；当一个集合只包含整数值元素,并且这个集合的元素数量不多时, Redis 就会使用整数集合作为集合键的底层实现。</p>
+<p>整数集合并非一个基础的数据结构，而是由Redis专门设计的用来保存整数值的集合抽象数据结构，它可以保存int16_t、int32_t或者int64_t的整数值，并且可以保证集合中不会出现重复元素。</p>
+<pre><code>// 文件地址：intset.h
+typedef struct intset {
+    // 编码方式
+    uint32_t encoding;
+    // 集合保存的元素数量
+    uint32_t length;
+    // 保存元素的数组
+    int8_t contents[];
+} intset;
+
+</code></pre>
+<ul>
+<li>contents数组是整数集合的底层实现，整数集合的每个元素都是 contents数组的个数组项(item),各个项在数组中按值的大小从小到大有序地排列,并且数组中不包含任何重复项。</li>
+<li>length属性记录了整数集合包含的元素数量，也即contents数组的长度。</li>
+<li>intset结构虽然将contents属性声明为int8_t类型的数组,但实际上 contents数组并不保存任何int8_t类型的值, contents数组的真正类型取决于encoding属性的值。encoding属性的值包括：INTSET_ENC_INT16、INTSET_ENC_INT32以及INTSET_ENC_INT64。</li>
+</ul>
+<h4 id="整数集合升级">整数集合升级</h4>
+<p>每当我们要将一个新元素添加到整数集合里面,并且新元素的类型比整数集合现有所有元素的类型都要长时,整数集合需要先进行升级,然后才能将新元素添加到整数集合里面。</p>
+<p>升级整数集合并添加新元素主要分三步来进行。</p>
+<ol>
+<li>根据新元素的类型,扩展整数集合底层数组的空间大小,并为新元素分配空间。</li>
+<li>将底层数组现有的所有元素都转换成与新元素相同的类型,并将类型转换后的元素放置到正确的位上,而且在放置元素的过程中,需要继续维持底层数组的有序性质不变。</li>
+<li>将新元素添加到底层数组里面。</li>
+</ol>
+<h4 id="升级好处">升级好处</h4>
+<ul>
+<li>
+<p>提升灵活性</p>
+<p>因为C语言是静态类型语言,为了避免类型错误,一般情况下不会将两种不同类型的值放在同一个数据结构里面。</p>
+<p>例如,一般只使用int16_t类型的数组来保存int16_t类型的值,只使用int32_t类型的数组来保存int32_t类型的值,诸如此类。但是,因为整数集合可以通过自动升级底层数组来适应新元素,所以在Redis中可以随意地将int16_t、int32_t或者int64_t类型的整数添加到集合中,而不必担心出现类型错误,这种做法非常灵活。</p>
+</li>
+<li>
+<p>节约内存</p>
+<p>要让一个数组可以同时保存int16_t、int32_t、int64_t三种类型的值,最简单的做法就是直接使用int64t类型的数组作为整数集合的底层实现。不过这样一来,即使添加到整数集合里面的都是int16_t类型或者int32_t类型的值,数组都需要使用int64_t类型的空间去保存它们,从而出现浪费内存的情况。</p>
+<p>而整数集合现在的做法既可以让集合能同时保存三种不同类型的值,又可以确保升级操作只会在有需要的时候进行,这可以尽量节省内存。</p>
+<p>例如，如果我们一直只向整数集合添加int16_t类型的值,那么整数集合的底层实现就会一直是int16_t类型的数组,只有在我们要将int32_t类型或者int64_t类型的值添加到集合时,程序才会对数组进行升级。</p>
+</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[深入Redis之内部数据结构(上)]]></title>
+        <id>https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/</id>
+        <link href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/">
+        </link>
+        <updated>2022-12-03T08:03:13.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
+<p>本章主要简述Redis内部数据结构上篇。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/desert-65310_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="内部数据结构">内部数据结构</h2>
+<h3 id="概要">概要</h3>
+<p>Redis是一个使用ANSI C编写的开源、支持网络、基于内存、可选持久性的键值对存储数据库。从2015年6月开始，Redis的开发由Redis Labs赞助，而2013年5月至2015年6月期间，其开发由Pivotal赞助。在2013年5月之前，其开发由VMware赞助。根据月度排行网站DB-Engines.com的数据显示，Redis是最流行的键值对存储数据库。</p>
+<p>Redis 和其他很多 key-value 数据库的不同之处在于，Redis 不仅支持简单的字符串键值对，还提供了一系列数据结构类型值，比如列表、哈希、集合和有序集，并在这些数据结构类型上定义了一套强大的 API。</p>
+<p>依靠这些数据结构类型值，Redis 可以很轻易地完成其他只支持字符串键值对的 key-value 数据库很难（或者无法）完成的任务。</p>
+<p>在 Redis 的内部，数据结构类型值由高效的数据结构和算法进行支持，并且在 Redis 自身的构建当中，也大量用到了这些数据结构。以下将详细介绍其中动态字符串、链表、字典、跳跃表等数据结构。</p>
+<h3 id="简单动态字符串">简单动态字符串</h3>
+<p>在 C 语言中，字符串实际上是使用空字符 \0 结尾的一维字符数组。因此，\0 是用于标记字符串的结束。空字符（Null character）又称结束符，缩写 NUL，是一个数值为 0 的控制字符，\0 是转义字符，意思是告诉编译器，这不是字符 0，而是空字符。</p>
+<p>Redis虽然是使用了ANSI C 语言编写的开源项目，但redis中的字符串却并没有直接采用 C 语言中的字符串，而是自己定义了一套抽象类型，名为simple dynamic string, 简称SDS。本质上是对 C 语言中的char进行一层封装。而其之所以使用SDS的原因如下所示：</p>
+<table>
+<thead>
+<tr>
+<th>C字符串</th>
+<th>SDS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>获取字符串长度的复杂度为 O(N)</td>
+<td>获取字符串长度的复杂度为 O(1)</td>
+</tr>
+<tr>
+<td>操作字符串函数不安全，可能造成缓冲区溢出</td>
+<td>安全的操作字符串API，避免缓冲区溢出</td>
+</tr>
+<tr>
+<td>修改字符串长度 N 次必然需要执行 N 次内存重分配</td>
+<td>修改字符串长度 N 次最多需要执行 N 次内存重分配</td>
+</tr>
+<tr>
+<td>只能保存文本数据</td>
+<td>可以保存文本以及图片、音频、视频、压缩文件这样的二进制数据。</td>
+</tr>
+</tbody>
+</table>
+<p>SDS作为一种抽象的数据结构，主要由以下两部分构成。注意其中定义了五种结构，主要是为了让不同的字符串使用不同长度的struct，从而节省内存。</p>
+<pre><code>// 文件地址：sds.h
+// 定义char 别名：sds
+typedef char *sds;
+// 实际上有五种结构体，但其实现都一致，所以此处仅以其中一种作为说明。
+struct __attribute__ ((__packed__)) sdshdr64 {
+    // 记录buf数组中已使用的字节数量，计算字符串长度时，复杂度可降为O(1)
+    uint64_t len; /* used */
+    // 分配的buf数组长度，不包括头和空字符结尾，减少内存重分配次数
+    uint64_t alloc; /* excluding the header and null terminator */
+    // 标志位， 最低3位表示struct类型，另外5个位没有使用
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    // 字符数组，用于存储实际的字符串
+    char buf[];
+};
+
+// 此处定义对应上述结构体中的 flags
+#define SDS_TYPE_5  0
+#define SDS_TYPE_8  1
+#define SDS_TYPE_16 2
+#define SDS_TYPE_32 3
+#define SDS_TYPE_64 4
+
+</code></pre>
+<p>SDS 遵循 C 字符串以空字符结尾的惯例， 保存空字符的 1 字节空间不计算在 SDS 的 len 属性里面，并且为空字符分配额外的 1 字节空间，以及添加空字符到字符串末尾等操作都是由 SDS 函数自动完成的，所以这个空字符对于 SDS 的使用者来说是完全透明的。简单例子如下所示：</p>
+<pre><code>// 以存储redis为例，结构最终形式如下：
+struct sdshdr {
+    len = 5
+    alloc = 8
+    flags = 1
+    buf = &quot;redis\0&quot;  // 可以发现buf的实际长度为 buf + 1 因为多了一个结束符
+};
+
+</code></pre>
+<h4 id="sds-优势">SDS 优势</h4>
+<p>传统的C字符串并没有记录字符串长度，而想获取字符串长度时就需要遍历一遍字符串，复杂度为O(N),导致随着字符串长度变长，获取字符串长度的操作复杂度也会增加。</p>
+<p>针对这种情况，redis在SDS结构体中设计了len字段，主要用来存储字符串的长度，因此每次获取length时，只需要查询len字段即可，复杂度为O(1)。</p>
+<p>SDS另一个优势则是在于其对于追加操作的优化，原有的C字符串对于字符串的追加操作容易造成缓冲区溢出或者重分配次数过多等问题。而SDS则是依靠alloc字段来降低了重分配次数以及可能的缓冲区溢出。</p>
+<p>在 C 语言中字符串的长度和底层数组的长度之间存在着关联性（n字符串---&gt;n+1数组，多出的1个用于存储空字符串），每当增长或者缩短一个 C 字符串时，程序都要对保存这个 C 字符串的数组进行一次内存重分配操作：</p>
+<ul>
+<li>
+<p>如果程序执行的是增长字符串的操作，比如拼接操作（append），那么在执行这个操作之前，程序需要先通过内存重分配来扩展底层数组的空间大小 —— 如果忘了这一步就会产生缓冲区溢出。</p>
+</li>
+<li>
+<p>如果程序执行的是缩短字符串的操作，比如截断操作（trim），那么在执行这个操作之后，程序需要通过内存重分配来释放字符串不再使用的那部分空间 —— 如果忘了这一步就会产生内存泄漏。</p>
+<p>为了减少重分配次数过多的情形，redis增加了alloc字段（已分配数组长度）来解除字符串长度和底层数组长度之间的关联，通过已分配长度字段alloc，SDS实现了空间预分配及惰性空间释放两种优化策略。</p>
+</li>
+<li>
+<p>空间预分配：在redis追加字符串时，SDS不仅仅只是单纯的附加字符串，而且还为alloc字段增加了额外的空间，这样，当下次追加操作进入时，会判断预留空间是否充足，充足便可以直接进行追加，而无需扩展数组长度，避免了缓冲区溢出的问题。同时通过这种技术，SDS将连续增长N次字符串所需的重分配次数从必定N次降为了最多N次。</p>
+</li>
+<li>
+<p>惰性空间释放：在redis截断字符串时，其并不立即使用内存重分配来回收缩短后多出来的字节，而是把缩短后的长度记录在SDS中的len属性中，剩余空间用于未来扩展字符串用。当然也可以手动指定函数释放空闲空间。</p>
+</li>
+</ul>
+<pre><code>// 文件地址：sds.c
+// 空间预分配核心函数
+// 其中greedy参数控制着是否要分配超出实际所需的空间：即原本只需分配10字节，如果开启了此参数，则会分配20+1字节。
+sds _sdsMakeRoomFor(sds s, size_t addlen, int greedy) {
+    void *sh, *newsh;
+    // 返回可用空间，实际上就是sds中的alloc - len的结果值
+    size_t avail = sdsavail(s);
+    size_t len, newlen, reqlen;
+    char type, oldtype = s[-1] &amp; SDS_TYPE_MASK;
+    int hdrlen;
+    size_t usable;
+
+    // 如果剩余空间足够，则不会进行预分配操作
+    if (avail &gt;= addlen) return s;
+
+    len = sdslen(s);
+    // sds的起始位置
+    sh = (char*)s-sdsHdrSize(oldtype);
+    reqlen = newlen = (len+addlen);
+    assert(newlen &gt; len);   /* Catch size_t overflow */
+    // 增加额外空间
+    if (greedy == 1) {
+        // 如果修改后的字符串长度小于SDS_MAX_PREALLOC(1MB)，则分配与原字符串长度一致的额外空间
+        // 例如：修改后的字符串长度为10字节，那么此处会为其分配额外的10字节空间，相当于一共分配了20字节空间
+        // 实际上是21字节，因为还有一个额外的字节用于存储空字符
+        if (newlen &lt; SDS_MAX_PREALLOC)
+            newlen *= 2;
+        else
+            // 否则分配的额外空间 + 1MB +1byte
+            newlen += SDS_MAX_PREALLOC;
+    }
+
+    // 重新获取结构体----》因为原有的可能表达不了增加后的容量 
+    type = sdsReqType(newlen);
+
+    /* Don't use type 5: the user is appending to the string and type 5 is
+     * not able to remember empty space, so sdsMakeRoomFor() must be called
+     * at every appending operation. */
+    if (type == SDS_TYPE_5) type = SDS_TYPE_8;
+    // 获取类型对应的长度 
+    hdrlen = sdsHdrSize(type);
+    assert(hdrlen + newlen + 1 &gt; reqlen);  /* Catch size_t overflow */
+    if (oldtype==type) {
+        // sh为开始地址，在开始地址的基础上为其分配更多的空间。
+        newsh = s_realloc_usable(sh, hdrlen+newlen+1, &amp;usable);
+        if (newsh == NULL) return NULL;
+        // s指向sds的开始位置
+        s = (char*)newsh+hdrlen;
+    } else {
+        /* Since the header size changes, need to move the string forward,
+         * and can't use realloc */
+        // 当类型发生变化时，地址内容不可复用，便需要寻找新的可用空间地址
+        newsh = s_malloc_usable(hdrlen+newlen+1, &amp;usable);
+        if (newsh == NULL) return NULL;
+        // 复制原来的字符串到新的sds上
+        memcpy((char*)newsh+hdrlen, s, len+1);
+        // 释放之前的空间
+        s_free(sh);
+        // s指向sds的开始位置
+        s = (char*)newsh+hdrlen;
+        s[-1] = type;
+        // 设置len长度值
+        sdssetlen(s, len);
+    }
+    usable = usable-hdrlen-1;
+    if (usable &gt; sdsTypeMaxSize(type))
+        usable = sdsTypeMaxSize(type);
+    // 分配alloc的值  
+    sdssetalloc(s, usable);
+    // 返回新的sds
+    return s;
+}
+
+</code></pre>
+<pre><code>// 文件地址：sds.c
+// 以sdstrim函数简述惰性空间释放
+// 从整个函数逻辑可以看出，其并没有调用任何重分配函数，仅仅只是修改了sds中的len字段值。
+// 由此可见，惰性空间释放，实际上并没有将已分配的空间释放出来。这也是为了方便后续存在追加操作时，一定程度上无需扩容。
+sds sdstrim(sds s, const char *cset) {
+    char *end, *sp, *ep;
+    size_t len;
+
+    sp = s;
+    ep = end = s+sdslen(s)-1;
+    while(sp &lt;= end &amp;&amp; strchr(cset, *sp)) sp++;
+    while(ep &gt; sp &amp;&amp; strchr(cset, *ep)) ep--;
+    len = (ep-sp)+1;
+    if (s != sp) memmove(s, sp, len);
+    // 补齐末尾的空字符
+    s[len] = '\0';
+    // 设置sds中的len字段值
+    sdssetlen(s,len);
+    return s;
+}
+
+// 手动释放空闲空间的核心函数
+sds sdsRemoveFreeSpace(sds s) {
+    void *sh, *newsh;
+    char type, oldtype = s[-1] &amp; SDS_TYPE_MASK;
+    int hdrlen, oldhdrlen = sdsHdrSize(oldtype);
+    // 返回字符串长度
+    size_t len = sdslen(s);
+    // 返回可用空间，实际上就是sds中的alloc - len的结果值
+    size_t avail = sdsavail(s);
+    sh = (char*)s-oldhdrlen;
+
+    // 如果可用空间为0表示没有可释放的空闲空间
+    if (avail == 0) return s;
+
+    /* Check what would be the minimum SDS header that is just good enough to
+     * fit this string. */
+    type = sdsReqType(len);
+    hdrlen = sdsHdrSize(type);
+
+    /* If the type is the same, or at least a large enough type is still
+     * required, we just realloc(), letting the allocator to do the copy
+     * only if really needed. Otherwise if the change is huge, we manually
+     * reallocate the string to use the different header type. */
+    if (oldtype==type || type &gt; SDS_TYPE_8) {
+        // 用的实际上还是原来的sds开始地址
+        newsh = s_realloc(sh, oldhdrlen+len+1);
+        if (newsh == NULL) return NULL;
+        // 类型不变的情况下，s指针也不变
+        s = (char*)newsh+oldhdrlen;
+    } else {
+        // 当类型发生变化时，地址内容不可复用，便需要寻找新的可用空间地址
+        newsh = s_malloc(hdrlen+len+1);
+        if (newsh == NULL) return NULL;
+        // 复制原来的字符串到新的sds上
+        memcpy((char*)newsh+hdrlen, s, len+1);
+        // 释放之前的空间
+        s_free(sh);
+        // s指向sds的开始位置
+        s = (char*)newsh+hdrlen;
+        s[-1] = type;
+        // 设置len值
+        sdssetlen(s, len);
+    }
+    // 设置alloc值
+    sdssetalloc(s, len);
+    // 返回新的sds
+    return s;
+}
+
+</code></pre>
+<h3 id="链表">链表</h3>
+<p>链表提供了高效的节点重排能力以及顺序性的节点访问方式，并且可以通过可以快速的增删节点来调整链表的长度。在 C 语言中并没有内置链表这种数据结构，因此redis构建了自己的链表实现。</p>
+<p>Redis中的列表对象在版本3.2之前，其底层数据结构由ziplist和linkedlist实现，但是从3.2版本开始，重新引入了一个 quicklist 的数据结构，列表的底层都由quicklist实现。</p>
+<p>在3.2版本之前，当列表对象中元素的长度比较小或者数量比较少的时候，采用ziplist来存储，当列表对象中元素的长度比较大或者数量比较多的时候，则会转而使用双向列表linkedlist来存储。</p>
+<pre><code>// 文件地址：t_list.c---》版本3.2及之后
+// 可以看出，如果底层数据结构不是quicklist 便会直接抛出异常：Unknown list encoding
+void listTypePush(robj *subject, robj *value, int where) {
+    if (subject-&gt;encoding == OBJ_ENCODING_QUICKLIST) {
+        int pos = (where == LIST_HEAD) ? QUICKLIST_HEAD : QUICKLIST_TAIL;
+        if (value-&gt;encoding == OBJ_ENCODING_INT) {
+            char buf[32];
+            ll2string(buf, 32, (long)value-&gt;ptr);
+            quicklistPush(subject-&gt;ptr, buf, strlen(buf), pos);
+        } else {
+            quicklistPush(subject-&gt;ptr, value-&gt;ptr, sdslen(value-&gt;ptr), pos);
+        }
+    } else {
+        serverPanic(&quot;Unknown list encoding&quot;);
+    }
+}
+
+</code></pre>
+<pre><code>// 文件地址：t_list.c---》版本3.2之前
+// 可以看出，其底层数据结构主要由ziplist和linkedlist实现
+void listTypePush(robj *subject, robj *value, int where) {
+    /* Check if we need to convert the ziplist */
+    listTypeTryConversion(subject,value);
+    if (subject-&gt;encoding == REDIS_ENCODING_ZIPLIST &amp;&amp;
+        ziplistLen(subject-&gt;ptr) &gt;= server.list_max_ziplist_entries)
+            listTypeConvert(subject,REDIS_ENCODING_LINKEDLIST);
+
+    if (subject-&gt;encoding == REDIS_ENCODING_ZIPLIST) {
+        int pos = (where == REDIS_HEAD) ? ZIPLIST_HEAD : ZIPLIST_TAIL;
+        value = getDecodedObject(value);
+        subject-&gt;ptr = ziplistPush(subject-&gt;ptr,value-&gt;ptr,sdslen(value-&gt;ptr),pos);
+        decrRefCount(value);
+    } else if (subject-&gt;encoding == REDIS_ENCODING_LINKEDLIST) {
+        if (where == REDIS_HEAD) {
+            listAddNodeHead(subject-&gt;ptr,value);
+        } else {
+            listAddNodeTail(subject-&gt;ptr,value);
+        }
+        incrRefCount(value);
+    } else {
+        redisPanic(&quot;Unknown list encoding&quot;);
+    }
+}
+
+</code></pre>
+<h4 id="linkedlist">linkedList</h4>
+<p>双向链表linkedList在3.2版本之前作为列表键的底层数据结构之外，还被用于发布订阅、慢查询、监视器等功能中。</p>
+<p>双向链表linkedlist便于在表的两端进行push和pop操作，在插入节点上复杂度很低，但是它的内存开销比较大。首先，它在每个节点上除了要保存数据之外，还要额外保存两个指针；其次，双向链表的各个节点是单独的内存块，地址不连续，节点多了容易产生内存碎片。</p>
+<pre><code>// 文件地址：adlist.h
+typedef struct listNode {
+    // 前驱节点
+    struct listNode *prev;
+    // 后继节点
+    struct listNode *next;
+    // 实际存储的值
+    void *value;
+} listNode;
+
+typedef struct list {
+    // 表头指针
+    listNode *head;
+    // 表尾指针
+    listNode *tail;
+    // 复制函数
+    void *(*dup)(void *ptr);
+    // 释放函数
+    void (*free)(void *ptr);
+    // 对比函数
+    int (*match)(void *ptr, void *key);
+    // 节点数量，即链表长度
+    unsigned long len;
+} list;
+
+</code></pre>
+<p>从上述源码可以看出，listNode 中使用了一个 void 类型的指针保存其内存，说明双向链表对节点所保存的值的类型不做任何限制。</p>
+<p>对于不同类型的值，有时候便需要不同的函数来进行处理，由于链表内部并不知道 value 保存的内容的真实情况， 因此需要用户指定三个函数用于处理这个 value，这三个函数分别是：</p>
+<ul>
+<li>dup：复制一个 value，若没有提供此函数，链表内部在需要复制的时候将会直接复制 value 指针的值</li>
+<li>free：释放一个 value，若没有提供此函数，则不进行 free 操作</li>
+<li>match：比较两个 value 的值，返回非 0 值表示两个 value 相等，若不提供此函数则直接比较两个 value 指针是否相等</li>
+</ul>
+<p>list 结构里面维护了一个表示其节点个数的变量 len，因此 Redis 在查询 list 的长度时可以直接使用这个值，而不用遍历整个列表，这也使得查询长度操作的复杂度为O(1)。</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320014.png" alt="img" loading="lazy"></figure>
+<p>从上述结构图中可以看出，Redis链表结构的主要特性如下:</p>
+<ul>
+<li>双向：链表节点带有前驱、后继指针获取某个节点的前驱、后继节点的时间复杂度为0(1)。</li>
+<li>无环: 链表为非循环链表表头节点的前驱指针和表尾节点的后继指针都指向NULL，对链表的访问以NULL为终点。</li>
+<li>带表头指针和表尾指针：通过list结构中的head和tail指针，获取表头和表尾节点的时间复杂度都为O(1)。</li>
+<li>带链表长度计数器：通过list结构的len属性获取节点数量的时间复杂度为O(1)。</li>
+<li>多态：链表节点使用void*指针保存节点的值，并且可以通过list结构的dup、free、match三个属性为节点值设置类型特定函数，所以链表可以用来保存各种不同类型的值。</li>
+</ul>
+<h4 id="ziplist">zipList</h4>
+<p>压缩列表ziplist 是一个经过特殊编码的双向链表，旨在提高内存效率。它允许在 O(1) 时间内对列表的任一侧进行push和pop操作。不过，由于每个操作都需要重新分配 ziplist 使用的内存，因此实际复杂度与 ziplist 使用的内存量有关。</p>
+<p>ziplist存储在一段连续的内存上，所以存储效率很高。但是，它不利于修改操作，插入和删除操作需要频繁的申请和释放内存。特别是当ziplist长度很长的时候，一次realloc可能会导致大批量的数据拷贝。</p>
+<p>zipList的构成一般如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zlbytes</td>
+<td>uint32_t</td>
+<td>用于保存压缩列表的长度（单位为字节），包括 4 字节的 zlbytes 本身。通过值可以快速调整整个压缩列表的大小，而无需遍历整个压缩列表</td>
+</tr>
+<tr>
+<td>ztail</td>
+<td>uint32_t</td>
+<td>用于记录列表中最后一个节点的偏移。通过这个值可以快速的从队列末尾弹出一个节点，而无需遍历整个列表</td>
+</tr>
+<tr>
+<td>zllen</td>
+<td>uint16_t</td>
+<td>记录压缩列表中节点的数量。当节点数量超过或者等于 UINT16_MAX(65535) 时，需要遍历整个列表才能知道节点的数量（一旦列表到达 UINT16_MAX，即使后面将部分节点从列表中删除，使得列表节点数小于 UINT16_MAX 这个字段依然会保持 UINT16_MAX 不变）</td>
+</tr>
+<tr>
+<td>zlend</td>
+<td>uint8_t</td>
+<td>是一个特殊的节点，用于表示压缩列表的末尾。它的值为 255。其他普通的节点不会以 255 开头。因此可以通过检查节点的地一个字节是否等于 255 从而知道是否已经到达列表的末尾</td>
+</tr>
+</tbody>
+</table>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320015.png" alt="" loading="lazy"></figure>
+<pre><code>// 文件地址：ziplist.c
+// 创建ziplist时，便已经指定了各个字段的长度。
+#define ZIPLIST_HEADER_SIZE     (sizeof(uint32_t)*2+sizeof(uint16_t))
+#define ZIPLIST_ENTRY_END(zl)   ((zl)+intrev32ifbe(ZIPLIST_BYTES(zl))-1)
+unsigned char *ziplistNew(void) {
+    unsigned int bytes = ZIPLIST_HEADER_SIZE+ZIPLIST_END_SIZE;
+    unsigned char *zl = zmalloc(bytes);
+    ZIPLIST_BYTES(zl) = intrev32ifbe(bytes);
+    ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(ZIPLIST_HEADER_SIZE);
+    ZIPLIST_LENGTH(zl) = 0;
+    zl[bytes-1] = ZIP_END;
+    return zl;
+}
+
+</code></pre>
+<p>压缩列表中的压缩节点entry可以保存一个字节数组或者一个整数值。每个压缩列表节点都已两个字段开头：</p>
+<ul>
+<li>第一个字段是上一个节点的长度（prevlen），通过这个字段可以从后往前遍历列表。</li>
+<li>第二个字段是该节点的编码方式（encoding）。指示了本节点的节点类型是字节数组类型（String）还是整数类型（Integer）。如果是字节数组类型（String）还包含了字节数组的长度。</li>
+</ul>
+<pre><code>// 通常，压缩节点的结构如下所示。
+&lt;prevlen&gt; &lt;encoding&gt; &lt;entry-data&gt;
+// 对于一些很小的数字，会在 encoding 字段包含了数字本身。在这种情况下不需要 &lt;entry-data&gt; 
+&lt;prevlen&gt; &lt;encoding&gt;
+
+</code></pre>
+<pre><code>// 因为压缩列表本质只是字节数组，为了方便操作，redis还定义了zlentry结构体
+// 操作时，将每个节点包含信息按照一定规则写入zlentry中。
+typedef struct zlentry {
+    unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
+    unsigned int prevrawlen;     /* Previous entry len. */
+    unsigned int lensize;        /* Bytes used to encode this entry type/len.
+                                    For example strings have a 1, 2 or 5 bytes
+                                    header. Integers always use a single byte.*/
+    unsigned int len;            /* Bytes used to represent the actual entry.
+                                    For strings this is just the string length
+                                    while for integers it is 1, 2, 3, 4, 8 or
+                                    0 (for 4 bit immediate) depending on the
+                                    number range. */
+    unsigned int headersize;     /* prevrawlensize + lensize. */
+    unsigned char encoding;      /* Set to ZIP_STR_* or ZIP_INT_* depending on
+                                    the entry encoding. However for 4 bits
+                                    immediate integers this can assume a range
+                                    of values and must be range-checked. */
+    unsigned char *p;            /* Pointer to the very start of the entry, that
+                                    is, this points to prev-entry-len field. */
+} zlentry;  
+
+</code></pre>
+<p>对于压缩节点中的prevlen字段有着两种编码方式：</p>
+<ul>
+<li>前节点长度小于254时，占用1字节，用来表示前节点长度</li>
+<li>前节点长度大于等于254时，占用5字节，其中第1个字节为特殊值0xFE(254)，后面4字节用来表示实际长度</li>
+</ul>
+<pre><code>// 前节点长度小于254时
+&lt;prevlen from 0 to 253&gt; &lt;encoding&gt; &lt;entry&gt;
+// 前节点长度大于等于254时
+0xFE &lt;4 bytes unsigned little endian prevlen&gt; &lt;encoding&gt; &lt;entry&gt;
+
+</code></pre>
+<pre><code>// 文件地址：ziplist.c
+// 返回前一个节点的编码长度
+#define ZIP_DECODE_PREVLENSIZE(ptr, prevlensize) do {
+    if ((ptr)[0] &lt; ZIP_BIG_PREVLEN) {
+        (prevlensize) = 1;                                                 
+    } else {                                                               
+        (prevlensize) = 5;                                                 
+    }                                                                      
+} while(0)
+
+#define ZIP_DECODE_PREVLEN(ptr, prevlensize, prevlen) do {                 
+    ZIP_DECODE_PREVLENSIZE(ptr, prevlensize);                              
+    if ((prevlensize) == 1) {                                              
+        (prevlen) = (ptr)[0];                                              
+    } else { /* prevlensize == 5 */                                        
+        (prevlen) = ((ptr)[4] &lt;&lt; 24) |                                     
+                    ((ptr)[3] &lt;&lt; 16) |                                     
+                    ((ptr)[2] &lt;&lt;  8) |                                     
+                    ((ptr)[1]);                                            
+    }                                                                      
+} while(0)
+
+</code></pre>
+<p>对于压缩节点encoding字段而言，针对不同数据类型会有不同的表现形式，即entry的编码字段取决于entry的内容。</p>
+<ul>
+<li>当entry是字符串时，编码第一个字节的前 2 位将保存用于存储字符串长度的编码类型，然后是字符串的实际长度。</li>
+<li>当条目是整数时，前 2 位都设置为 1。接下来的 2 位用于指定在此标头之后将存储哪种整数。</li>
+<li>不同类型和编码的概述如下。第一个字节总是足以确定条目的类型。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00pppppp</td>
+<td>1 字节</td>
+<td>保存小于等于 63 个字符的字节数组（6 比特）。&quot;pppppp&quot; 表示 6 比特大小的无符号整数长度</td>
+</tr>
+<tr>
+<td>01pppppp</td>
+<td>qqqqqqqq</td>
+<td>2 字节</td>
+</tr>
+<tr>
+<td>10000000</td>
+<td>qqqqqqqq</td>
+<td>rrrrrrrr</td>
+</tr>
+<tr>
+<td>11000000</td>
+<td>1 字节</td>
+<td>保存 2 字节有符号整数（int16_t）的编码</td>
+</tr>
+<tr>
+<td>11010000</td>
+<td>1 字节</td>
+<td>保存 4 字节有符号整数（int32_t）的编码</td>
+</tr>
+<tr>
+<td>11100000</td>
+<td>1 字节</td>
+<td>保存 8 字节有符号整数（int64_t）的编码</td>
+</tr>
+<tr>
+<td>11110000</td>
+<td>1 字节</td>
+<td>保存 3 字节有符号整数（24 位）的编码</td>
+</tr>
+<tr>
+<td>11111110</td>
+<td>1 字节</td>
+<td>保存 1 字节有符号整数（int8_t）的编码</td>
+</tr>
+<tr>
+<td>1111xxxx</td>
+<td>1 字节</td>
+<td>（xxxx 取值为 0001 到 1101）保存 0 到 12 的整数编码，xxxx 为 0001 时表示保存的是 0,依此类推</td>
+</tr>
+<tr>
+<td>11111111</td>
+<td>1 字节</td>
+<td>表示压缩列表的末尾节点</td>
+</tr>
+</tbody>
+</table>
+<p>注意：每个压缩节点会存在prevlen属性，用来记录前置节点的长度，根据前置节点长度还分为两种情况，当长度大于等于254时，占用空间会从1字节扩大到5字节。所谓连锁更新，就是多个长度处于250字节~253字节之间的连续节点，当一个节点更新后，导致下一个节点prevlen由1字节变为5字节，从而导致下下一个节点prevlen值增大，产生连锁反应。因为连锁更新在最坏情况下需要对压缩列表执行N次空间预分配，而每次空间预分配的最坏复杂度为O(n)，所以连锁更新的最坏复杂度为O(n<sup>2)。不过，虽然连锁更新的复杂度高，但出现的几率较低，需要多个特殊长度的节点，所以插入删除命令的平均复杂度均为O(n)，最坏复杂度为O(n</sup>2)。对应的连锁更新函数为：__ziplistCascadeUpdate</p>
+<h4 id="quicklist">quickList</h4>
+<p>前面两种结构各有优缺点，ziplist适合数据量少而linkedlist适合大数据量，那么有没有一种能够兼容这两种数据结构的新型数据结构呢？答案是有的，从redis3.2版本开始，引入了一个quicklist的数据结构，其兼顾了前面两种数据结构的优点，现已成为list对象的底层实现。</p>
+<p>实际上quicklist是ziplist和linkedlist的混合体，它将linkedlist按段切分，每一段都会使用ziplist来紧凑存储，多个ziplist之间使用双向指针进行串联。</p>
+<pre><code>// 文件地址：quicklist.h
+typedef struct quicklistNode {
+    struct quicklistNode *prev; /* 指向上一个节点 */
+    struct quicklistNode *next; /* 指向下一个节点 */
+    unsigned char *entry;  /* 当节点保存的是压缩 ziplist 时，指向 quicklistLZF，否则指向 ziplist */
+    size_t sz;            /* ziplist 的大小（字节为单位） */
+    unsigned int count : 16;     /* ziplist 的项目个数 */
+    unsigned int encoding : 2;   /* RAW==1 or LZF==2 */
+    unsigned int container : 2;  /* PLAIN==1 or PACKED==2 */
+    unsigned int recompress : 1; /* 这个节点是否之前是被压缩的 */
+    unsigned int attempted_compress : 1;  /* 节点太小，不压缩 */
+    unsigned int extra : 10; /* 未使用，保留字段 */
+} quicklistNode;
+
+// 当 quicklistNode 指向的 ziplist 被压缩的情况下，上述的 entry成员会指向如下的 quicklistLZF 结构
+typedef struct quicklistLZF {
+    unsigned int sz; /* LZF 压缩后的ziplist大小*/
+    char compressed[]; /* 是个柔性数组（flexible array member），存放压缩后的ziplist字节数组。*/
+} quicklistLZF;
+
+typedef struct quicklist {
+    quicklistNode *head;  /* 头指针 */
+    quicklistNode *tail;  /* 尾指针 */
+    unsigned long count;        /* 所有ziplist数据项的个数总和。 */
+    unsigned long len;          /* quicklistNodes总数 */
+    signed int fill : QL_FILL_BITS;       /* 16bit，ziplist大小设置，存放list-max-ziplist-size参数的值。 */
+    unsigned int compress : QL_COMP_BITS; /*  16bit，节点压缩深度设置，存放list-compress-depth参数的值;0=off */
+    unsigned int bookmark_count: QL_BM_BITS;
+    quicklistBookmark bookmarks[];
+} quicklist;
+
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320016.png" alt="img" loading="lazy"></figure>
+<p>注意：</p>
+<ul>
+<li>quicklist 不会对过小的 ziplist 进行压缩，这个值为 MIN_COMPRESS_BYTES，目前是 48</li>
+<li>quicklist 在对 ziplist 进行压缩后，会对比压缩后的长度和未压缩的长度，若压缩后的长度 - 未压缩的长度 &lt; 8（MIN_COMPRESS_IMPROVE）（lzf-&gt;sz + MIN_COMPRESS_IMPROVE &gt;= node-&gt;sz），则使用未压缩的数据</li>
+<li>quicklist 的头节点和尾节点在任何时候都不会被压缩，因此可以保证将数据插入列表的头或者尾是高效的。</li>
+<li>插入一个数据到压缩的节点时，需要先对节点的 ziplist 整个进行解压，插入后再次进行压缩。</li>
+<li>对中间某个已满的节点进行插入操作会导致此节点（假设此节点为 node）的 ziplist 在插入点进行分裂，此时这个 ziplist 会变成两个 ziplist（新建一个 quicklistNode 保存多出来的 ziplist，假设此节点为 newnode），然后将数据插入 node 指向的 ziplist 的末尾，然后对 node 进行 _quicklistMergeNodes 操作。</li>
+</ul>
+<pre><code>// 文件地址：quicklist.c
+// 压缩时，不过对小于48字节的数据进行压缩，同时会开辟新的空间压缩ziplist数据，并释放原来的node空间，最后指向压缩后的数据并修改其他属性值
+// 解压操作与压缩操作基本一致
+/* Minimum listpack size in bytes for attempting compression. */
+#define MIN_COMPRESS_BYTES 48
+/* Compress the listpack in 'node' and update encoding details.
+ * Returns 1 if listpack compressed successfully.
+ * Returns 0 if compression failed or if listpack too small to compress. */
+REDIS_STATIC int __quicklistCompressNode(quicklistNode *node) {
+#ifdef REDIS_TEST
+    node-&gt;attempted_compress = 1;
+#endif
+
+    /* validate that the node is neither
+     * tail nor head (it has prev and next)*/
+    assert(node-&gt;prev &amp;&amp; node-&gt;next);
+
+    node-&gt;recompress = 0;
+    /* 小于MIN_COMPRESS_BYTES=48的数据不会被压缩 */
+    if (node-&gt;sz &lt; MIN_COMPRESS_BYTES)
+        return 0;
+
+    quicklistLZF *lzf = zmalloc(sizeof(*lzf) + node-&gt;sz);
+
+    /* Cancel if compression fails or doesn't compress small enough */
+    if (((lzf-&gt;sz = lzf_compress(node-&gt;entry, node-&gt;sz, lzf-&gt;compressed,
+                                 node-&gt;sz)) == 0) ||
+        lzf-&gt;sz + MIN_COMPRESS_IMPROVE &gt;= node-&gt;sz) {
+        /* lzf_compress aborts/rejects compression if value not compressible. */
+        zfree(lzf);
+        return 0;
+    }
+    lzf = zrealloc(lzf, sizeof(*lzf) + lzf-&gt;sz);
+    zfree(node-&gt;entry);
+    node-&gt;entry = (unsigned char *)lzf;
+    node-&gt;encoding = QUICKLIST_NODE_ENCODING_LZF;
+    return 1;
+}
+
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[RocketMQ源码解读之主从机制]]></title>
         <id>https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-zhu-cong-ji-zhi/</id>
@@ -3417,2357 +5561,6 @@ public boolean cleanup(final long currentRef) {
 // 清理完成的判断：是引用次数已经归零且cleanupOver为true
 public boolean isCleanupOver() {
     return this.refCount.get() &lt;= 0 &amp;&amp; this.cleanupOver;
-}
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[RocketMQ源码解读之消息发送]]></title>
-        <id>https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-fa-song/</id>
-        <link href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-fa-song/">
-        </link>
-        <updated>2022-10-05T03:12:44.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之消息发送。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/coast-192981_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="消息发送">消息发送</h2>
-<h3 id="简介">简介</h3>
-<p>RocketMQ支持3种消息发送方式：同步（sync），异步（async），单向（oneway）。</p>
-<ul>
-<li>同步（sync）：producer发送消息时，同步等待，直到服务器返回发送结果。</li>
-<li>异步（async）：producer发送消息时，指定消息发送成功后的回调函数，而无需等待发送结果。整个发送过程为非阻塞状态。</li>
-<li>单向（oneway）：producer发送消息后，不等待返回结果；即只管发送，不在乎消息是否成功存储在消息服务器上。</li>
-</ul>
-<p>RocketMQ中的主要消息属性如下：</p>
-<pre><code>// 文件地址：org.apache.rocketmq.common.message.Message
-private String topic;
-private int flag;
-// 扩展属性中用的比较多的如：tag，keys，waitStoreMsgOK，delayTimeLevel等
-private Map&lt;String, String&gt; properties;
-private byte[] body;
-private String transactionId;
-
-</code></pre>
-<p>RocketMQ中的消息扩展属性介绍：</p>
-<ul>
-<li>tag：标签，主要用于过滤同一topic中的消息。消费多个tag时，以 &quot;||&quot; 作为分隔符。</li>
-<li>keys：message索引键，多个以空格分隔。该属性可用于快速检索消息（例如消费失败时查询对应的消息）。</li>
-<li>waitStoreMsgOK：消息发送时是否等待消息存储完成后再返回。</li>
-<li>delayTimeLevel：消息延迟级别（1-18），主要用于消息重试和延迟消息。</li>
-</ul>
-<h3 id="启动流程">启动流程</h3>
-<p>RocketMQ启动的核心代码在org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl中，如下所示：</p>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl
-public void start(final boolean startFactory) throws MQClientException {
-    switch (this.serviceState) {
-        case CREATE_JUST:
-            this.serviceState = ServiceState.START_FAILED;
-            // 检查producerGroup是否合法
-            this.checkConfig();
-
-             // 当默认的producerGroup跟MixAll.CLIENT_INNER_PRODUCER_GROUP不相等时，改变生产者的instanceName为进程ID
-            if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
-                // 如果instanceName为“DEFAULT”时，此处改变函数将会将instanceName更改为进程id + 当前纳秒
-                // this.instanceName = UtilAll.getPid() + &quot;#&quot; + System.nanoTime();
-                this.defaultMQProducer.changeInstanceNameToPID();
-            }
-        
-            // 创建MQClientInstance实例，整个JVM中只存在一个MQClientManager实例，其中维护了一个factoryTable用于存储clientId与MQClientInstance
-            // private ConcurrentMap&lt;String/* clientId */, MQClientInstance&gt; factoryTable 
-            // 也就是说一个clientId只会存在一个至于对应的MQClientInstance
-            this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQProducer, rpcHook);
-
-            // 将当前生产者加入MQClientInstance中进行管理，方便后续调用网络请求，发送心跳包等
-            boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
-            if (!registerOK) {
-                this.serviceState = ServiceState.CREATE_JUST;
-                throw new MQClientException(&quot;The producer group[&quot; + this.defaultMQProducer.getProducerGroup()
-                    + &quot;] has been created before, specify another name please.&quot; + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
-                    null);
-            }
-
-            //  将topicKey存入topicPublishInfoTable中，value暂时为无属性值的TopicPublishInfo对象
-            this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
-
-            // 启动 MQClientInstance，如果已启动，则本次操作不做处理
-            if (startFactory) {
-                mQClientFactory.start();
-            }
-
-            log.info(&quot;the producer [{}] start OK. sendMessageWithVIPChannel={}&quot;, this.defaultMQProducer.getProducerGroup(),
-                this.defaultMQProducer.isSendMessageWithVIPChannel());
-            this.serviceState = ServiceState.RUNNING;
-            break;
-        case RUNNING:
-        case START_FAILED:
-        case SHUTDOWN_ALREADY:
-            throw new MQClientException(&quot;The producer service state not OK, maybe started once, &quot;
-                + this.serviceState
-                + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
-                null);
-        default:
-            break;
-    }
-    // 发送心跳 
-    this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-
-    RequestFutureHolder.getInstance().startScheduledTask(this);
-
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.MQClientManager
-public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-    // 创建clientId
-    String clientId = clientConfig.buildMQClientId();
-    // 一个clientId只对应一个MQClientInstance
-    MQClientInstance instance = this.factoryTable.get(clientId);
-    // 不存在就直接创建一个，否则便返回已创建的MQClientInstance
-    if (null == instance) {
-        instance =
-            new MQClientInstance(clientConfig.cloneClientConfig(),
-                this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
-        MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
-        if (prev != null) {
-            instance = prev;
-            log.warn(&quot;Returned Previous MQClientInstance for clientId:[{}]&quot;, clientId);
-        } else {
-            log.info(&quot;Created new MQClientInstance for clientId:[{}]&quot;, clientId);
-        }
-    }
-
-    return instance;
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.ClientConfig
-// clientId格式为：clientIP + instanceName + （unitName 可选值）
-// 即使在同一台机器上部署了两个应用程序，clientId也会不同。详情可参见changeInstanceNameToPID函数
-public String buildMQClientId() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(this.getClientIP());
-    sb.append(&quot;@&quot;);
-    sb.append(this.getInstanceName());
-    if (!UtilAll.isBlank(this.unitName)) {
-        sb.append(&quot;@&quot;);
-        sb.append(this.unitName);
-    }
-    return sb.toString();
-}
-
-// 如果instanceName为“DEFAULT”的情况下，instanceName将会赋值为进程id + 当前纳秒
-public void changeInstanceNameToPID() {
-    if (this.instanceName.equals(&quot;DEFAULT&quot;)) {
-        this.instanceName = UtilAll.getPid() + &quot;#&quot; + System.nanoTime();
-    }
-}
-
-</code></pre>
-<h3 id="消息发送流程">消息发送流程</h3>
-<p>消息发送主要分为验证消息，寻找路由，选择消息队列，发送消息四个步骤。此处分析以同步发送的源码为例。</p>
-<h4 id="验证消息">验证消息</h4>
-<p>消息发送之前，需要校验消息的合法性，包括主题是否规范，消息内容是否不为空等。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.client.producer.DefaultMQProducer
-public SendResult send(
-    Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-    msg.setTopic(withNamespace(msg.getTopic()));
-    // 同步发送，默认超时时间为3秒
-    return this.defaultMQProducerImpl.send(msg);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl
-// 确保服务状态是可运行的
-private void makeSureStateOK() throws MQClientException {
-    if (this.serviceState != ServiceState.RUNNING) {
-        throw new MQClientException(&quot;The producer service state not OK, &quot;
-            + this.serviceState
-            + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
-            null);
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.Validators
-public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
-    if (null == msg) {
-        throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, &quot;the message is null&quot;);
-    }
-    // topic
-    // 校验topic不能为空，且长度不能超过127
-    Validators.checkTopic(msg.getTopic());
-    // 校验topic是否允许发送消息
-    Validators.isNotAllowedSendTopic(msg.getTopic());
-
-    // body 不能为空
-    if (null == msg.getBody()) {
-        throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, &quot;the message body is null&quot;);
-    }
-
-    // body 内容长度不能等于0
-    if (0 == msg.getBody().length) {
-        throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, &quot;the message body length is zero&quot;);
-    }
-
-    // 校验消息体，默认不能超过4M 
-    if (msg.getBody().length &gt; defaultMQProducer.getMaxMessageSize()) {
-        throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
-            &quot;the message body size over max value, MAX: &quot; + defaultMQProducer.getMaxMessageSize());
-    }
-}
-
-</code></pre>
-<h4 id="寻找主题路由信息">寻找主题路由信息</h4>
-<p>消息发送之前，需要先获取主题的路由信息，通过主题路由信息才能知道消息该发往哪个broker节点。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.TopicPublishInfo
-// TopicPublishInfo 属性信息
-// 是否为顺序主题
-private boolean orderTopic = false;
-// 是否已有主题路由信息
-private boolean haveTopicRouterInfo = false;
-// 该主题的消息队列列表
-private List&lt;MessageQueue&gt; messageQueueList = new ArrayList&lt;MessageQueue&gt;();
-// 每次发送消息时，此值会递增1（为空时将随机选出一个值），主要用于队列选择
-private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
-// 主题路由数据--》包括orderTopicConf，queueDatas，brokerDatas，filterServerTable等属性信息
-private TopicRouteData topicRouteData;
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl
-private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
-    // 从本地缓存中获取路由信息
-    TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
-    // 如果不存在，那么便从nameServer中获取对应的路由信息，并将其放入本地缓存中
-    if (null == topicPublishInfo || !topicPublishInfo.ok()) {
-        this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-        // 通过指定的topic获取对应的路由信息
-        this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-        topicPublishInfo = this.topicPublishInfoTable.get(topic);
-    }
-
-    if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
-        return topicPublishInfo;
-    } else {
-        // 尝试使用默认主题去获取路由信息
-        this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
-        topicPublishInfo = this.topicPublishInfoTable.get(topic);
-        return topicPublishInfo;
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.factory.MQClientInstance
-public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
-    DefaultMQProducer defaultMQProducer) {
-    try {
-        if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-            try {
-                TopicRouteData topicRouteData;
-                // 使用默认主题去获取路由信息
-                if (isDefault &amp;&amp; defaultMQProducer != null) {
-                    // 注意：获取路由信息时，如果autoCreateTopicEnable为false，将会返回异常
-                    topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
-                        clientConfig.getMqClientApiTimeout());
-                    if (topicRouteData != null) {
-                        for (QueueData data : topicRouteData.getQueueDatas()) {
-                            // 比较默认的主题队列数与数据的读队列数，选择其中更小的一个替换数据的读写队列数
-                            int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
-                            data.setReadQueueNums(queueNums);
-                            data.setWriteQueueNums(queueNums);
-                        }
-                    }
-                } else {
-                    // 否则通过指定的topic去获取对应的路由信息
-                    topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, clientConfig.getMqClientApiTimeout());
-                }
-                // 如果从nameServer中获取到了topicRouteData 
-                if (topicRouteData != null) {
-                    // 获取本地缓存的路由信息
-                    TopicRouteData old = this.topicRouteTable.get(topic);
-                    // 将刚获取的topicRouteData 与本地缓存中的数据进行比较，如果未改变的话将直接返回false
-                    boolean changed = topicRouteDataIsChange(old, topicRouteData);
-                    if (!changed) {
-                        changed = this.isNeedUpdateTopicRouteInfo(topic);
-                    } else {
-                        log.info(&quot;the topic[{}] route info changed, old[{}] ,new[{}]&quot;, topic, old, topicRouteData);
-                    }
-                    // 如果发生了改变
-                    if (changed) {
-                        TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
-
-                        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-                            this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
-                        }
-
-                        // 更新所有需要进行发送的主题路由信息
-                        if (!producerTable.isEmpty()) {
-                            // 获取需要进行更改的发布信息
-                            TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
-                            publishInfo.setHaveTopicRouterInfo(true);
-                            Iterator&lt;Entry&lt;String, MQProducerInner&gt;&gt; it = this.producerTable.entrySet().iterator();
-                            // 迭代更改
-                            while (it.hasNext()) {
-                                Entry&lt;String, MQProducerInner&gt; entry = it.next();
-                                MQProducerInner impl = entry.getValue();
-                                if (impl != null) {
-                                    // 所有信息都会存入topicPublishInfoTable
-                                    impl.updateTopicPublishInfo(topic, publishInfo);
-                                }
-                            }
-                        }
-
-                        // 更新所有需要进行订阅的主题路由信息
-                        if (!consumerTable.isEmpty()) {
-                            // 获取需要进行更改的订阅信息
-                            Set&lt;MessageQueue&gt; subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-                            Iterator&lt;Entry&lt;String, MQConsumerInner&gt;&gt; it = this.consumerTable.entrySet().iterator();
-                            // 迭代更改
-                            while (it.hasNext()) {
-                                Entry&lt;String, MQConsumerInner&gt; entry = it.next();
-                                MQConsumerInner impl = entry.getValue();
-                                if (impl != null) {
-                                    // 所有信息都会存入topicSubscribeInfoTable
-                                    impl.updateTopicSubscribeInfo(topic, subscribeInfo);
-                                }
-                            }
-                        }
-                        log.info(&quot;topicRouteTable.put. Topic = {}, TopicRouteData[{}]&quot;, topic, cloneTopicRouteData);
-                        this.topicRouteTable.put(topic, cloneTopicRouteData);
-                        return true;
-                    }
-                } else {
-                    log.warn(&quot;updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}. [{}]&quot;, topic, this.clientId);
-                }
-            } catch (MQClientException e) {
-                if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) &amp;&amp; !topic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
-                    log.warn(&quot;updateTopicRouteInfoFromNameServer Exception&quot;, e);
-                }
-            } catch (RemotingException e) {
-                log.error(&quot;updateTopicRouteInfoFromNameServer Exception&quot;, e);
-                throw new IllegalStateException(e);
-            } finally {
-                this.lockNamesrv.unlock();
-            }
-        } else {
-            log.warn(&quot;updateTopicRouteInfoFromNameServer tryLock timeout {}ms. [{}]&quot;, LOCK_TIMEOUT_MILLIS, this.clientId);
-        }
-    } catch (InterruptedException e) {
-        log.warn(&quot;updateTopicRouteInfoFromNameServer Exception&quot;, e);
-    }
-
-    return false;
-}
-
-</code></pre>
-<h4 id="选择消息队列">选择消息队列</h4>
-<p>发送消息时，可以通过指定MessageQueueSelector选择队列路由算法（默认有取hash，随机，指定机房(此类型实现暂时为空)）；未指定MessageQueueSelector 时，rocketmq 将使用默认的规则选择一个message queue。</p>
-<pre><code>// 自带的消息路由规则
-// 取arg参数的hashcode的绝对值，然后对mqs.size()取余，得到目标队列在mqs的下标
-public class SelectMessageQueueByHash implements MessageQueueSelector {
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        int value = arg.hashCode() % mqs.size();
-        if (value &lt; 0) {
-            value = Math.abs(value);
-        }
-        return mqs.get(value);
-    }
-}
-
-// 直接根据mqs.size()随机一个值作为目标队列在mqs的下标
-public class SelectMessageQueueByRandom implements MessageQueueSelector {
-    private Random random = new Random(System.currentTimeMillis());
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        int value = random.nextInt(mqs.size());
-        return mqs.get(value);
-    }
-}
-
-// 指定机房，目前return null，暂无实现逻辑
-public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
-    private Set&lt;String&gt; consumeridcs;
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        return null;
-    }
-
-    public Set&lt;String&gt; getConsumeridcs() {
-        return consumeridcs;
-    }
-
-    public void setConsumeridcs(Set&lt;String&gt; consumeridcs) {
-        this.consumeridcs = consumeridcs;
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.latency.MQFaultStrategy
-// 未指定MessageQueueSelector，将使用自带的算法选择一个消息队列。
-public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
-    // 是否启用了broker故障延迟机制，默认为false
-    // 为了producer的高可用，可以将此开关开启
-    if (this.sendLatencyFaultEnable) {
-        try {
-            int index = tpInfo.getSendWhichQueue().incrementAndGet();
-            // 遍历当前broker的队列列表
-            for (int i = 0; i &lt; tpInfo.getMessageQueueList().size(); i++) {
-                 // 取模运算获取pos值
-                int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
-                if (pos &lt; 0)
-                    pos = 0;
-                MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                // 验证该broker是否可用，可用便直接返回
-                if (latencyFaultTolerance.isAvailable(mq.getBrokerName()))
-                    return mq;
-            }
-
-            // 选择一个broker，可能并非最好的  
-            final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-            int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
-            // 如果存在可写的队列，便返回该broker对应的queue
-            if (writeQueueNums &gt; 0) {
-                final MessageQueue mq = tpInfo.selectOneMessageQueue();
-                if (notBestBroker != null) {
-                    mq.setBrokerName(notBestBroker);
-                    mq.setQueueId(tpInfo.getSendWhichQueue().incrementAndGet() % writeQueueNums);
-                }
-                return mq;
-            } else {
-                // 否则便从faultItemTable中移除该broker
-                latencyFaultTolerance.remove(notBestBroker);
-            }
-        } catch (Exception e) {
-            log.error(&quot;Error occurred when selecting message queue&quot;, e);
-        }
-
-        return tpInfo.selectOneMessageQueue();
-    }
-
-    // 未启用broker故障延迟机制时，使用如下函数选择一个队列
-    return tpInfo.selectOneMessageQueue(lastBrokerName);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.TopicPublishInfo
-// 此处lastBrokerName 表示上次发送消息的broker
-public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-    if (lastBrokerName == null) {
-        return selectOneMessageQueue();
-    } else {
-        for (int i = 0; i &lt; this.messageQueueList.size(); i++) {
-            int index = this.sendWhichQueue.incrementAndGet();
-            int pos = Math.abs(index) % this.messageQueueList.size();
-            if (pos &lt; 0)
-                pos = 0;
-            MessageQueue mq = this.messageQueueList.get(pos);
-            if (!mq.getBrokerName().equals(lastBrokerName)) {
-                return mq;
-            }
-        }
-        return selectOneMessageQueue();
-    }
-}
-// 递增取模获取发送队列
-public MessageQueue selectOneMessageQueue() {
-    int index = this.sendWhichQueue.incrementAndGet();
-    int pos = Math.abs(index) % this.messageQueueList.size();
-    if (pos &lt; 0)
-        pos = 0;
-    return this.messageQueueList.get(pos);
-}
-
-</code></pre>
-<h4 id="发送消息">发送消息</h4>
-<p>发送消息的核心函数为：sendDefaultImpl</p>
-<pre><code>// 文件地址：org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl
-private SendResult sendKernelImpl(
-    // 待发送的消息
-    final Message msg,
-    // 消息发往的消息队列
-    final MessageQueue mq,
-    // 消息发送模式，即同步（SYNC），异步（ASYNC），单向（ONEWAY）
-    final CommunicationMode communicationMode,
-    // 发送异步消息时需要设置的回调函数
-    final SendCallback sendCallback,
-    // 主题路由信息
-    final TopicPublishInfo topicPublishInfo,
-    // 超时时间
-    final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-    long beginStartTime = System.currentTimeMillis();
-  
-    // 根据messageQueue对应的brokerName获取broker的网络地址。
-    String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
-    // 如果本地brokerAddrTable未缓存该信息，那么便与nameServer进行通信，获取broker信息
-    if (null == brokerAddr) {
-        // 从nameServer获取信息主动更新一下topic在本地的路由信息
-        tryToFindTopicPublishInfo(mq.getTopic());
-        // 从缓存中再次获取broker网络地址，如果未获取到，将抛出broker不存在异常
-        brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
-    }
-
-    SendMessageContext context = null;
-    if (brokerAddr != null) {
-        brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
-
-        byte[] prevBody = msg.getBody();
-        try {
-            // 对于非批量消息给其设置唯一id（因为批量消息在其生成过程中已经设置好了）
-            if (!(msg instanceof MessageBatch)) {
-                MessageClientIDSetter.setUniqID(msg);
-            }
-
-            boolean topicWithNamespace = false;
-            if (null != this.mQClientFactory.getClientConfig().getNamespace()) {
-                msg.setInstanceId(this.mQClientFactory.getClientConfig().getNamespace());
-                topicWithNamespace = true;
-            }
-
-            // 设置系统标签
-            int sysFlag = 0;
-            boolean msgBodyCompressed = false;
-            // 消息内容大于4K将会被压缩（批量消息会被忽略）
-            if (this.tryToCompressMessage(msg)) {
-                sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
-                msgBodyCompressed = true;
-            }
-
-            // 是否为事务消息，如果是则设置sysFlag 为TRANSACTION_PREPARED_TYPE（整型数值：4）
-            final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-            if (Boolean.parseBoolean(tranMsg)) {
-                sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
-            }
-
-            // 在消息发送之前，判断是否有检查禁止项的钩子函数
-            if (hasCheckForbiddenHook()) {
-                CheckForbiddenContext checkForbiddenContext = new CheckForbiddenContext();
-                checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
-                checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
-                checkForbiddenContext.setCommunicationMode(communicationMode);
-                checkForbiddenContext.setBrokerAddr(brokerAddr);
-                checkForbiddenContext.setMessage(msg);
-                checkForbiddenContext.setMq(mq);
-                checkForbiddenContext.setUnitMode(this.isUnitMode());
-                this.executeCheckForbiddenHook(checkForbiddenContext);
-            }
-
-            // 在消息发送之前，判断是否有发送消息增强的钩子函数
-            if (this.hasSendMessageHook()) {
-                context = new SendMessageContext();
-                context.setProducer(this);
-                context.setProducerGroup(this.defaultMQProducer.getProducerGroup());
-                context.setCommunicationMode(communicationMode);
-                context.setBornHost(this.defaultMQProducer.getClientIP());
-                context.setBrokerAddr(brokerAddr);
-                context.setMessage(msg);
-                context.setMq(mq);
-                context.setNamespace(this.defaultMQProducer.getNamespace());
-                String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-                if (isTrans != null &amp;&amp; isTrans.equals(&quot;true&quot;)) {
-                    context.setMsgType(MessageType.Trans_Msg_Half);
-                }
-
-                if (msg.getProperty(&quot;__STARTDELIVERTIME&quot;) != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
-                    context.setMsgType(MessageType.Delay_Msg);
-                }
-                this.executeSendMessageHookBefore(context);
-            }
-
-            // 构建发送请求 
-            SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-            requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
-            requestHeader.setTopic(msg.getTopic());
-            requestHeader.setDefaultTopic(this.defaultMQProducer.getCreateTopicKey());
-            requestHeader.setDefaultTopicQueueNums(this.defaultMQProducer.getDefaultTopicQueueNums());
-            requestHeader.setQueueId(mq.getQueueId());
-            requestHeader.setSysFlag(sysFlag);
-            requestHeader.setBornTimestamp(System.currentTimeMillis());
-            requestHeader.setFlag(msg.getFlag());
-            requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
-            requestHeader.setReconsumeTimes(0);
-            requestHeader.setUnitMode(this.isUnitMode());
-            requestHeader.setBatch(msg instanceof MessageBatch);
-            if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
-                if (reconsumeTimes != null) {
-                    requestHeader.setReconsumeTimes(Integer.valueOf(reconsumeTimes));
-                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_RECONSUME_TIME);
-                }
-
-                String maxReconsumeTimes = MessageAccessor.getMaxReconsumeTimes(msg);
-                if (maxReconsumeTimes != null) {
-                    requestHeader.setMaxReconsumeTimes(Integer.valueOf(maxReconsumeTimes));
-                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_MAX_RECONSUME_TIMES);
-                }
-            }
-
-            SendResult sendResult = null;
-            // 根据消息发送模式路由发送方式：同步，异步，单向
-            switch (communicationMode) {
-                case ASYNC:
-                    Message tmpMessage = msg;
-                    boolean messageCloned = false;
-                    if (msgBodyCompressed) {
-                        //If msg body was compressed, msgbody should be reset using prevBody.
-                        //Clone new message using commpressed message body and recover origin massage.
-                        //Fix bug:https://github.com/apache/rocketmq-externals/issues/66
-                        tmpMessage = MessageAccessor.cloneMessage(msg);
-                        messageCloned = true;
-                        msg.setBody(prevBody);
-                    }
-
-                    if (topicWithNamespace) {
-                        if (!messageCloned) {
-                            tmpMessage = MessageAccessor.cloneMessage(msg);
-                            messageCloned = true;
-                        }
-                        msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQProducer.getNamespace()));
-                    }
-
-                    long costTimeAsync = System.currentTimeMillis() - beginStartTime;
-                    if (timeout &lt; costTimeAsync) {
-                        throw new RemotingTooMuchRequestException(&quot;sendKernelImpl call timeout&quot;);
-                    }
-                    sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
-                        brokerAddr,
-                        mq.getBrokerName(),
-                        tmpMessage,
-                        requestHeader,
-                        timeout - costTimeAsync,
-                        communicationMode,
-                        sendCallback,
-                        topicPublishInfo,
-                        this.mQClientFactory,
-                        this.defaultMQProducer.getRetryTimesWhenSendAsyncFailed(),
-                        context,
-                        this);
-                    break;
-                case ONEWAY:
-                case SYNC:
-                    long costTimeSync = System.currentTimeMillis() - beginStartTime;
-                    if (timeout &lt; costTimeSync) {
-                        throw new RemotingTooMuchRequestException(&quot;sendKernelImpl call timeout&quot;);
-                    }
-                    sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
-                        brokerAddr,
-                        mq.getBrokerName(),
-                        msg,
-                        requestHeader,
-                        timeout - costTimeSync,
-                        communicationMode,
-                        context,
-                        this);
-                    break;
-                default:
-                    assert false;
-                    break;
-            }
-
-            // 消息发送之后，判断是否有对应的消息增强处理钩子函数
-            if (this.hasSendMessageHook()) {
-                context.setSendResult(sendResult);
-                this.executeSendMessageHookAfter(context);
-            }
-
-            return sendResult;
-        } catch (RemotingException e) {
-            // 消息发送之后，判断是否有对应的消息增强处理钩子函数
-            if (this.hasSendMessageHook()) {
-                context.setException(e);
-                this.executeSendMessageHookAfter(context);
-            }
-            throw e;
-        } catch (MQBrokerException e) {
-            // 消息发送之后，判断是否有对应的消息增强处理钩子函数
-            if (this.hasSendMessageHook()) {
-                context.setException(e);
-                this.executeSendMessageHookAfter(context);
-            }
-            throw e;
-        } catch (InterruptedException e) {
-            // 消息发送之后，判断是否有对应的消息增强处理钩子函数
-            if (this.hasSendMessageHook()) {
-                context.setException(e);
-                this.executeSendMessageHookAfter(context);
-            }
-            throw e;
-        } finally {
-            msg.setBody(prevBody);
-            msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQProducer.getNamespace()));
-        }
-    }
-
-    throw new MQClientException(&quot;The broker[&quot; + mq.getBrokerName() + &quot;] not exist&quot;, null);
-}
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[RocketMQ源码解读之NameServer]]></title>
-        <id>https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/</id>
-        <link href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/">
-        </link>
-        <updated>2022-09-24T03:07:19.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之NameService。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sea-6331772_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="路由中心">路由中心</h2>
-<h3 id="简介">简介</h3>
-<p>Broker启动时向所有的NameServer发送注册请求，并与所有的NameServer保持长连接，定时发送心跳包。心跳包中包含当前Broker信息(IP+端口等)以及存储所有Topic信息。注册成功后，NameServer集群中就有Topic跟Broker的映射关系。</p>
-<p>Producer启动时会先跟NameServer集群中的其中一台建立长连接，并从NameServer中获取当前发送的Topic存在哪些Broker上，之后便会与该broker建立长链接并发送消息。</p>
-<p>NameServer可以通过部署多台NameServer服务器来实现高可用，且每台服务器之间并不会进行通信，也就是说某些时候NameServer服务器之间的数据会不一致，但这不会对消息的发送造成任何影响。如下图所示：</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320006.png" alt="img" loading="lazy"></figure>
-<h3 id="启动流程">启动流程</h3>
-<p>通过脚本启动NameServer时，实际上是调用了org.apache.rocketmq.namesr.NamesrvStartup进行启动操作。</p>
-<p>启动时首先会加载配置信息，将指定的配置文件或命令中的选项值填充至NamesrvConfig及NettyServerConfig。参数来源方式主要有两种：</p>
-<ol>
-<li>-c configFile 通过-c命令指定配置文件的路径。</li>
-<li>在启动命令时使用 &quot;--属性名 属性值&quot;，例如：--listenPort 9876</li>
-</ol>
-<pre><code>// 文件地址: org.apache.rocketmq.common.namesrv.NamesrvConfig
-// NamesrvConfig 属性信息
-// rocketmq主目录，可通过-Drocketmq.home.dir=path或通过设置环境变量ROCKETMQ_HOME来配置rocketmq的主目录
-private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-// NameServer存储KV配置属性的持久化文件
-private String kvConfigPath = System.getProperty(&quot;user.home&quot;) + File.separator + &quot;namesrv&quot; + File.separator + &quot;kvConfig.json&quot;;
-// nameServer默认的配置文件路径，不生效。如果要指定配置文件，可以通过 -c 参数来指定
-private String configStorePath = System.getProperty(&quot;user.home&quot;) + File.separator + &quot;namesrv&quot; + File.separator + &quot;namesrv.properties&quot;;
-private String productEnvName = &quot;center&quot;;
-private boolean clusterTest = false;
-// 默认关闭顺序消息
-private boolean orderMessageEnable = false;
-
-</code></pre>
-<pre><code>// 文件地址: org.apache.rocketmq.remoting.netty.NettyServerConfig
-// NettyServerConfig 属性信息
-// NameServer监听端口，默认为9876，此处的值将会被覆盖
-private int listenPort = 8888;
-// netty 业务线程池线程数，用于处理具体的逻辑业务
-private int serverWorkerThreads = 8;
-// Netty public 任务线程池线程数，Netty网络设计会根据业务类型创建不同的线程池。例如发送消息，消费消息，心跳检测等。
-private int serverCallbackExecutorThreads = 0;
-// IO线程池线程数。主要用于解析请求，并转发值具体的业务线程执行具体的逻辑。
-private int serverSelectorThreads = 3;
-// send oneWay 消息请求并发度（broker端参数）
-private int serverOnewaySemaphoreValue = 256;
-// 异步消息发送的最大并发度（broker端参数）
-private int serverAsyncSemaphoreValue = 64;
-// 网络连接最大空闲时间，默认120s，如果超过此时间，连接将关闭。
-private int serverChannelMaxIdleTimeSeconds = 120;
-
-// socket发送缓冲区大小
-private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
-// socket接受缓冲区大小
-private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
-// 写缓冲区高水位值
-private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
-// 写缓冲区低水位值
-private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
-// socket 日志
-private int serverSocketBacklog = NettySystemConfig.socketBacklog;
-// 是否开启byteBuffer缓存，默认开启
-private boolean serverPooledByteBufAllocatorEnable = true;
-// 是否启用epoll io模型，默认关闭
-private boolean useEpollNativeSelector = false;
-
-</code></pre>
-<p>通过启动属性创建NamesrvController并实例化，该类为NameServer的核心控制器。在初始化该控制器时，会开启两个定时任务。</p>
-<ol>
-<li>scanNotActiveBroker：延迟5秒启动，每隔10秒扫描一次broker，将其中不活跃的移除。</li>
-<li>printAllPeriodically：延迟1分钟启动，每隔10分钟打印一次KV配置信息。</li>
-</ol>
-<pre><code>// 文件地址: org.apache.rocketmq.namesrv.NamesrvController
-public boolean initialize() {
-
-    this.kvConfigManager.load();
-    this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-    this.remotingExecutor =
-        Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl(&quot;RemotingExecutorThread_&quot;));
-    this.registerProcessor();
-
-    // 定时移除不活跃的broker（2分钟内未收到心跳包，则该broker将被移除）
-    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-            NamesrvController.this.routeInfoManager.scanNotActiveBroker();
-        }
-    }, 5, 10, TimeUnit.SECONDS);
-
-    // 定时打印KV配置信息
-    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-            NamesrvController.this.kvConfigManager.printAllPeriodically();
-        }
-    }, 1, 10, TimeUnit.MINUTES);
-    ......
-    return true;
-}
-
-</code></pre>
-<h3 id="路由注册">路由注册</h3>
-<p>NameServer主要作用便是给发送者及消费者提供关于Topic的路由信息。</p>
-<p>rocketmq的路由注册主要通过Broker与NameServer的心跳机制来实现的。Broker启动时会向集群中所有的NameServer发送心跳包，之后每隔30秒会再次发送。</p>
-<p>NameServer收到Broker心跳包时会更新brokerLiveTable中的BrokerLiveInfo信息。与此同时，NameServer每隔10秒会去扫描brokerLiveTable，如果两分钟内未收到心跳包，那么该Broker将会被移除，且socket也将被关闭。</p>
-<p>核心类：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-// Topic消息队列路由信息，消息发送时会根据路由表进行负载均衡。
-private final HashMap&lt;String/* topic */, List&lt;QueueData&gt;&gt; topicQueueTable;
-// Broker基础信息，例如：brokerName，clusterName，主备broker地址等
-private final HashMap&lt;String/* brokerName */, BrokerData&gt; brokerAddrTable;
-// Broker集群信息，存储集群中所有Broker名称
-private final HashMap&lt;String/* clusterName */, Set&lt;String/* brokerName */&gt;&gt; clusterAddrTable;
-// Broker状态信息，NameServer每次收到心跳包时会替换该信息
-private final HashMap&lt;String/* brokerAddr */, BrokerLiveInfo&gt; brokerLiveTable;
-// Broker上的filterServer列表，主要用于类模式消息过滤。
-private final HashMap&lt;String/* brokerAddr */, List&lt;String&gt;/* Filter Server */&gt; filterServerTable;
-
-// 容器初始化大小
-public RouteInfoManager() {
-    this.topicQueueTable = new HashMap&lt;String, List&lt;QueueData&gt;&gt;(1024);
-    this.brokerAddrTable = new HashMap&lt;String, BrokerData&gt;(128);
-    this.clusterAddrTable = new HashMap&lt;String, Set&lt;String&gt;&gt;(32);
-    this.brokerLiveTable = new HashMap&lt;String, BrokerLiveInfo&gt;(256);
-    this.filterServerTable = new HashMap&lt;String, List&lt;String&gt;&gt;(256);
-}
-
-</code></pre>
-<h4 id="broker发送心跳包">Broker发送心跳包</h4>
-<p>Broker封装对应的请求头及请求体信息，并发送注册请求至NameServer。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.broker.BrokerController#start
-this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-    @Override
-    public void run() {
-        try {
-            BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-        } catch (Throwable e) {
-            log.error(&quot;registerBrokerAll Exception&quot;, e);
-        }
-    }
-}, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.broker.out.BrokerOuterAPI#registerBrokerAll
-public List&lt;RegisterBrokerResult&gt; registerBrokerAll(
-    final String clusterName,
-    final String brokerAddr,
-    final String brokerName,
-    final long brokerId,
-    final String haServerAddr,
-    final TopicConfigSerializeWrapper topicConfigWrapper,
-    final List&lt;String&gt; filterServerList,
-    final boolean oneway,
-    final int timeoutMills,
-    final boolean compressed) {
-
-    final List&lt;RegisterBrokerResult&gt; registerBrokerResultList = new CopyOnWriteArrayList&lt;&gt;();
-    List&lt;String&gt; nameServerAddressList = this.remotingClient.getNameServerAddressList();
-    if (nameServerAddressList != null &amp;&amp; nameServerAddressList.size() &gt; 0) {
-
-        // 设置请求头信息
-        final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
-        requestHeader.setBrokerAddr(brokerAddr);
-        // brokerId：0表示master，大于0表示slave
-        requestHeader.setBrokerId(brokerId);
-        requestHeader.setBrokerName(brokerName);
-        requestHeader.setClusterName(clusterName);
-        // master地址
-        requestHeader.setHaServerAddr(haServerAddr);
-        requestHeader.setCompressed(compressed);
-
-        // 设置请求体
-        RegisterBrokerBody requestBody = new RegisterBrokerBody();
-        // 主题配置信息
-        requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
-        // 消息过滤服务列表
-        requestBody.setFilterServerList(filterServerList);
-        final byte[] body = requestBody.encode(compressed);
-        final int bodyCrc32 = UtilAll.crc32(body);
-        requestHeader.setBodyCrc32(bodyCrc32);
-        final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
-        // 遍历NameServer列表，逐个发送心跳请求。
-        for (final String namesrvAddr : nameServerAddressList) {
-            brokerOuterExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
-                        if (result != null) {
-                            registerBrokerResultList.add(result);
-                        }
-
-                        log.info(&quot;register broker[{}]to name server {} OK&quot;, brokerId, namesrvAddr);
-                    } catch (Exception e) {
-                        log.warn(&quot;registerBroker Exception, {}&quot;, namesrvAddr, e);
-                    } finally {
-                        countDownLatch.countDown();
-                    }
-                }
-            });
-        }
-
-        try {
-            countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-        }
-    }
-
-    return registerBrokerResultList;
-}
-
-</code></pre>
-<h4 id="nameserver-处理心跳包">NameServer 处理心跳包</h4>
-<p>org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor接受网络请求，并根据类型路由请求。如果请求类型为REGISTER_BROKER，则表示为注册请求，最终将路由至RouteInfoManager#registerBroker进行处理。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor#processRequest
-// 接受类型为REGISTER_BROKER的请求，并路由至RouteInfoManager#registerBroker进行处理
-case RequestCode.REGISTER_BROKER:
-    Version brokerVersion = MQVersion.value2Version(request.getVersion());
-    if (brokerVersion.ordinal() &gt;= MQVersion.Version.V3_0_11.ordinal()) {
-        return this.registerBrokerWithFilterServer(ctx, request);
-    } else {
-        return this.registerBroker(ctx, request);
-    }
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public RegisterBrokerResult registerBroker(
-    final String clusterName,
-    final String brokerAddr,
-    final String brokerName,
-    final long brokerId,
-    final String haServerAddr,
-    final TopicConfigSerializeWrapper topicConfigWrapper,
-    final List&lt;String&gt; filterServerList,
-    final Channel channel) {
-    RegisterBrokerResult result = new RegisterBrokerResult();
-    try {
-        try {
-            // 加写锁，防止并发修改路由表
-            this.lock.writeLock().lockInterruptibly();
-
-            // 获取brokerName集s
-            Set&lt;String&gt; brokerNames = this.clusterAddrTable.get(clusterName);
-            // 如果不存在则创建
-            if (null == brokerNames) {
-                brokerNames = new HashSet&lt;String&gt;();
-                this.clusterAddrTable.put(clusterName, brokerNames);
-            }
-            // 将新加入的brokerName添加至brokerNames中
-            brokerNames.add(brokerName);
-
-            // 为false表示为非第一次注册  
-            boolean registerFirst = false;
-
-            // 获取brokerData 信息
-            BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-            // 如果不存在则创建并将registerFirst 设置为true（表示第一次注册）
-            if (null == brokerData) {
-                registerFirst = true;
-                brokerData = new BrokerData(clusterName, brokerName, new HashMap&lt;Long, String&gt;());
-                this.brokerAddrTable.put(brokerName, brokerData);
-            }
-            Map&lt;Long, String&gt; brokerAddrsMap = brokerData.getBrokerAddrs();
-            //Switch slave to master: first remove &lt;1, IP:PORT&gt; in namesrv, then add &lt;0, IP:PORT&gt;
-            //The same IP:PORT must only have one record in brokerAddrTable
-            // 移除brokerAddr相同的数据
-            Iterator&lt;Entry&lt;Long, String&gt;&gt; it = brokerAddrsMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry&lt;Long, String&gt; item = it.next();
-                if (null != brokerAddr &amp;&amp; brokerAddr.equals(item.getValue()) &amp;&amp; brokerId != item.getKey()) {
-                    it.remove();
-                }
-            }
-
-            String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
-            registerFirst = registerFirst || (null == oldAddr);
-
-            // 如果broker为master
-            if (null != topicConfigWrapper
-                &amp;&amp; MixAll.MASTER_ID == brokerId) {
-                // 如果broker配置信息发生变化或者第一次注册  
-                if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
-                    || registerFirst) {
-                    ConcurrentMap&lt;String, TopicConfig&gt; tcTable =
-                        topicConfigWrapper.getTopicConfigTable();
-                    if (tcTable != null) {
-                        for (Map.Entry&lt;String, TopicConfig&gt; entry : tcTable.entrySet()) {
-                            // 创建或更新queueData，填充topicQueueTable--》一般是为默认主题自动注册路由信息
-                            this.createAndUpdateQueueData(brokerName, entry.getValue());
-                        }
-                    }
-                }
-            }
-
-            // 更新prevBrokerLiveInfo 信息，BrokerLiveInfo 是执行路由删除的重要依据
-            BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
-                new BrokerLiveInfo(
-                    System.currentTimeMillis(),
-                    topicConfigWrapper.getDataVersion(),
-                    channel,
-                    haServerAddr));
-            if (null == prevBrokerLiveInfo) {
-                log.info(&quot;new broker registered, {} HAServer: {}&quot;, brokerAddr, haServerAddr);
-            }
-
-            // 注册Broker的过滤器server地址列表，一个broker上会关联多个filterServer消息过滤服务
-            if (filterServerList != null) {
-                if (filterServerList.isEmpty()) {
-                    this.filterServerTable.remove(brokerAddr);
-                } else {
-                    this.filterServerTable.put(brokerAddr, filterServerList);
-                }
-            }
-
-            // 如果broker为从节点，则需要寻找对应的materAddr，并更新该值
-            if (MixAll.MASTER_ID != brokerId) {
-                String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-                if (masterAddr != null) {
-                    BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
-                    if (brokerLiveInfo != null) {
-                        result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
-                        result.setMasterAddr(masterAddr);
-                    }
-                }
-            }
-        } finally {
-            this.lock.writeLock().unlock();
-        }
-    } catch (Exception e) {
-        log.error(&quot;registerBroker Exception&quot;, e);
-    }
-
-    return result;
-}
-
-</code></pre>
-<h3 id="路由删除">路由删除</h3>
-<p>NameServer每隔10秒会去扫描brokerLiveTable，如果brokerLive的lastUpdateTimestamp距离当前时间戳超过两分钟，则认为该broker已失效，将移除该broker并断开socket连接。除了定时删除不活跃broker之外，当broker正常退出时（shutdown），也会发送unregisterBrokerAll请求。</p>
-<p>其中unregisterBrokerAll请求触发的注销操作与上述注册请求类似，只不过是将对应的信息从容器中删除；相关操作与定时移除相似，此处以定时删除为例进行说明。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public void scanNotActiveBroker() {
-    Iterator&lt;Entry&lt;String, BrokerLiveInfo&gt;&gt; it = this.brokerLiveTable.entrySet().iterator();
-    while (it.hasNext()) {
-        Entry&lt;String, BrokerLiveInfo&gt; next = it.next();
-        long last = next.getValue().getLastUpdateTimestamp();
-        // 判断是否超过两分钟
-        if ((last + BROKER_CHANNEL_EXPIRED_TIME) &lt; System.currentTimeMillis()) {
-             // 关闭通道
-            RemotingUtil.closeChannel(next.getValue().getChannel());
-            it.remove();
-            log.warn(&quot;The broker channel expired, {} {}ms&quot;, next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
-            // 删除与该broker相关的路由信息
-            this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
-        }
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public void onChannelDestroy(String remoteAddr, Channel channel) {
-    String brokerAddrFound = null;
-    if (channel != null) {
-        try {
-            try {
-                // 寻找与已关闭通道相同的broker---》说明该broker需要被移除
-                this.lock.readLock().lockInterruptibly();
-                Iterator&lt;Entry&lt;String, BrokerLiveInfo&gt;&gt; itBrokerLiveTable =
-                    this.brokerLiveTable.entrySet().iterator();
-                while (itBrokerLiveTable.hasNext()) {
-                    Entry&lt;String, BrokerLiveInfo&gt; entry = itBrokerLiveTable.next();
-                    if (entry.getValue().getChannel() == channel) {
-                        brokerAddrFound = entry.getKey();
-                        break;
-                    }
-                }
-            } finally {
-                this.lock.readLock().unlock();
-            }
-        } catch (Exception e) {
-            log.error(&quot;onChannelDestroy Exception&quot;, e);
-        }
-    }
-
-    // 如果未找到，便直接使用remoteAddr
-    if (null == brokerAddrFound) {
-        brokerAddrFound = remoteAddr;
-    } else {
-        log.info(&quot;the broker's channel destroyed, {}, clean it's data structure at once&quot;, brokerAddrFound);
-    }
-
-    if (brokerAddrFound != null &amp;&amp; brokerAddrFound.length() &gt; 0) {
-
-        try {
-            try {
-                // 加写锁，从brokerLiveTable，filterServerTable中移除对应的数据
-                this.lock.writeLock().lockInterruptibly();
-                this.brokerLiveTable.remove(brokerAddrFound);
-                this.filterServerTable.remove(brokerAddrFound);
-            
-                String brokerNameFound = null;
-                boolean removeBrokerName = false;
-                Iterator&lt;Entry&lt;String, BrokerData&gt;&gt; itBrokerAddrTable =
-                    this.brokerAddrTable.entrySet().iterator();
-                while (itBrokerAddrTable.hasNext() &amp;&amp; (null == brokerNameFound)) {
-                    BrokerData brokerData = itBrokerAddrTable.next().getValue();
-
-                    // 移除brokerData
-                    Iterator&lt;Entry&lt;Long, String&gt;&gt; it = brokerData.getBrokerAddrs().entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry&lt;Long, String&gt; entry = it.next();
-                        Long brokerId = entry.getKey();
-                        String brokerAddr = entry.getValue();
-                        if (brokerAddr.equals(brokerAddrFound)) {
-                            brokerNameFound = brokerData.getBrokerName();
-                            it.remove();
-                            log.info(&quot;remove brokerAddr[{}, {}] from brokerAddrTable, because channel destroyed&quot;,
-                                brokerId, brokerAddr);
-                            break;
-                        }
-                    }
-                    // 如果brokerData的BrokerAddrs数据为空，那么将对应的BrokerAddrTable一同移除
-                    if (brokerData.getBrokerAddrs().isEmpty()) {
-                        removeBrokerName = true;
-                        itBrokerAddrTable.remove();
-                        log.info(&quot;remove brokerName[{}] from brokerAddrTable, because channel destroyed&quot;,
-                            brokerData.getBrokerName());
-                    }
-                }
-
-                // 从clusterAddrTable中移除broker
-                if (brokerNameFound != null &amp;&amp; removeBrokerName) {
-                    Iterator&lt;Entry&lt;String, Set&lt;String&gt;&gt;&gt; it = this.clusterAddrTable.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry&lt;String, Set&lt;String&gt;&gt; entry = it.next();
-                        String clusterName = entry.getKey();
-                        Set&lt;String&gt; brokerNames = entry.getValue();
-                        boolean removed = brokerNames.remove(brokerNameFound);
-                        if (removed) {
-                            log.info(&quot;remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed&quot;,
-                                brokerNameFound, clusterName);
-                            // 如果该broker信心不存在了，那么将对应的clusterAddrTable一同移除
-                            if (brokerNames.isEmpty()) {
-                                log.info(&quot;remove the clusterName[{}] from clusterAddrTable, because channel destroyed and no broker in this cluster&quot;,
-                                    clusterName);
-                                it.remove();
-                            }
-
-                            break;
-                        }
-                    }
-                }
-
-                if (removeBrokerName) {
-                    Iterator&lt;Entry&lt;String, List&lt;QueueData&gt;&gt;&gt; itTopicQueueTable =
-                        this.topicQueueTable.entrySet().iterator();
-                    // 遍历所有的主题队列  
-                    while (itTopicQueueTable.hasNext()) {
-                        Entry&lt;String, List&lt;QueueData&gt;&gt; entry = itTopicQueueTable.next();
-                        String topic = entry.getKey();
-                        List&lt;QueueData&gt; queueDataList = entry.getValue();
-
-                        Iterator&lt;QueueData&gt; itQueueData = queueDataList.iterator();
-                        while (itQueueData.hasNext()) {
-                            QueueData queueData = itQueueData.next();
-                            // 如果包含当前broker的队列，就将其移除
-                            if (queueData.getBrokerName().equals(brokerNameFound)) {
-                                itQueueData.remove();
-                                log.info(&quot;remove topic[{} {}], from topicQueueTable, because channel destroyed&quot;,
-                                    topic, queueData);
-                            }
-                        }
-                        // 如果队列数据为空，那么将其对应的TopicQueueTable一同移除
-                        if (queueDataList.isEmpty()) {
-                            itTopicQueueTable.remove();
-                            log.info(&quot;remove topic[{}] all queue, from topicQueueTable, because channel destroyed&quot;,
-                                topic);
-                        }
-                    }
-                }
-            } finally {
-                this.lock.writeLock().unlock();
-            }
-        } catch (Exception e) {
-            log.error(&quot;onChannelDestroy Exception&quot;, e);
-        }
-    }
-}
-
-</code></pre>
-<h3 id="路由发现">路由发现</h3>
-<p>RocketMQ路由发现并非实时的，当Topic路由发生变化后，NameServer不主动推送给客户端，而是由客户端定时拉取主题最新的路由。对应的路由请求类型为：GET_ROUTEINFO_BY_TOPIC</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor#processRequest
-case RequestCode.GET_ROUTEINFO_BY_TOPIC:
-    return this.getRouteInfoByTopic(ctx, request);
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor
-public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
-    RemotingCommand request) throws RemotingCommandException {
-    final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-    final GetRouteInfoRequestHeader requestHeader =
-        (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
-
-    // 通过RouteInfoManager获取主题对应的路由信息
-    TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
-
-    if (topicRouteData != null) {
-        // 如果为顺序消息
-        if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
-            // 获取对应的顺序主题配置，并将其填充至topicRouteData中
-            String orderTopicConf =
-                this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                    requestHeader.getTopic());
-            topicRouteData.setOrderTopicConf(orderTopicConf);
-        }
-
-        byte[] content = topicRouteData.encode();
-        response.setBody(content);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
-    }
-
-    // 如果未找到，则返回主题不存在错误码
-    response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-    response.setRemark(&quot;No topic route info in name server for the topic: &quot; + requestHeader.getTopic()
-        + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
-    return response;
-}
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[RocketMQ架构与设计]]></title>
-        <id>https://philosopherzb.github.io/post/rocketmq-jia-gou-yu-she-ji/</id>
-        <link href="https://philosopherzb.github.io/post/rocketmq-jia-gou-yu-she-ji/">
-        </link>
-        <updated>2022-09-17T02:54:47.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq架构与设计。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/bagan-1137015_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="架构">架构</h2>
-<h3 id="简介">简介</h3>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320001.png" alt="img" loading="lazy"></figure>
-<p>Apache RocketMQ 是一个分布式消息流平台，具有低延迟、高性能、可靠性以及万亿级容量和灵活的可扩展性。它由四个部分组成：nameServer、broker、producer和consumer。它们中的每一个都可以水平扩展而没有单点故障。如上图所示。</p>
-<ul>
-<li>Producer：消息发布的角色，支持分布式集群方式部署。Producer通过MQ的负载均衡模块选择相应的Broker集群队列进行消息投递，投递的过程支持快速失败并且低延迟。</li>
-<li>Consumer：消息消费的角色，支持分布式集群方式部署。支持以push推（实际上也是pull模式），pull拉两种模式对消息进行消费。同时也支持集群方式和广播方式的消费，它提供实时消息订阅机制，可以满足大多数用户的需求。</li>
-<li>NameServer：NameServer是一个非常简单的Topic路由注册中心，其角色类似Dubbo中的zookeeper，支持Broker的动态注册与发现。主要包括两个功能：Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；路由信息管理，每个NameServer将保存关于Broker集群的整个路由信息和用于客户端查询的队列信息。然后Producer和Conumser通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。NameServer通常也是集群的方式部署，各实例间相互不进行信息通讯。Broker是向每一台NameServer注册自己的路由信息，所以每一个NameServer实例上面都保存一份完整的路由信息。当某个NameServer因某种原因下线了，Broker仍然可以向其它NameServer同步其路由信息，Producer和Consumer仍然可以动态感知Broker的路由的信息。</li>
-<li>BrokerServer：Broker主要负责消息的存储、投递和查询以及服务高可用保证，为了实现这些功能，Broker包含了几个重要子模块：Remoting Module，Client Manager，Store Service，HA Service，Index Service。</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>模块名称</th>
-<th>功能简述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Remoting Module</td>
-<td>整个Broker的实体，负责处理来自Client端的请求</td>
-</tr>
-<tr>
-<td>Client Manager</td>
-<td>负责管理客户端(Producer/Consumer)和维护Consumer的Topic订阅信息</td>
-</tr>
-<tr>
-<td>Store Service</td>
-<td>提供方便简单的API接口处理消息的存储与查询</td>
-</tr>
-<tr>
-<td>HA Service</td>
-<td>高可用服务，提供Master Broker 和 Slave Broker之间的数据同步功能</td>
-</tr>
-<tr>
-<td>Index Service</td>
-<td>根据特定的Message key对投递到Broker的消息进行索引服务，以提供消息的快速查询</td>
-</tr>
-</tbody>
-</table>
-<h3 id="集群工作流程">集群工作流程</h3>
-<p>结合上述的架构图可以总结出如下的集群工作流程：</p>
-<ul>
-<li>启动NameServer，NameServer起来后监听端口，等待Broker、Producer、Consumer连上来，相当于一个路由控制中心。（心跳时间默认30s）</li>
-<li>Broker启动，跟所有的NameServer保持长连接，定时发送心跳包。心跳包中包含当前Broker信息(IP+端口等)以及存储所有Topic信息。注册成功后，NameServer集群中就有Topic跟Broker的映射关系。</li>
-<li>收发消息前，先创建Topic，创建Topic时需要指定该Topic要存储在哪些Broker上，也可以在发送消息时自动创建Topic。</li>
-<li>Producer发送消息，启动时先跟NameServer集群中的其中一台建立长连接，并从NameServer中获取当前发送的Topic存在哪些Broker上，默认情况下会轮询从队列列表中选择一个队列（简单代码（index为空时随机选取，否则会递增）：Math.abs(index) % this.messageQueueList.size()），然后与队列所在的Broker建立长连接从而向Broker发消息。</li>
-<li>Consumer跟Producer类似，跟其中一台NameServer建立长连接，获取当前订阅Topic存在哪些Broker上，然后直接跟Broker建立连接通道，开始消费消息。</li>
-</ul>
-<h2 id="设计">设计</h2>
-<h3 id="设计理念">设计理念</h3>
-<p>Apache RocketMQ 设计基于主题的发布与订阅模式，核心功能为发送消息，存储消息，消费消息，整体上的设计要求简单与性能第一，主要体现在如下方面：</p>
-<p>首先，rocketmq摒弃了传统的zookeeper之类的注册中心，而是自研了一套nameServer；为了降低实现的复杂性，nameServer彼此独立并不进行通信，这极大的降低了集群间的一致性保证难度，同时也对网络的要求降低了不少。</p>
-<p>其次，是对IO存储的性能改造。为了实现发送消息的低延迟与高吞吐，rocketmq将消息存储文件设计成文件组的模型(Topic)，组内单个文件大小固定(CommitLog)，方便引入内存映射机制。同时所有的消息都是顺序读写的，并引入了页缓存及零拷贝实现高效率读写。为了兼顾消费者消费及查询操作，rocketmq还引入了消息队列文件（ConsumerQueue）和索引文件（支持按messageKey或时间区间查询）。</p>
-<p>最后，rocketmq允许存在设计缺陷，可以将部分工作交由RocketMQ使用者来处理。例如重复消费的问题，rocketmq只保证消息一定会被消费者消费，但是不保证重复消费的问题。最终的幂等操作将由消费者自行处理。这极大地简化了中间件的内核设计，使得发送高可用消息更加简单与高效。</p>
-<h3 id="消息存储">消息存储</h3>
-<p>消息存储是Apache RocketMQ中最为复杂和最为重要的一部分，其中主要介绍RocketMQ的消息存储整体架构、PageCache、ZeroCopy和Mmap内存映射以及RocketMQ中两种不同的刷盘方式。</p>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320002.png" alt="img" loading="lazy"></figure>
-<h4 id="消息存储组件">消息存储组件</h4>
-<p>消息存储架构图中主要有下面三个跟消息存储相关的文件构成。</p>
-<p>CommitLog：消息主体以及元数据的存储主体，存储Producer端写入的消息主体内容,消息内容不是定长的。单个文件大小默认1G, 文件名长度为20位，左边补零，剩余为起始偏移量，比如00000000000000000000代表了第一个文件，起始偏移量为0，文件大小为1G=1073741824；当第一个文件写满了，第二个文件为00000000001073741824，起始偏移量为1073741824，以此类推。消息主要是顺序写入日志文件，当文件满了，写入下一个文件。类似于kafka中的logSegment文件。</p>
-<p>ConsumeQueue：消息消费队列，引入的目的主要是提高消息消费的性能，由于RocketMQ是基于主题topic的订阅模式，消息消费是针对主题进行的，如果要遍历commitlog文件中根据topic检索消息是非常低效的。Consumer即可根据ConsumeQueue来查找待消费的消息。其中，ConsumeQueue（逻辑消费队列）作为消费消息的索引，保存了指定Topic下的队列消息在CommitLog中的起始物理偏移量offset，消息大小size和消息Tag的HashCode值。consumequeue文件可以看成是基于topic的commitlog索引文件，故consumequeue文件夹的组织方式如下：topic/queue/file三层组织结构，具体存储路径为：$HOME/store/consumequeue/{topic}/{queueId}/{fileName}。同样consumequeue文件采取定长设计，每一个条目共20个字节，分别为8字节的commitlog物理偏移量、4字节的消息长度、8字节tag hashcode，单个文件由30W个条目组成，可以像数组一样随机访问每一个条目，每个ConsumeQueue文件大小约5.72M；</p>
-<p>IndexFile：IndexFile（索引文件）提供了一种可以通过key或时间区间来查询消息的方法。Index文件的存储位置是：$HOME \store\index${fileName}，文件名fileName是以创建时的时间戳命名的，固定的单个IndexFile文件大小约为400M，一个IndexFile可以保存 2000W个索引，IndexFile的底层存储设计为在文件系统中实现HashMap结构，故rocketmq的索引文件其底层实现为hash索引。</p>
-<p>在上面的RocketMQ的消息存储整体架构图中可以看出，RocketMQ采用的是混合型的存储结构，即为Broker单个实例下所有的队列共用一个日志数据文件（即为CommitLog）来存储。</p>
-<p>RocketMQ的混合型存储结构(多个Topic的消息实体内容都存储于一个CommitLog中)针对Producer和Consumer分别采用了数据和索引部分相分离的存储结构，Producer发送消息至Broker端，然后Broker端使用同步或者异步的方式对消息刷盘持久化，保存至CommitLog中。只要消息被刷盘持久化至磁盘文件CommitLog中，那么Producer发送的消息就不会丢失。正因为如此，Consumer也就肯定有机会去消费这条消息。当无法拉取到消息后，可以等下一次消息拉取，同时服务端也支持长轮询模式，如果一个消息拉取请求未拉取到消息，Broker允许等待30s的时间，只要这段时间内有新消息到达，将直接返回给消费端。这里，RocketMQ的具体做法是，使用Broker端的后台服务线程—ReputMessageService不停地分发请求并异步构建ConsumeQueue（逻辑消费队列）和IndexFile（索引文件）数据。</p>
-<h4 id="页缓存零拷贝内存映射">页缓存&amp;零拷贝&amp;内存映射</h4>
-<p>页缓存（PageCache)是OS对文件的缓存，用于加速对文件的读写。一般来说，程序对文件进行顺序读写的速度几乎接近于内存的读写速度，主要原因就是由于OS使用PageCache机制对读写访问操作进行了性能优化，将一部分的内存用作PageCache。对于数据的写入，OS会先写入至Cache内，随后通过异步的方式由pdflush内核线程将Cache内的数据刷盘至物理磁盘上。对于数据的读取，如果一次读取文件时出现未命中PageCache的情况，OS从物理磁盘上访问读取文件的同时，会顺序对其他相邻块的数据文件进行预读取。</p>
-<p>在RocketMQ中，ConsumeQueue逻辑消费队列存储的数据较少，并且是顺序读取，在page cache机制的预读取作用下，Consume Queue文件的读性能几乎接近读内存，即使在有消息堆积情况下也不会影响性能。而对于CommitLog消息存储的日志数据文件来说，读取消息内容时候会产生较多的随机访问读取，严重影响性能。如果选择合适的系统IO调度算法，比如设置调度算法为“Deadline”（此时块存储采用SSD的话），随机读的性能也会有所提升。</p>
-<p>零拷贝（Zero-copy）技术指在计算机执行操作时，CPU 不需要先将数据从一个内存区域复制到另一个内存区域，从而可以减少上下文切换以及 CPU 的拷贝时间。它的作用是在数据报从网络设备到用户程序空间传递的过程中，减少数据拷贝次数，减少系统调用，实现 CPU 的零参与，彻底消除 CPU 在这方面的负载。零拷贝技术变相地提高了rocketmq发送消息和消费消息的性能。</p>
-<p>另外，RocketMQ主要通过MappedByteBuffer对文件进行读写操作。其中，利用了NIO中的FileChannel模型将磁盘上的物理文件直接映射到用户态的内存地址中（这种Mmap的方式减少了传统IO将磁盘文件数据在操作系统内核地址空间的缓冲区和用户应用程序地址空间的缓冲区之间来回进行拷贝的性能开销），将对文件的操作转化为直接对内存地址进行操作，从而极大地提高了文件的读写效率（正因为需要使用内存映射机制，故RocketMQ的文件存储都使用定长结构来存储，方便一次将整个文件映射至内存）。</p>
-<h4 id="刷盘方式">刷盘方式</h4>
-<p>同步刷盘：如下图所示，只有在消息真正持久化至磁盘后RocketMQ的Broker端才会真正返回给Producer端一个成功的ACK响应。同步刷盘对MQ消息可靠性来说是一种不错的保障，但是性能上会有较大影响，一般金融业务应用该模式较多。</p>
-<p>异步刷盘：能够充分利用OS的PageCache的优势，只要消息写入PageCache即可将成功的ACK返回给Producer端。消息刷盘采用后台异步线程提交的方式进行，降低了读写延迟，提高了MQ的性能和吞吐量。</p>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320003.png" alt="img" loading="lazy"></figure>
-<h4 id="通信机制">通信机制</h4>
-<p>RocketMQ的RPC通信采用Netty组件作为底层通信库，同样也遵循了Reactor多线程模型，同时又在这之上做了一些扩展和优化。</p>
-<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320004.png" alt="img" loading="lazy"></figure>
-<p>上面的框图中可以大致了解RocketMQ中NettyRemotingServer的Reactor多线程模型。一个 Reactor 主线程（eventLoopGroupBoss，即为上面的1）负责监听 TCP网络连接请求，建立好连接，创建SocketChannel，并注册到selector上。RocketMQ的源码中会自动根据OS的类型选择NIO和Epoll，也可以通过参数配置）,然后监听真正的网络数据。拿到网络数据后，再丢给Worker线程池（eventLoopGroupSelector，即为上面的“N”，源码中默认设置为3），在真正执行业务逻辑之前需要进行SSL验证、编解码、空闲检查、网络连接管理，这些工作给defaultEventExecutorGroup（即为上面的“M1”，源码中默认设置为8）去做。</p>
-<p>处理业务操作将放在业务线程池中执行，根据 RomotingCommand 的业务请求码code去processorTable这个本地缓存变量中找到对应的 processor，然后封装成task任务后，提交给对应的业务processor处理线程池来执行（sendMessageExecutor，以发送消息为例，即为上面的 “M2”）。从入口到业务逻辑的几个步骤中线程池一直再增加，这跟每一步逻辑复杂性相关，越复杂，需要的并发通道越宽。</p>
-<h3 id="负载均衡">负载均衡</h3>
-<p>RocketMQ中的负载均衡都在Client端完成，具体来说的话，主要可以分为Producer端发送消息时候的负载均衡和Consumer端订阅消息的负载均衡。</p>
-<h4 id="producer负载均衡">Producer负载均衡</h4>
-<p>Producer端在发送消息的时候，会先根据Topic找到指定的TopicPublishInfo，在获取了TopicPublishInfo路由信息后，RocketMQ的客户端在默认方式下selectOneMessageQueue()方法会从TopicPublishInfo中的messageQueueList中选择一个队列（MessageQueue）进行发送消息。（简单代码（index为空时随机选取，否则会递增）：Math.abs(index) % this.messageQueueList.size()）</p>
-<p>具体的容错策略均在MQFaultStrategy这个类中定义。这里有一个sendLatencyFaultEnable开关变量，如果开启，在随机递增取模的基础上，再过滤掉not available的Broker代理。所谓的&quot;latencyFaultTolerance&quot;，是指对之前失败的，按一定的时间做退避。例如，如果上次请求的latency超过550Lms，就退避3000Lms；超过1000L，就退避60000L；如果关闭，采用随机递增取模的方式选择一个队列（MessageQueue）来发送消息，latencyFaultTolerance机制是实现消息发送高可用的核心关键所在。</p>
-<pre><code>// 文件地址:rocketmq-client/org.apache.rocketmq.client.latency.LatencyFaultTolerance
-public interface LatencyFaultTolerance&lt;T&gt; {
-    void updateFaultItem(final T name, final long currentLatency, final long notAvailableDuration);
-
-    boolean isAvailable(final T name);
-
-    void remove(final T name);
-
-    T pickOneAtLeast();
-}
-
-// 文件地址:rocketmq-client org.apache.rocketmq.client.latency.LatencyFaultToleranceImpl
-public class LatencyFaultToleranceImpl implements LatencyFaultTolerance&lt;String&gt; {
-    private final ConcurrentHashMap&lt;String, FaultItem&gt; faultItemTable = new ConcurrentHashMap&lt;String, FaultItem&gt;(16);
-
-    private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
-
-    // 它维护了一个faultItemTable，其key为name，value为FaultItem；
-    // 其updateFaultItem方法会将对应name的currentLatency及notAvailableDuration更新到对应的FaultItem中，没有则创建
-    @Override
-    public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
-        FaultItem old = this.faultItemTable.get(name);
-        if (null == old) {
-            // 没有则创建faultItem 
-            final FaultItem faultItem = new FaultItem(name);
-            faultItem.setCurrentLatency(currentLatency);
-            faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-
-            old = this.faultItemTable.putIfAbsent(name, faultItem);
-            if (old != null) {
-                old.setCurrentLatency(currentLatency);
-                old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-            }
-        } else {
-            old.setCurrentLatency(currentLatency);
-            old.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
-        }
-    }
-
-    // 从faultItemTable获取faultItem，不为null则返回faultItem.isAvailable()，为null则返回true；
-    @Override
-    public boolean isAvailable(final String name) {
-        final FaultItem faultItem = this.faultItemTable.get(name);
-        if (faultItem != null) {
-            return faultItem.isAvailable();
-        }
-        return true;
-    }
-
-    // 直接移除faultItem
-    @Override
-    public void remove(final String name) {
-        this.faultItemTable.remove(name);
-    }
-
-    @Override
-    public String pickOneAtLeast() {
-        final Enumeration&lt;FaultItem&gt; elements = this.faultItemTable.elements();
-        List&lt;FaultItem&gt; tmpList = new LinkedList&lt;FaultItem&gt;();
-        // 拷贝一份faultItemTable的FaultItem的列表
-        while (elements.hasMoreElements()) {
-            final FaultItem faultItem = elements.nextElement();
-            tmpList.add(faultItem);
-        }
-  
-        if (!tmpList.isEmpty()) {
-            Collections.shuffle(tmpList);
-
-            Collections.sort(tmpList);
-
-            // 取half值
-            final int half = tmpList.size() / 2;
-            if (half &lt;= 0) {
-                // 如果half小于等于0，便取第一条---》相当于只有一条
-                return tmpList.get(0).getName();
-            } else {
-                // 否则根据递增index对half取余
-                final int i = this.whichItemWorst.incrementAndGet() % half;
-                return tmpList.get(i).getName();
-            }
-        }
-
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return &quot;LatencyFaultToleranceImpl{&quot; +
-            &quot;faultItemTable=&quot; + faultItemTable +
-            &quot;, whichItemWorst=&quot; + whichItemWorst +
-            '}';
-    }
-
-    class FaultItem implements Comparable&lt;FaultItem&gt; {
-        private final String name;
-        private volatile long currentLatency;
-        private volatile long startTimestamp;
-
-        public FaultItem(final String name) {
-            this.name = name;
-        }
-
-        @Override
-        public int compareTo(final FaultItem other) {
-            if (this.isAvailable() != other.isAvailable()) {
-                if (this.isAvailable())
-                    return -1;
-
-                if (other.isAvailable())
-                    return 1;
-            }
-
-            if (this.currentLatency &lt; other.currentLatency)
-                return -1;
-            else if (this.currentLatency &gt; other.currentLatency) {
-                return 1;
-            }
-
-            if (this.startTimestamp &lt; other.startTimestamp)
-                return -1;
-            else if (this.startTimestamp &gt; other.startTimestamp) {
-                return 1;
-            }
-
-            return 0;
-        }
-
-        public boolean isAvailable() {
-            return (System.currentTimeMillis() - startTimestamp) &gt;= 0;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = getName() != null ? getName().hashCode() : 0;
-            result = 31 * result + (int) (getCurrentLatency() ^ (getCurrentLatency() &gt;&gt;&gt; 32));
-            result = 31 * result + (int) (getStartTimestamp() ^ (getStartTimestamp() &gt;&gt;&gt; 32));
-            return result;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o)
-                return true;
-            if (!(o instanceof FaultItem))
-                return false;
-
-            final FaultItem faultItem = (FaultItem) o;
-
-            if (getCurrentLatency() != faultItem.getCurrentLatency())
-                return false;
-            if (getStartTimestamp() != faultItem.getStartTimestamp())
-                return false;
-            return getName() != null ? getName().equals(faultItem.getName()) : faultItem.getName() == null;
-
-        }
-
-        @Override
-        public String toString() {
-            return &quot;FaultItem{&quot; +
-                &quot;name='&quot; + name + '\'' +
-                &quot;, currentLatency=&quot; + currentLatency +
-                &quot;, startTimestamp=&quot; + startTimestamp +
-                '}';
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public long getCurrentLatency() {
-            return currentLatency;
-        }
-
-        public void setCurrentLatency(final long currentLatency) {
-            this.currentLatency = currentLatency;
-        }
-
-        public long getStartTimestamp() {
-            return startTimestamp;
-        }
-
-        public void setStartTimestamp(final long startTimestamp) {
-            this.startTimestamp = startTimestamp;
-        }
-
-    }
-}
-
-</code></pre>
-<h4 id="consumer负载均衡">Consumer负载均衡</h4>
-<p>消息消费队列在同一消费组不同消费者之间的负载均衡，其核心设计理念是在一个消息消费队列在同一时间只允许被同一消费组内的一个消费者消费，一个消息消费者能同时消费多个不同的消息队列。</p>
-<p>在Consumer启动后，它就会通过定时任务不断地向RocketMQ集群中的所有Broker实例发送心跳包（其中包含了，消息消费分组名称、订阅关系集合、消息通信模式和客户端id的值等信息）。Broker端在收到Consumer的心跳消息后，会将它维护在ConsumerManager的本地缓存变量—consumerTable，同时并将封装后的客户端网络通道信息保存在本地缓存变量—channelInfoTable中，为之后做Consumer端的负载均衡提供可以依据的元数据信息。</p>
-<p>在Consumer实例的启动流程中的启动MQClientInstance实例部分，会完成负载均衡服务线程—RebalanceService的启动（每隔20s执行一次）。通过查看源码可以发现，RebalanceService线程的run()方法最终调用的是RebalanceImpl类的rebalanceByTopic()方法，该方法是实现Consumer端负载均衡的核心。这里，rebalanceByTopic()方法会根据消费者通信类型为“广播模式”还是“集群模式”做不同的逻辑处理。这里主要来看下集群模式下的主要处理流程：</p>
-<ol>
-<li>从rebalanceImpl实例的本地缓存变量—topicSubscribeInfoTable中，获取该Topic主题下的消息消费队列集合（mqSet）；</li>
-<li>根据topic和consumerGroup为参数调用mQClientFactory.findConsumerIdList()方法向Broker端发送获取该消费组下消费者Id列表的RPC通信请求（Broker端基于前面Consumer端上报的心跳包数据而构建的consumerTable做出响应返回，业务请求码：GET_CONSUMER_LIST_BY_GROUP）；</li>
-<li>先对Topic下的消息消费队列、消费者Id排序，然后用消息队列分配策略算法（默认为：消息队列的平均分配算法），计算出待拉取的消息队列。这里的平均分配算法，类似于分页的算法，将所有MessageQueue排好序类似于记录，将所有消费端Consumer排好序类似页数，并求出每一页需要包含的平均size和每个页面记录的范围range，最后遍历整个range而计算出当前Consumer端应该分配到的记录（这里即为：MessageQueue）。</li>
-<li>然后，调用updateProcessQueueTableInRebalance()方法，具体的做法是，先将分配到的消息队列集合（mqSet）与processQueueTable做一个过滤比对。</li>
-<li>下图中processQueueTable标注的红色部分，表示与分配到的消息队列集合mqSet互不包含。将这些队列设置Dropped属性为true，然后查看这些队列是否可以移除出processQueueTable缓存变量，这里具体执行removeUnnecessaryMessageQueue()方法，即每隔1s 查看是否可以获取当前消费处理队列的锁，拿到的话返回true。如果等待1s后，仍然拿不到当前消费处理队列的锁则返回false。如果返回true，则从processQueueTable缓存变量中移除对应的Entry；</li>
-<li>下图中processQueueTable的绿色部分，表示与分配到的消息队列集合mqSet的交集。判断该ProcessQueue是否已经过期了，在Pull模式的不用管，如果是Push模式的，设置Dropped属性为true，并且调用removeUnnecessaryMessageQueue()方法，像上面一样尝试移除Entry；</li>
-<li>最后，为过滤后的消息队列集合（mqSet）中的每个MessageQueue创建一个ProcessQueue对象并存入RebalanceImpl的processQueueTable队列中（其中调用RebalanceImpl实例的computePullFromWhere(MessageQueue mq)方法获取该MessageQueue对象的下一个进度消费值offset，随后填充至接下来要创建的pullRequest对象属性中），并创建拉取请求对象—pullRequest添加到拉取列表—pullRequestList中，最后执行dispatchPullRequest()方法，将Pull消息的请求对象PullRequest依次放入PullMessageService服务线程的阻塞队列pullRequestQueue中，待该服务线程取出后向Broker端发起Pull消息的请求。</li>
-</ol>
-<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320005.png" alt="" loading="lazy"></figure>
-<pre><code>// 文件地址:rocketmq-client/org.apache.rocketmq.client.impl.factory.MQClientInstance
-public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
-    。。。。。。
-    // 启动重平衡服务
-    this.rebalanceService = new RebalanceService(this);
-    。。。。。。
-}
-
-// 文件地址:rocketmq-client org.apache.rocketmq.client.impl.consumer.RebalanceService
-public void run() {
-    log.info(this.getServiceName() + &quot; service started&quot;);
-
-    while (!this.isStopped()) {
-        this.waitForRunning(waitInterval);
-        // 执行重平衡--&gt;最终调用的是RebalanceImpl类的rebalanceByTopic()方法
-        this.mqClientFactory.doRebalance();
-    }
-
-    log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<pre><code>// 文件地址:rocketmq-client/org.apache.rocketmq.client.impl.consumer.RebalanceImpl
-// 重平衡的核心处理逻辑代码
-// 该函数会根据消费者通信类型为“广播模式”还是“集群模式”做不同的逻辑处理
-private void rebalanceByTopic(final String topic, final boolean isOrder) {
-    switch (messageModel) {
-        // 广播模式
-        case BROADCASTING: {
-            // 从rebalanceImpl实例的本地缓存变量—topicSubscribeInfoTable中，获取该Topic主题下的消息消费队列集合（mqSet）
-            Set&lt;MessageQueue&gt; mqSet = this.topicSubscribeInfoTable.get(topic);
-            if (mqSet != null) {
-                // 更新处理队列
-                boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
-                if (changed) {
-                    this.messageQueueChanged(topic, mqSet, mqSet);
-                    log.info(&quot;messageQueueChanged {} {} {} {}&quot;,
-                        consumerGroup,
-                        topic,
-                        mqSet,
-                        mqSet);
-                }
-            } else {
-                log.warn(&quot;doRebalance, {}, but the topic[{}] not exist.&quot;, consumerGroup, topic);
-            }
-            break;
-        }
-        // 集群模式
-        case CLUSTERING: {
-            // 从rebalanceImpl实例的本地缓存变量—topicSubscribeInfoTable中，获取该Topic主题下的消息消费队列集合（mqSet）
-            Set&lt;MessageQueue&gt; mqSet = this.topicSubscribeInfoTable.get(topic);
-            // 向Broker端发送获取该消费组下消费者Id列表的RPC通信请求
-            List&lt;String&gt; cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
-            if (null == mqSet) {
-                if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    log.warn(&quot;doRebalance, {}, but the topic[{}] not exist.&quot;, consumerGroup, topic);
-                }
-            }
-
-            if (null == cidAll) {
-                log.warn(&quot;doRebalance, {} {}, get consumer id list failed&quot;, consumerGroup, topic);
-            }
-
-            if (mqSet != null &amp;&amp; cidAll != null) {
-                List&lt;MessageQueue&gt; mqAll = new ArrayList&lt;MessageQueue&gt;();
-                mqAll.addAll(mqSet);
-                // 对Topic下的消息消费队列、消费者Id排序
-                Collections.sort(mqAll);
-                Collections.sort(cidAll);
-
-                // 用消息队列分配策略算法（默认为：消息队列的平均分配算法），计算出待拉取的消息队列
-                AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
-                List&lt;MessageQueue&gt; allocateResult = null;
-                try {
-                    allocateResult = strategy.allocate(
-                        this.consumerGroup,
-                        this.mQClientFactory.getClientId(),
-                        mqAll,
-                        cidAll);
-                } catch (Throwable e) {
-                    log.error(&quot;AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}&quot;, strategy.getName(),
-                        e);
-                    return;
-                }
-
-                Set&lt;MessageQueue&gt; allocateResultSet = new HashSet&lt;MessageQueue&gt;();
-                if (allocateResult != null) {
-                    allocateResultSet.addAll(allocateResult);
-                }
-
-                // 更新处理队列
-                boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
-                if (changed) {
-                    log.info(
-                        &quot;rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}&quot;,
-                        strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
-                        allocateResultSet.size(), allocateResultSet);
-                    this.messageQueueChanged(topic, mqSet, allocateResultSet);
-                }
-            }
-            break;
-        }
-        default:
-            break;
-    }
-}
-
-private boolean updateProcessQueueTableInRebalance(final String topic, final Set&lt;MessageQueue&gt; mqSet,
-    final boolean isOrder) {
-    boolean changed = false;
-
-    // 先将分配到的消息队列集合（mqSet）与processQueueTable做一个过滤比对。
-    Iterator&lt;Entry&lt;MessageQueue, ProcessQueue&gt;&gt; it = this.processQueueTable.entrySet().iterator();
-    while (it.hasNext()) {
-        Entry&lt;MessageQueue, ProcessQueue&gt; next = it.next();
-        MessageQueue mq = next.getKey();
-        ProcessQueue pq = next.getValue();
-
-        if (mq.getTopic().equals(topic)) {
-            // 如果processQueueTable与分配到的消息队列集合mqSet互不包含
-            if (!mqSet.contains(mq)) {
-                // 将其Dropped属性设为true
-                pq.setDropped(true);
-                // 查看这些队列是否可以移除出processQueueTable缓存变量
-                // removeUnnecessaryMessageQueue()函数每隔1s 会查看是否可以获取当前消费处理队列的锁，拿到的话返回true。
-                // 如果等待1s后，仍然拿不到当前消费处理队列的锁则返回false。
-                // 如果返回true，则从processQueueTable缓存变量中移除对应的Entry；
-                if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                    it.remove();
-                    changed = true;
-                    log.info(&quot;doRebalance, {}, remove unnecessary mq, {}&quot;, consumerGroup, mq);
-                }
-            } 
-            // 如果processQueueTable与分配到的消息队列集合mqSet存在交集
-            // 那么先判断ProcessQueue是否已经过期了
-            else if (pq.isPullExpired()) { 
-                switch (this.consumeType()) {
-                    // pull模式不用做任何操作
-                    case CONSUME_ACTIVELY:
-                        break;
-                    // push模式下  
-                    case CONSUME_PASSIVELY:
-                        // 将其Dropped属性设为true
-                        pq.setDropped(true);
-                        // 调用removeUnnecessaryMessageQueue()方法，像上面一样尝试移除Entry；
-                        if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                            it.remove();
-                            changed = true;
-                            log.error(&quot;[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it&quot;,
-                                consumerGroup, mq);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-
-    List&lt;PullRequest&gt; pullRequestList = new ArrayList&lt;PullRequest&gt;();
-    // 遍历过滤后的mqSet
-    for (MessageQueue mq : mqSet) {
-        if (!this.processQueueTable.containsKey(mq)) {
-            // 尝试加锁，如果失败，则跳过
-            if (isOrder &amp;&amp; !this.lock(mq)) {
-                log.warn(&quot;doRebalance, {}, add a new mq failed, {}, because lock failed&quot;, consumerGroup, mq);
-                continue;
-            }
-
-            // 移除脏offset 
-            this.removeDirtyOffset(mq);
-            // 创建ProcessQueue
-            ProcessQueue pq = new ProcessQueue();
-
-            long nextOffset = -1L;
-            try {
-                // 获取该MessageQueue对象的下一个进度消费值offset
-                nextOffset = this.computePullFromWhereWithException(mq);
-            } catch (Exception e) {
-                log.info(&quot;doRebalance, {}, compute offset failed, {}&quot;, consumerGroup, mq);
-                continue;
-            }
-
-            if (nextOffset &gt;= 0) {
-                // 为每个MessageQueue创建一个ProcessQueue对象并存入processQueueTable队列中
-                ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
-                if (pre != null) {
-                    log.info(&quot;doRebalance, {}, mq already exists, {}&quot;, consumerGroup, mq);
-                } else {
-                    log.info(&quot;doRebalance, {}, add a new mq, {}&quot;, consumerGroup, mq);
-                    PullRequest pullRequest = new PullRequest();
-                    pullRequest.setConsumerGroup(consumerGroup);
-                    // nextOffset填充至pullRequest对象属性中
-                    pullRequest.setNextOffset(nextOffset);
-                    pullRequest.setMessageQueue(mq);
-                    pullRequest.setProcessQueue(pq);
-                    pullRequestList.add(pullRequest);
-                    changed = true;
-                }
-            } else {
-                log.warn(&quot;doRebalance, {}, add new mq failed, {}&quot;, consumerGroup, mq);
-            }
-        }
-    }
-
-    // 将Pull消息的请求对象PullRequest依次放入PullMessageService服务线程的阻塞队列pullRequestQueue中，待该服务线程取出后向Broker端发起Pull消息的请求
-    // 此函数的实现仅在RebalancePushImpl中有实现，RebalancePullImpl中未实现该函数逻辑
-    this.dispatchPullRequest(pullRequestList);
-
-    return changed;
-}
-
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[RocketMQ安装与简介]]></title>
-        <id>https://philosopherzb.github.io/post/rocketmq-an-zhuang-yu-jian-jie/</id>
-        <link href="https://philosopherzb.github.io/post/rocketmq-an-zhuang-yu-jian-jie/">
-        </link>
-        <updated>2022-09-09T08:11:16.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq的安装以及基本概念和特性。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/river-1589616_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="安装与运行">安装与运行</h2>
-<h3 id="安装与运行-2">安装与运行</h3>
-<p>以win10为例，下载安装rocketmq并单机运行；详细操作如下：</p>
-<ol>
-<li>安装包下载地址：<a href="https://rocketmq.apache.org/release_notes/">点击此处跳转下载页面</a></li>
-<li>选择合适的版本，点击进去选择Binary版下载，然后解压即可（最好使用英文目录，不包括特殊字符）</li>
-<li>win10配置系统变量，右击此电脑--选择属性--选择高级系统设置--点击环境变量，在系统变量下方选择新建：变量名：ROCKETMQ_HOME；变量值：${解压目录}\rocketmq-all-对应版本号-bin-release</li>
-<li>开启cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqnamesrv.cmd 启动 nameService</li>
-<li>再开启一个cmd命令窗口，cd进入解压目录，然后输入 .\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true 启动 broker</li>
-</ol>
-<pre><code># 启动成功如下所示
-D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\mqnamesrv.cmd
-Java HotSpot(TM) 64-Bit Server VM warning: Using the DefNew young collector with the CMS collector is deprecated and will likely be removed in a future release
-Java HotSpot(TM) 64-Bit Server VM warning: UseCMSCompactAtFullCollection is deprecated and will likely be removed in a future release.
-The Name Server boot success. serializeType=JSON
-
-D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\mqbroker.cmd -n localhost:9876 autoCreateTopicEnable=true
-The broker[LAPTOP-1TAHGGN6, 1.2.3.4:11111] boot success. serializeType=JSON and name server is localhost:9876
-
-</code></pre>
-<ol start="6">
-<li>测试款已经发送消费消息：在此之前需要进入rocketmq解压目录的bin目录下，打开tools.cmd，在其中的set &quot;JAVA=%JAVA_HOME%\bin\java.exe&quot;前一行输入set NAMESRV_ADDR=localhost:9876</li>
-</ol>
-<pre><code># 键入NAMESRV_ADDR，否则无法使用该工具
-set NAMESRV_ADDR=localhost:9876
-set &quot;JAVA=%JAVA_HOME%\bin\java.exe&quot;
-
-</code></pre>
-<pre><code># 发送消息
-D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Producer
-SendResult [sendStatus=SEND_OK, msgId=7F00000115807ADF9F5F63FC1C7B0010, offsetMsgId=0A1450C100002A9F000000000000114C, messageQueue=MessageQueue [topic=TopicTest, brokerName=LAPTOP-1TAHGGN6, queueId=1], queueOffset=4]
-
-# 消费消息
-D:\knowledge\java\rocketmq\rocketmq-xxx&gt;.\bin\tools.cmd  org.apache.rocketmq.example.quickstart.Consumer
-Consumer Started.
-ConsumeMessageThread_please_rename_unique_group_name_4_1 Receive New Messages: [MessageExt [brokerName=LAPTOP-1TAHGGN6, queueId=0, storeSize=190, queueOffset=0, sysFlag=0, bornTimestamp=1650419866707, bornHost=/10.20.80.193:60236, storeTimestamp=1650419866709, storeHost=/10.20.80.193:10911, msgId=0A1450C100002A9F00000000000007A0, commitLogOffset=1952, bodyCRC=1032136437, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message{topic='TopicTest', flag=0, properties={MIN_OFFSET=0, MAX_OFFSET=250, CONSUME_START_TIME=1650419883935, UNIQ_KEY=7F00000115807ADF9F5F63FC1C530003, CLUSTER=DefaultCluster, TAGS=TagA}, body=[72, 101, 108, 108, 111, 32, 82, 111, 99, 107, 101, 116, 77, 81, 32, 51], transactionId='null'}]]
-
-</code></pre>
-<h3 id="运行console">运行console</h3>
-<p>以win10为例，下载rocketmq-console并运行；详细操作如下：</p>
-<ol>
-<li>下载地址：<a href="https://github.com/apache/rocketmq-externals/tree/release-rocketmq-console-1.0.0">点击此处跳转下载页面</a></li>
-<li>直接使用IDEA打开，修改其中的配置文件，即可启动</li>
-</ol>
-<pre><code># 修改配置文件
-rocketmq.config.namesrvAddr=localhost:9876
-</code></pre>
-<pre><code># 打包运行
-mvn clean package -Dmaven.test.skip=true
-java -jar target/rocketmq-console-ng-1.0.0.jar
-</code></pre>
-<h2 id="rocketmq">RocketMQ</h2>
-<h3 id="简介">简介</h3>
-<p>rocketmq 是由 alibaba 公司开发，现已转接给apache管理的开源项目；它是一个分布式的，支持多消息队列、主从同步，基于 nameService 的发布订阅模式的消息引擎系统；底层通信与连接基于netty实现，以达到更高速的网络处理效率。</p>
-<h3 id="基本术语">基本术语</h3>
-<p>RocketMQ主要由 Producer、Broker、Consumer 三部分组成，其中Producer 负责生产消息，Consumer 负责消费消息，Broker 负责存储消息。Broker 在实际部署过程中对应一台服务器，每个 Broker 可以存储多个Topic的消息，每个Topic的消息也可以分片存储于不同的 Broker。Message Queue 用于存储消息的物理地址，每个Topic中的消息地址存储于多个 Message Queue 中。ConsumerGroup 由多个Consumer 实例构成。</p>
-<ul>
-<li>生产者(Producer)：负责生产消息，一般由业务系统负责生产消息。一个消息生产者会把业务应用系统里产生的消息发送到broker服务器。RocketMQ提供多种发送方式，同步发送、异步发送、顺序发送、单向发送。同步和异步方式均需要Broker返回确认信息，单向发送不需要。</li>
-<li>消费者(Consumer)：负责消费消息，一般是后台系统负责异步消费。一个消息消费者会从Broker服务器拉取消息、并将其提供给应用程序。从用户应用的角度而言提供了两种消费模式：拉取式消费、推动式消费（本质上也是pull模式）。同时还支持两种消费方式：集群消费（集群消费模式下,相同Consumer Group的每个Consumer实例平均分摊消息）和广播消费（广播消费模式下，相同Consumer Group的每个Consumer实例都接收全量的消息）。</li>
-<li>主题(Topic)：用于存储同一类消息事件，每个主题包含若干条消息，每条消息只能属于一个主题，是RocketMQ进行消息订阅的基本单位。打个简单的比喻：主题类似于文件系统中的文件夹，而消息事件则类似于文件夹中的文件。</li>
-<li>消息(Message)：消息系统所传输信息的物理载体，生产和消费数据的最小单位，每条消息必须属于一个主题。RocketMQ中每个消息拥有唯一的Message ID，且可以携带具有业务标识的Key。系统提供了通过Message ID和Key查询消息的功能。</li>
-<li>偏移量(Offset)：是一种元数据，且是一个不断递增的整数值（java Long类型），用于标识消息队列中的消息位置；当消费者处理完消息后，将会提交offset+1到broker中。</li>
-<li>broker： 一个独立的 rocketmq 服务就被称为 broker；它作为消息中转角色，负责存储消息、转发消息。代理服务器在RocketMQ系统中负责接收从生产者发送来的消息并存储、同时为消费者的拉取请求作准备。代理服务器也存储消息相关的元数据，包括消费者组、消费进度偏移和主题和队列消息等。每个broker都会与所有的nameServer保持长连接并发送心跳，以便定时将topic信息注册到nameServer（低层通信与连接使用的是netty）。Master角色的Broker支持读和写，Slave角色的Broker仅支持读。</li>
-<li>nameServer：名称服务充当路由消息的提供者。生产者或消费者能够通过名字服务查找各主题相应的Broker IP列表。多个Namesrv实例组成集群，但相互独立，没有信息交换。所有的内容在nameServer上都是内存式存储，并不会进行持久化，因此也被称为无状态节点。</li>
-<li>组（group）：分为ProducerGroup，ConsumerGroup（要注意的是，消费者组的消费者实例必须订阅完全相同的Topic），代表某一类的生产者和消费者，同一个组中的生产者或消费者处理消息的逻辑是一致的。</li>
-<li>消息队列（Message Queue）：在一个主题中可以存在一个或多个消息队列，每个消息队列中消息有序；它是消息的逻辑存储介质（实际存储文件为commitLog）。同一Topic下的多个Message Queue可以部署在多个Broker组上（相同Broker名称，不同 brokerId的机器组成一个Broker组），这样当一个Broker组的Master不可用后，其他组的Master仍然可用，Producer仍然可以发送消息（消息发送的高可用性）。</li>
-<li>标签（tag）：为消息设置的标志，用于同一主题下区分不同类型的消息。来自同一业务单元的消息，可以根据不同业务目的在同一主题下设置不同标签。标签能够有效地保持代码的清晰度和连贯性，并优化RocketMQ提供的查询系统。消费者可以根据Tag实现对不同子主题的不同消费逻辑，实现更好的扩展性。</li>
-</ul>
-<h3 id="基本特性">基本特性</h3>
-<h4 id="顺序消息">顺序消息</h4>
-<p>消息有序指的是一类消息消费时，能按照发送的顺序来消费。例如：一个订单产生了三条消息分别是订单创建、订单付款、订单完成。消费时要按照这个顺序消费才能有意义，但是同时订单之间是可以并行消费的。</p>
-<p>RocketMQ可以严格的保证消息有序（单个message queue是有序的：FIFO）。顺序消息分为全局顺序消息与分区顺序消息，全局顺序是指某个Topic下的所有消息都要保证顺序；部分顺序消息只要保证每一组消息被顺序消费即可。</p>
-<ul>
-<li>全局顺序：对于指定的一个 Topic，所有消息按照严格的先入先出（FIFO）的顺序进行发布和消费。 适用场景：性能要求不高，所有的消息严格按照 FIFO 原则进行消息发布和消费的场景</li>
-<li>分区顺序：对于指定的一个 Topic，所有消息根据 sharding key 进行区块分区。同一个分区内的消息按照严格的 FIFO 顺序进行发布和消费。 Sharding key 是顺序消息中用来区分不同分区的关键字段，和普通消息的 Key 是完全不同的概念。适用场景：性能要求高，以 sharding key 作为分区字段，在同一个区块中严格的按照 FIFO 原则进行消息发布和消费的场景。</li>
-</ul>
-<pre><code>// 顺序消息需自定义消息路由规则
-try {
-    DefaultMQProducer producer = new DefaultMQProducer(&quot;unique_group_name&quot;);
-    producer.setNamesrvAddr(&quot;localhost:9876&quot;);
-    producer.start();
-
-    Message message = new Message(&quot;topicName&quot;, &quot;tagName&quot;, &quot;msgContent&quot;.getBytes(StandardCharsets.UTF_8));
-    message.setKeys(&quot;key&quot;);
-    SendResult sendResult = producer.send(message, (mqs, msg, arg) -&gt; {
-        Integer id = (Integer) arg;
-        int index = id % mqs.size(); 
-        return mqs.get(index);
-    }, 1);// 此处的1即使消息队列使用的arg参数值，对应上面的Integer id = (Integer) arg;
-  
-    System.out.printf(&quot;%s%n&quot;, sendResult);
-    producer.shutdown();
-} catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
-    e.printStackTrace();
-}
-
-</code></pre>
-<pre><code>// 自带的消息路由规则
-// 取arg参数的hashcode的绝对值，然后对mqs.size()取余，得到目标队列在mqs的下标
-public class SelectMessageQueueByHash implements MessageQueueSelector {
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        int value = arg.hashCode() % mqs.size();
-        if (value &lt; 0) {
-            value = Math.abs(value);
-        }
-        return mqs.get(value);
-    }
-}
-
-// 直接根据mqs.size()随机一个值作为目标队列在mqs的下标
-public class SelectMessageQueueByRandom implements MessageQueueSelector {
-    private Random random = new Random(System.currentTimeMillis());
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        int value = random.nextInt(mqs.size());
-        return mqs.get(value);
-    }
-}
-
-// 指定机房，目前return null，暂无实现逻辑
-public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
-    private Set&lt;String&gt; consumeridcs;
-
-    @Override
-    public MessageQueue select(List&lt;MessageQueue&gt; mqs, Message msg, Object arg) {
-        return null;
-    }
-
-    public Set&lt;String&gt; getConsumeridcs() {
-        return consumeridcs;
-    }
-
-    public void setConsumeridcs(Set&lt;String&gt; consumeridcs) {
-        this.consumeridcs = consumeridcs;
-    }
-}
-
-</code></pre>
-<pre><code>// 未指定MessageQueueSelector 时，rocketmq 将使用默认的规则选择一个message queue
-// 文件地址：org.apache.rocketmq.client.impl.producer.TopicPublishInfo
-public MessageQueue selectOneMessageQueue() {
-    // 每次请求都递增然后对messageQueueSize取模，如果小于0便直接取0
-    int index = this.sendWhichQueue.incrementAndGet();
-    int pos = Math.abs(index) % this.messageQueueList.size();
-    if (pos &lt; 0)
-        pos = 0;
-    return this.messageQueueList.get(pos);
-}
-
-// 文件地址：org.apache.rocketmq.client.common.ThreadLocalIndex
-public int incrementAndGet() {
-    Integer index = this.threadLocalIndex.get();
-    if (null == index) {
-        // 为空时随机取一个index
-        index = Math.abs(random.nextInt());
-        this.threadLocalIndex.set(index);
-    }
-    // 不为空便直接递增index
-    this.threadLocalIndex.set(++index);
-    return Math.abs(index);
-}
-
-</code></pre>
-<h4 id="事务消息">事务消息</h4>
-<p>RocketMQ(4.3.0版本及之后)事务消息（Transactional Message）是指应用本地事务和发送消息操作可以被定义到全局事务中，要么同时成功，要么同时失败。RocketMQ的事务消息提供类似 X/Open XA 的分布事务功能，通过事务消息能达到分布式事务的最终一致。关于事务消息的处理流程，有必要了解如下两个概念：半消息及消息状态检查：</p>
-<p>半消息（Half(Prepare) Message）：指暂时无法投递的消息。当一条消息成功发送到MQ服务器，但服务器没有收到生产者对消息的第二次确认，则将该消息标记为“暂时无法投递”。这种状态的消息称为半消息。</p>
-<p>消息状态检查（Message Status Check）：网络断开或生产者应用程序重启可能会导致事务消息的第二次确认丢失。当 MQ 服务器发现一条消息长时间处于半消息状态时，会向消息生产者发送请求，检查消息的最终状态（Commit 或 Rollback）。</p>
-<p>详细设计可参考：<a href="https://rocketmq.apache.org/rocketmq/the-design-of-transactional-message/">点击此处跳转详情页面</a></p>
-<p>事务消息发送流程如下：</p>
-<ol>
-<li>生产者向 MQ 服务器发送半消息。</li>
-<li>发送半消息成功后，执行本地事务。</li>
-<li>根据本地事务结果向 MQ 服务器发送提交或回滚消息。</li>
-<li>如果本地事务执行过程中提交/回滚消息丢失或生产者挂起，MQ 服务器将向同一组中的每个生产者发送检查消息以获取事务状态。</li>
-<li>生产者根据本地事务状态回复提交/回滚消息。</li>
-<li>提交的消息将被传递给消费者，但回滚的消息将被 MQ 服务器丢弃。</li>
-</ol>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230317011.png" alt="" loading="lazy"></figure>
-<pre><code>// 实现事务监听器
-import org.apache.rocketmq.client.producer.LocalTransactionState;
-import org.apache.rocketmq.client.producer.TransactionListener;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class TransactionListenerImpl implements TransactionListener {
-    private AtomicInteger transactionIndex = new AtomicInteger(0);
-
-    private ConcurrentHashMap&lt;String, Integer&gt; localTrans = new ConcurrentHashMap&lt;&gt;();
-
-    @Override
-    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-        int value = transactionIndex.getAndIncrement();
-        int status = value % 3;
-        localTrans.put(msg.getTransactionId(), status);
-        return LocalTransactionState.UNKNOW;
-    }
-
-    @Override
-    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
-        Integer status = localTrans.get(msg.getTransactionId());
-        if (null != status) {
-            switch (status) {
-                case 0:
-                    return LocalTransactionState.UNKNOW;
-                case 1:
-                    return LocalTransactionState.COMMIT_MESSAGE;
-                case 2:
-                    return LocalTransactionState.ROLLBACK_MESSAGE;
-                default:
-                    return LocalTransactionState.COMMIT_MESSAGE;
-            }
-        }
-        return LocalTransactionState.COMMIT_MESSAGE;
-    }
-}
-
-</code></pre>
-<pre><code>// 发送事务消息
-public static void main(String[] args) throws MQClientException, InterruptedException {
-    TransactionListener transactionListener = new TransactionListenerImpl();
-    TransactionMQProducer producer = new TransactionMQProducer(&quot;unique_group_name&quot;);
-    ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue&lt;&gt;(2000), r -&gt; {
-        Thread thread = new Thread(r);
-        thread.setName(&quot;client-transaction-msg-check-thread&quot;);
-        return thread;
-    });
-
-    producer.setExecutorService(executorService);
-    producer.setTransactionListener(transactionListener);
-    producer.start();
-
-    String[] tags = new String[] {&quot;TagA&quot;, &quot;TagB&quot;, &quot;TagC&quot;, &quot;TagD&quot;, &quot;TagE&quot;};
-    for (int i = 0; i &lt; 10; i++) {
-        try {
-            Message msg =
-                new Message(&quot;topicName&quot;, tags[i % tags.length], &quot;KEY&quot; + i,
-                    (&quot;Hello RocketMQ &quot; + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-            SendResult sendResult = producer.sendMessageInTransaction(msg, null);
-            System.out.printf(&quot;%s%n&quot;, sendResult);
-
-            Thread.sleep(10);
-        } catch (MQClientException | UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-    }
-
-    for (int i = 0; i &lt; 100000; i++) {
-        Thread.sleep(1000);
-    }
-    producer.shutdown();
-}
-
-</code></pre>
-<h4 id="定时消息">定时消息</h4>
-<p>定时消息（延迟队列）是指消息发送到broker后，不会立即被消费，等待特定时间投递给真正的topic。 broker有配置项messageDelayLevel，默认值为“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”，18个level。可以配置自定义messageDelayLevel。注意，messageDelayLevel是broker的属性，不属于某个topic。发消息时，设置delayLevel等级即可：msg.setDelayLevel(level)。对level设值时会出现以下是那种情形：</p>
-<ul>
-<li>level == 0，消息为非延迟消息</li>
-<li>1&lt;=level&lt;=maxLevel，消息延迟特定时间，例如level==1，延迟1s</li>
-<li>level &gt; maxLevel，则level== maxLevel，例如level==20，延迟2h</li>
-</ul>
-<p>定时消息会暂存在名为SCHEDULE_TOPIC_XXXX的topic中，并根据delayTimeLevel存入特定的queue，queueId = delayTimeLevel – 1，即一个queue只存相同延迟的消息，保证具有相同发送延迟的消息能够顺序消费。broker会调度地消费SCHEDULE_TOPIC_XXXX，将消息写入真实的topic。</p>
-<p>需要注意的是，定时消息会在第一次写入和调度写入真实topic时都会计数，因此发送数量、tps都会变高。</p>
-<pre><code>// 发送定时消息
-public static void main(String[] args) throws Exception {
-    // 初始化 producer 以发送定时消息
-    DefaultMQProducer producer = new DefaultMQProducer(&quot;ExampleProducerGroup&quot;);
-    // 启动producer
-    producer.start();
-    int totalMessagesToSend = 100;
-    for (int i = 0; i &lt; totalMessagesToSend; i++) {
-        Message message = new Message(&quot;TestTopic&quot;, (&quot;Hello scheduled message &quot; + i).getBytes());
-        // 此处设置3表示消息将会延迟10秒后发送，具体可见下述源码
-        message.setDelayTimeLevel(3);
-        // Send the message
-        producer.send(message);
-    }
-  
-    // Shutdown producer after use.
-    producer.shutdown();
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.schedule.ScheduleMessageService
-// 转换延迟等级，将“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”按从左到右的顺序匹配1~18
-public boolean parseDelayLevel() {
-    // 存储时间单位
-    HashMap&lt;String, Long&gt; timeUnitTable = new HashMap&lt;String, Long&gt;();
-    timeUnitTable.put(&quot;s&quot;, 1000L);
-    timeUnitTable.put(&quot;m&quot;, 1000L * 60);
-    timeUnitTable.put(&quot;h&quot;, 1000L * 60 * 60);
-    timeUnitTable.put(&quot;d&quot;, 1000L * 60 * 60 * 24);
-
-    // 获取“1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h”
-    String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
-    try {
-        // 切割获取对应的数组
-        String[] levelArray = levelString.split(&quot; &quot;);
-        for (int i = 0; i &lt; levelArray.length; i++) {
-            String value = levelArray[i];
-            String ch = value.substring(value.length() - 1);
-            Long tu = timeUnitTable.get(ch);
-
-            int level = i + 1;
-            if (level &gt; this.maxDelayLevel) {
-                this.maxDelayLevel = level;
-            }
-            long num = Long.parseLong(value.substring(0, value.length() - 1));
-            long delayTimeMillis = tu * num;
-            // 匹配1~18放入ConcurrentMap中
-            this.delayLevelTable.put(level, delayTimeMillis);
-            if (this.enableAsyncDeliver) {
-                this.deliverPendingTable.put(level, new LinkedBlockingQueue&lt;&gt;());
-            }
-        }
-    } catch (Exception e) {
-        log.error(&quot;parseDelayLevel exception&quot;, e);
-        log.info(&quot;levelString String = {}&quot;, levelString);
-        return false;
-    }
-
-    return true;
-}
-
-</code></pre>
-<h4 id="消息重投与重试">消息重投与重试</h4>
-<p>生产者在发送消息时，同步消息失败会重投，异步消息有重试，oneway没有任何保证。消息重投保证消息尽可能发送成功、不丢失，但可能会造成消息重复，消息重复在RocketMQ中是无法避免的问题。消息重复在一般情况下不会发生，当出现消息量大、网络抖动，消息重复就会是大概率事件。另外，生产者主动重发、consumer负载变化也会导致重复消息。如下方法可以设置消息重试策略：</p>
-<ul>
-<li>retryTimesWhenSendFailed：同步发送失败重投次数，默认为2，因此生产者会最多尝试发送retryTimesWhenSendFailed + 1次。不会选择上次失败的broker，尝试向其他broker发送，最大程度保证消息不丢。超过重投次数，抛出异常，由客户端保证消息不丢。当出现RemotingException、MQClientException和部分MQBrokerException时会重投。</li>
-<li>retryTimesWhenSendAsyncFailed：异步发送失败重试次数，异步重试不会选择其他broker，仅在同一个broker上做重试，不保证消息不丢。</li>
-<li>retryAnotherBrokerWhenNotStoreOK：消息刷盘（主或备）超时或slave不可用（返回状态非SEND_OK），是否尝试发送到其他broker，默认false。十分重要消息可以开启。</li>
-</ul>
-<p>Consumer消费消息失败后，要提供一种重试机制，令消息再消费一次。Consumer消费消息失败通常可以认为有以下几种情况：</p>
-<ul>
-<li>由于消息本身的原因，例如反序列化失败，消息数据本身无法处理（例如话费充值，当前消息的手机号被注销，无法充值）等。这种错误通常需要跳过这条消息，再消费其它消息，而这条失败的消息即使立刻重试消费，99%也不成功，所以最好提供一种定时重试机制，即过10秒后再重试。</li>
-<li>由于依赖的下游应用服务不可用，例如db连接不可用，外系统网络不可达等。遇到这种错误，即使跳过当前失败的消息，消费其他消息同样也会报错。这种情况建议应用sleep 30s，再消费下一条消息，这样可以减轻Broker重试消息的压力。</li>
-</ul>
-<p>RocketMQ会为每个消费组都设置一个Topic名称为“%RETRY%+consumerGroup”的重试队列（这里需要注意的是，这个Topic的重试队列是针对消费组，而不是针对每个Topic设置的），用于暂时保存因为各种异常而导致Consumer端无法消费的消息。考虑到异常恢复起来需要一些时间，会为重试队列设置多个重试级别，每个重试级别都有与之对应的重新投递延时，重试次数越多投递延时就越大。RocketMQ对于重试消息的处理是先保存至Topic名称为“SCHEDULE_TOPIC_XXXX”的延迟队列中，后台定时任务按照对应的时间进行Delay后重新保存至“%RETRY%+consumerGroup”的重试队列中。</p>
-<p>重试次数过多时，便有必要将消息投递至死信队列中以防止陷入无限重试。</p>
-<p>死信队列通常用于处理无法被正常消费的消息。当一条消息初次消费失败，消息队列会自动进行消息重试；达到最大重试次数后，若消费依然失败，则表明消费者在正常情况下无法正确地消费该消息，此时，消息队列不会立刻将消息丢弃，而是将其发送到该消费者对应的特殊队列中。</p>
-<p>RocketMQ将这种正常情况下无法被消费的消息称为死信消息（Dead-Letter Message），将存储死信消息的特殊队列称为死信队列（Dead-Letter Queue）。在RocketMQ中，可以通过使用console控制台对死信队列中的消息进行重发来使得消费者实例再次进行消费。</p>
-<h4 id="流量控制与可靠性">流量控制与可靠性</h4>
-<p>生产者流控，因为broker处理能力达到瓶颈；消费者流控，因为消费能力达到瓶颈。</p>
-<h5 id="生产者流控">生产者流控</h5>
-<ul>
-<li>commitLog文件被锁时间超过osPageCacheBusyTimeOutMills时，参数默认为1000ms，返回流控。</li>
-<li>如果开启transientStorePoolEnable == true，且broker为异步刷盘的主机，且transientStorePool中资源不足，拒绝当前send请求，返回流控。</li>
-<li>broker每隔10ms检查send请求队列头部请求的等待时间，如果超过waitTimeMillsInSendQueue，默认200ms，拒绝当前send请求，返回流控。</li>
-<li>broker通过拒绝send 请求方式实现流量控制。</li>
-<li>注意，生产者流控，不会尝试消息重投。</li>
-</ul>
-<h5 id="消费者流控">消费者流控</h5>
-<ul>
-<li>消费者本地缓存消息数超过pullThresholdForQueue时，默认1000。</li>
-<li>消费者本地缓存消息大小超过pullThresholdSizeForQueue时，默认100MB。</li>
-<li>消费者本地缓存消息跨度超过consumeConcurrentlyMaxSpan时，默认2000。</li>
-<li>消费者流控的结果是降低拉取频率。</li>
-</ul>
-<h5 id="rocketmq支持消息的高可靠影响消息可靠性的几种情况">RocketMQ支持消息的高可靠，影响消息可靠性的几种情况</h5>
-<ol>
-<li>Broker非正常关闭</li>
-<li>Broker异常Crash</li>
-<li>OS Crash</li>
-<li>机器掉电，但是能立即恢复供电情况</li>
-<li>机器无法开机（可能是cpu、主板、内存等关键设备损坏）</li>
-<li>磁盘设备损坏</li>
-</ol>
-<p>1)、2)、3)、4) 四种情况都属于硬件资源可立即恢复情况，RocketMQ在这四种情况下能保证消息不丢，或者丢失少量数据（依赖刷盘方式是同步还是异步）。</p>
-<p>5)、6)属于单点故障，且无法恢复，一旦发生，在此单点上的消息全部丢失。RocketMQ在这两种情况下，通过异步复制，可保证99%的消息不丢，但是仍然会有极少量的消息可能丢失。通过同步双写技术可以完全避免单点，同步双写势必会影响性能，适合对消息可靠性要求极高的场合，例如与Money相关的应用。注：RocketMQ从3.0版本开始支持同步双写。</p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[i18n-sdk 使用手册]]></title>
-        <id>https://philosopherzb.github.io/post/i18n-sdk-shi-yong-shou-ce/</id>
-        <link href="https://philosopherzb.github.io/post/i18n-sdk-shi-yong-shou-ce/">
-        </link>
-        <updated>2022-08-30T06:22:19.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="前言">前言</h2>
-<p>本章主要简述i18n-sdk 的使用方式。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/boats-1802340_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="源码地址">源码地址</h2>
-<p><a href="https://github.com/philosopherZB/demo-all/tree/master/i18n">点击此处跳转github查看具体源码</a></p>
-<h2 id="引入依赖">引入依赖</h2>
-<pre><code>    &lt;dependency&gt;
-        &lt;groupId&gt;com.philosopherzb&lt;/groupId&gt;
-        &lt;artifactId&gt;i18n-sdk&lt;/artifactId&gt;
-         &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
-    &lt;/dependency&gt;
-</code></pre>
-<h2 id="使用-可参考i18n-client工程">使用--&gt;(可参考i18n-client工程)</h2>
-<h3 id="配置文件在本地">配置文件在本地</h3>
-<ul>
-<li>在resource目录下创建 messages_en_US.properties, messages_zb_CN.properties</li>
-<li>在配置文件中输入中英文配置信息</li>
-<li>项目的application.properties配置文件中需要加入:<br>
-<code>spring.main.allow-bean-definition-overriding=true</code><br>
-<em>其中i18n为resources下的文件目录，messages是第一步中的properties前缀</em><br>
-<code>spring.messages.basename=classpath:i18n/messages</code></li>
-<li>代码中使用: MessageUtil.get(&quot;key&quot;); MessageUtil.get(&quot;key&quot;, &quot;params&quot;);</li>
-<li>测试使用，通过在请求头信息中添加如下信息:<br>
-<code>[{&quot;key&quot;:&quot;Accept-Language&quot;,&quot;value&quot;:&quot;en_US&quot;,&quot;description&quot;:&quot;英文&quot;,&quot;type&quot;:&quot;text&quot;,&quot;enabled&quot;:true}]</code><br>
-<code>[{&quot;key&quot;:&quot;Accept-Language&quot;,&quot;value&quot;:&quot;zh_CN&quot;,&quot;description&quot;:&quot;中文&quot;,&quot;type&quot;:&quot;text&quot;,&quot;enabled&quot;:true}]</code></li>
-</ul>
-<h3 id="配置文件在nacos">配置文件在nacos</h3>
-<pre><code>    &lt;dependency&gt;
-        &lt;groupId&gt;com.alibaba.nacos&lt;/groupId&gt;
-        &lt;artifactId&gt;nacos-client&lt;/artifactId&gt;
-    &lt;/dependency&gt;
-</code></pre>
-<ul>
-<li>如上引入nacos依赖</li>
-<li>项目的application.properties配置文件中需要加入:<br>
-<code>spring.main.allow-bean-definition-overriding=true</code><br>
-<em>mode 表示i18n模式，local为本地，nacos为nacos配置中心，默认为local</em><br>
-<code>spring.messages.mode=nacos</code><br>
-<em>存储i18n的文件目录，默认为 i18n/</em><br>
-<code>spring.messages.baseFolder=i18n/</code><br>
-<em>此值与nacos中的配置信息需保持一致，且为必填。若为空则会抛出spring.messages.basename value is empty的异常信息。</em><br>
-<code>spring.messages.basename=user-message</code><br>
-<em>nacos的地址，为必填。若为空则会抛出spring.messages.serverAddress value is empty的异常信息。</em><br>
-<code>spring.messages.serverAddress=127.0.0.1:8848</code><br>
-<em>nacos的namespace值，为必填。若为空则会抛出spring.messages.namespace value is empty的异常信息。</em><br>
-<code>spring.messages.namespace=e52f0660-c859-4762-b0f4-4f6f17727d59</code></li>
-<li>代码中使用: MessageUtil.get(&quot;key&quot;); MessageUtil.get(&quot;key&quot;, &quot;params&quot;);</li>
-<li>测试使用，通过在请求头信息中添加如下信息:<br>
-<code>[{&quot;key&quot;:&quot;Accept-Language&quot;,&quot;value&quot;:&quot;en_US&quot;,&quot;description&quot;:&quot;英文&quot;,&quot;type&quot;:&quot;text&quot;,&quot;enabled&quot;:true}]</code><br>
-<code>[{&quot;key&quot;:&quot;Accept-Language&quot;,&quot;value&quot;:&quot;zh_CN&quot;,&quot;description&quot;:&quot;中文&quot;,&quot;type&quot;:&quot;text&quot;,&quot;enabled&quot;:true}]</code></li>
-</ul>
-<h3 id="自动捕获javaxvalidationconstraints中的message作为国际化输出-可参考i18n-client工程">自动捕获javax.validation.constraints中的message作为国际化输出--&gt;(可参考i18n-client工程)</h3>
-<h4 id="全局异常捕获">全局异常捕获</h4>
-<ul>
-<li>可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.handler.GlobalExceptionHandler</li>
-</ul>
-<pre><code>/**
- * @author philosopherZB
- */
-@Slf4j
-@RestControllerAdvice
-public class GlobalExceptionHandler {
-
-    private Function&lt;Exception, String&gt; messageExtractor = this::extractReadableMessage;
-
-    @ExceptionHandler(RuntimeException.class)
-    public Result&lt;String&gt; handleSystemException(Exception e) {
-        log.error(&quot;service occurs runtime error: &quot;, e);
-        return ResultUtils.failResult(BizErrorCode.SYSTEM_BUSY);
-    }
-
-    @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
-    public Result&lt;String&gt; handleArgumentException(Exception e) {
-        String msg = this.messageExtractor.apply(e);
-        return ResultUtils.failResult(BizErrorCode.PARAM_VALID_EXCEPTION.getCode(), msg);
-    }
-
-    @ExceptionHandler({ConstraintViolationException.class})
-    public Result&lt;String&gt; handleException(ConstraintViolationException e) {
-        log.error(&quot;param exception: &quot;, e);
-        Optional&lt;ConstraintViolation&lt;?&gt;&gt; optional = e.getConstraintViolations().stream().findFirst();
-        String msg = optional.isPresent() ? optional.get().getMessage() : BizErrorCode.PARAM_VALID_EXCEPTION.getErrorMessage();
-        return ResultUtils.failResult(BizErrorCode.PARAM_VALID_EXCEPTION.getCode(), msg);
-    }
-
-    private String extractReadableMessage(Exception e) {
-        log.error(&quot;param exception: &quot;, e);
-        BindingResult bindingResult;
-        if (e instanceof BindException) {
-            bindingResult = ((BindException) e).getBindingResult();
-        } else {
-            bindingResult = ((MethodArgumentNotValidException) e).getBindingResult();
-        }
-
-        return Objects.requireNonNull(bindingResult.getFieldError()).getDefaultMessage();
-    }
-}
-
-</code></pre>
-<h4 id="通用型validation配置">通用型validation配置</h4>
-<ul>
-<li>可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.config.CommonValidationConfig 类</li>
-<li>此配置器对于 javax.validation.constraints 中的message的格式要求为el形式</li>
-<li>eg:  @NotBlank(message = &quot;{PARAM_INVALID}&quot;)</li>
-<li>eg:  @NotBlank(message = &quot;prefix-{PARAM_INVALID}-suffix&quot;)</li>
-<li>其中 PARAM_INVALID 为国际化配置文件中的key; 在花括号的左右两边可以输入额外的参数</li>
-</ul>
-<pre><code>/**
- * 此配置器对于 javax.validation.constraints 中的message的格式要求为el形式
- * eg:  @NotBlank(message = &quot;{PARAM_INVALID}&quot;)
- * eg:  @NotBlank(message = &quot;prefix-{PARAM_INVALID}-suffix&quot;)
- * 其中 PARAM_INVALID 为配置文件中的key
- *
- * @author philosopherZB
- */
-@Configuration
-public class CommonValidationConfig {
-    @Bean
-    public LocalValidatorFactoryBean localValidatorFactoryBean(MessageSource messageSource) {
-        LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
-        bean.setValidationMessageSource(messageSource);
-        return bean;
-    }
-}
-</code></pre>
-<h4 id="定制化validation配置">定制化validation配置</h4>
-<ul>
-<li>
-<p>可查看 i18n-client 工程中的 com.philosopherzb.i18n.client.advice.config.CustomValidationConfig 类</p>
-</li>
-<li>
-<p>此配置器对于 javax.validation.constraints 中的message的格式要求为el形式，或者定制化分隔符</p>
-</li>
-<li>
-<p>eg:  @NotBlank(message = &quot;{PARAM_INVALID}&quot;)</p>
-</li>
-<li>
-<p>eg:  @NotBlank(message = &quot;prefix-{PARAM_INVALID}-suffix&quot;)</p>
-</li>
-<li>
-<p>其中 PARAM_INVALID 为国际化配置文件中的key; 在花括号的左右两边可以输入额外的参数</p>
-</li>
-<li>
-<p>eg:  @NotBlank(message = I18nConstant.PARAM_IS_NULL_BY_SEPARATE + &quot;orderSource&quot;)</p>
-</li>
-<li>
-<p>其中 18nConstant.PARAM_IS_NULL_BY_SEPARATE 是一个组合字符串，由 PARAM_IS_NULL_BY + SEPARATE构成</p>
-</li>
-<li>
-<p>PARAM_IS_NULL_BY为配置文件中的key，而orderSource则为对应的字段名</p>
-</li>
-</ul>
-<pre><code>/**
- * 此配置器对于 javax.validation.constraints 中的message的格式要求为el形式，或者分隔符
- * eg:  @NotBlank(message = &quot;{PARAM_INVALID}&quot;)
- * eg:  @NotBlank(message = &quot;prefix-{PARAM_INVALID}-suffix&quot;)
- * 其中 PARAM_INVALID 为配置文件中的key
- * &lt;p&gt;
- * eg:  @NotBlank(message = I18nConstant.PARAM_IS_NULL_BY_SEPARATE + &quot;orderSource&quot;)
- * 其中 18nConstant.PARAM_IS_NULL_BY_SEPARATE 是一个组合字符串，由 PARAM_IS_NULL_BY + SEPARATE构成
- * PARAM_IS_NULL_BY为配置文件中的key，而orderSource则为对应的字段名
- *
- * @author philosopherZB
- */
-@Configuration
-public class CustomValidationConfig {
-
-    private static final Pattern MESSAGE_PATTERN = Pattern.compile(&quot;(?&lt;=\\{)[^}]*(?=})&quot;);
-
-    @Bean
-    @Primary
-    public Validator localValidator() {
-        return Validation.byDefaultProvider()
-                .configure()
-                .messageInterpolator(new I18nMessageInterpolator())
-                .buildValidatorFactory()
-                .getValidator();
-    }
-
-    static class I18nMessageInterpolator implements MessageInterpolator {
-        @Override
-        public String interpolate(String s, Context context) {
-            return interpolate(s, context, null);
-        }
-
-        @Override
-        public String interpolate(String s, Context context, Locale locale) {
-            if (MessageUtil.prepared()) {
-                if (s.contains(I18nConstant.SEPARATE)) {
-                    String[] split = s.split(I18nConstant.SEPARATE);
-                    return MessageUtil.get(split[0], split[1]);
-                }
-                Matcher matcher = MESSAGE_PATTERN.matcher(s);
-                if (matcher.find()) {
-                    String temp = MessageUtil.get(matcher.group());
-                    return s.replaceFirst(&quot;\\{&quot;.concat(matcher.group()).concat(&quot;\\}&quot;), temp);
-                }
-                return MessageUtil.get(s);
-            }
-            return s;
-        }
-    }
-}
-
-</code></pre>
-<pre><code>/**
- * @author philosopherZB
- */
-public class I18nConstant {
-    /**
-     * 分隔符
-     */
-    public static final String SEPARATE = &quot;~&quot;;
-
-    /**
-     * 空值参数，可以指定参数名
-     */
-    public static final String PARAM_IS_NULL_BY = &quot;PARAM_IS_NULL_BY&quot;;
-    /**
-     * 空值参数，有分隔符，可以指定参数名
-     */
-    public static final String PARAM_IS_NULL_BY_SEPARATE = PARAM_IS_NULL_BY + SEPARATE;
 }
 
 </code></pre>
