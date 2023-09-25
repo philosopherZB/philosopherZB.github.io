@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>RocketMQ源码解读之消息发送 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1692670707570">
+<link rel="shortcut icon" href="/favicon.ico?v=1695620160592">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">51</span>
+        <span class="site-item-stat-count">54</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -18620,6 +18620,1599 @@ rm (移除档案或目录)
 
 [root@localhost tmp]# rm -i bashrc* &amp;lt;==通过通配符『*』的帮忙，将/tmp底下开头为bashrc的档名通通删除。通配符『*』代表的是 0 到无穷多个任意字符。&lt;/code&gt;&lt;/pre&gt;
 ">Centos7基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java泛型机制。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-482689_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;泛型基础&#34;&gt;泛型基础&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;Java泛型这个特性是从JDK 1.5才开始加入的，因此为了兼容之前的版本，Java泛型的实现采取了“伪泛型”的策略，即Java在语法上支持泛型，但是在编译阶段会进行所谓的“类型擦除”（Type Erasure），将所有的泛型表示（尖括号中的内容）都替换为具体的类型（其对应的原生态类型），就像完全没有泛型一样。&lt;/p&gt;
+&lt;p&gt;同时，泛型还提供了编译时类型安全检测机制，该机制可以在编译时就检测到非法的类型。&lt;/p&gt;
+&lt;p&gt;泛型的本质是为了参数化类型（在不创建新的类型的情况下，通过泛型指定的不同类型来控制形参具体限制的类型）。也就是说在泛型使用过程中，操作的数据类型被指定为一个参数。&lt;/p&gt;
+&lt;p&gt;其一般具有以下特点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;与普通的 Object 代替一切类型这样简单粗暴而言，泛型使得数据的类别可以像参数一样由外部传递进来。它提供了一种扩展能力。它更符合面向抽象开发的软件编程宗旨。&lt;/li&gt;
+&lt;li&gt;当具体的类型确定后，泛型又提供了一种类型检测的机制，只有相匹配的数据才能正常的赋值，否则编译器就不通过。所以说，它是一种类型安全检测机制，一定程度上提高了软件的安全性防止出现低级的失误。&lt;/li&gt;
+&lt;li&gt;泛型提高了程序代码的可读性，不必要等到运行的时候才去强制转换，在定义或者实例化阶段，因为 Cache这个类型显化的效果，程序员能够一目了然猜测出代码要操作的数据类型。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;oracle官方文档：&lt;a href=&#34;https://docs.oracle.com/javase/tutorial/java/generics/index.html&#34;&gt;https://docs.oracle.com/javase/tutorial/java/generics/index.html&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;引入泛型的意义在于：适用于多种数据类型执行相同的代码（代码复用）&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private static int add(int a, int b) {
+    System.out.println(a + &amp;quot;+&amp;quot; + b + &amp;quot;=&amp;quot; + (a + b));
+    return a + b;
+}
+private static long add(long a, long b) {
+    System.out.println(a + &amp;quot;+&amp;quot; + b + &amp;quot;=&amp;quot; + (a + b));
+    return a + b;
+}
+
+// 上述两个方法可以用如下的泛型方法替换
+private static &amp;lt;T extends Number&amp;gt; long add(T a, T b) {
+    System.out.println(a + &amp;quot;+&amp;quot; + b + &amp;quot;=&amp;quot; + (a.longValue() + b.longValue()));
+    return a.longValue() + b.longValue();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;基本使用&#34;&gt;基本使用&lt;/h3&gt;
+&lt;p&gt;泛型按照使用情况可以分为3种：泛型类、泛型接口、泛型方法。&lt;/p&gt;
+&lt;p&gt;其中泛型标志符只要使用大写的英文字母即可，例如A,B,C...X,Y,Z；当然，这其中也有一些约定俗成的符号如下所示：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;T：代表一般的任何类&lt;/li&gt;
+&lt;li&gt;E：代表 Element 的意思，或者 Exception 异常的意思。Java 集合框架广泛使用&lt;/li&gt;
+&lt;li&gt;K：代表 Key 的意思&lt;/li&gt;
+&lt;li&gt;V：代表 Value 的意思，通常与 K 一起配合使用&lt;/li&gt;
+&lt;li&gt;S：代表 Subtype 的意思&lt;/li&gt;
+&lt;li&gt;N：Number（数值类型）&lt;/li&gt;
+&lt;li&gt;R：Result （返回结果，多用于函数式编程）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;泛型类&#34;&gt;泛型类&lt;/h4&gt;
+&lt;p&gt;简单泛型类：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class Generic&amp;lt;T&amp;gt; {
+
+    private T var;
+
+    public T getVar() {
+        return var;
+    }
+
+    public void setVar(T var) {
+        this.var = var;
+    }
+
+    public static void main(String[] args) {
+        Generic&amp;lt;String&amp;gt; s = new Generic&amp;lt;&amp;gt;();
+        s.setVar(&amp;quot;hello&amp;quot;);
+        Generic&amp;lt;Integer&amp;gt; i = new Generic&amp;lt;&amp;gt;();
+        i.setVar(123);
+        System.out.println(s.getVar());
+        System.out.println(i.getVar());
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;多元泛型类：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class Generic&amp;lt;K, V&amp;gt; {
+
+    private K key;
+    private V value;
+
+    public K getKey() {
+        return key;
+    }
+
+    public void setKey(K key) {
+        this.key = key;
+    }
+
+    public V getValue() {
+        return value;
+    }
+
+    public void setValue(V value) {
+        this.value = value;
+    }
+
+    public static void main(String[] args) {
+        Generic&amp;lt;String, Integer&amp;gt; s = new Generic&amp;lt;&amp;gt;();
+        s.setKey(&amp;quot;hello&amp;quot;);
+        s.setValue(123);
+        System.out.println(s.getKey() + &amp;quot; &amp;quot; + s.getValue());
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;泛型接口&#34;&gt;泛型接口&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;import org.apache.commons.lang3.RandomUtils;
+
+/**
+ * 未传入泛型实参时，与泛型类的定义相同，在声明类的时候，需将泛型的声明也一起加到类中
+ *
+ * @param &amp;lt;T&amp;gt; 泛型&amp;lt;T&amp;gt;
+ */
+class GenericImpl&amp;lt;T&amp;gt; implements Generic&amp;lt;T&amp;gt; {
+    @Override
+    public T output() {
+        System.out.println(&amp;quot;hello&amp;quot;);
+        return null;
+    }
+
+    public static void main(String[] args) {
+        Generic&amp;lt;String&amp;gt; generic = new GenericImpl&amp;lt;&amp;gt;();
+        generic.output();
+    }
+}
+
+/**
+ * 传入泛型实参时,定义一个生产器实现这个接口,虽然我们只创建了一个泛型接口Generic&amp;lt;T&amp;gt;
+ * 但是我们可以为T传入无数个实参，形成无数种类型的Generic接口。
+ * 在实现类实现泛型接口时，如已将泛型类型传入实参类型，则所有使用泛型的地方都要替换成传入的实参类型
+ * 即：Generic&amp;lt;T&amp;gt;，T output();中的的T都要替换成传入的String类型。
+ */
+class GenericImpl2 implements Generic&amp;lt;String&amp;gt; {
+    @Override
+    public String output() {
+        return String.valueOf(RandomUtils.nextInt());
+    }
+
+    public static void main(String[] args) {
+        Generic&amp;lt;String&amp;gt; generic = new GenericImpl2();
+        System.out.println(generic.output());
+    }
+}
+
+/**
+ * 泛型接口
+ *
+ * @param &amp;lt;T&amp;gt; T
+ */
+interface Generic&amp;lt;T&amp;gt; {
+    T output();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;泛型方法&#34;&gt;泛型方法&lt;/h4&gt;
+&lt;p&gt;定义泛型方法时，必须在返回值前边加一个 &lt;code&gt;&amp;lt;T&amp;gt;&lt;/code&gt;，来声明这是一个泛型方法，持有一个泛型T，然后才可以用泛型T作为方法的返回值。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class Generic {
+    public &amp;lt;T&amp;gt; void test(T value) {
+        System.out.println(value.toString());
+    }
+
+    public &amp;lt;T&amp;gt; T test2(T value) {
+        return value;
+    }
+
+    public static void main(String[] args) {
+        Generic generic = new Generic();
+        generic.test(&amp;quot;hello&amp;quot;);
+        System.out.println(generic.test2(&amp;quot;hello----2&amp;quot;));
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;泛型上下限&#34;&gt;泛型上下限&lt;/h3&gt;
+&lt;p&gt;Java泛型一般通过通配符进行类型范围限制，主要有如下三种：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&amp;lt; ? &amp;gt;：被称作无限定的通配符（Unbounded Wildcards）。&lt;/li&gt;
+&lt;li&gt;&amp;lt; ? extends T &amp;gt;：被称作有上限的通配符（Upper Bounded Wildcards），表示参数化的类型可能是所指定的类型，或者是此类型的子类。&lt;/li&gt;
+&lt;li&gt;&amp;lt; ? super T &amp;gt;：被称作有下限的通配符（Lower Bounded Wildcards），表示参数化的类型可能是指定的类型，或者是此类型的父类。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;为了获得最大限度的灵活性，要在表示 生产者或者消费者 的输入参数上使用通配符，使用的规则就是：生产者有上限、消费者有下限&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果参数化类型表示一个 T 的生产者，使用 &amp;lt; ? extends T&amp;gt;;&lt;/li&gt;
+&lt;li&gt;如果它表示一个 T 的消费者，就使用 &amp;lt; ? super T&amp;gt;；&lt;/li&gt;
+&lt;li&gt;如果既是生产又是消费，那使用通配符就没什么意义了，因为需要的是精确的参数类型。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;无限定通配符&#34;&gt;无限定通配符&lt;/h4&gt;
+&lt;p&gt;无限定通配符类型使用通配符 ( ? ) 指定，例如List&amp;lt;?&amp;gt;。这称为未知类型列表。在如下两种情况中，无限定通配符是一种有用的方法：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;编写可以使用Object类中提供的功能来实现的方法。&lt;/li&gt;
+&lt;li&gt;当代码使用不依赖于类型参数的泛型类中的方法时。例如，List.size或List.clear。事实上，Class&amp;lt;?&amp;gt;之所以如此常用，是因为Class &amp;lt;T&amp;gt;中的大多数方法都不依赖于T。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// 可以传入任何类型进行打印，例如Integer，String，Long等
+public static void printList(List&amp;lt;?&amp;gt; list) {
+    for (Object elem : list) {
+        System.out.print(elem + &amp;quot; &amp;quot;);
+    }
+    System.out.println();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;上限通配符&#34;&gt;上限通配符&lt;/h4&gt;
+&lt;p&gt;上限通配符（Upper Bounded Wildcards）通常使用&amp;lt;? extends T&amp;gt;格式，表示参数化的类型可能是所指定的类型，或者是此类型的子类。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 以下求和适用于Number及其子类
+public static double sumOfList(List&amp;lt;? extends Number&amp;gt; list) {
+    double s = 0.0;
+    for (Number n : list) {
+        s += n.doubleValue();
+    }
+    return s;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;下限通配符&#34;&gt;下限通配符&lt;/h4&gt;
+&lt;p&gt;下限通配符（Lower Bounded Wildcards）通常使用&amp;lt;? superT&amp;gt;格式，表示参数化的类型可能是指定的类型，或者是此类型的父类。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 以下添加元素，适应于Integer及其父类
+public static void addNumbers(List&amp;lt;? super Integer&amp;gt; list) {
+    for (int i = 1; i &amp;lt;= 10; i++) {
+        list.add(i);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;多重限定&#34;&gt;多重限定&lt;/h4&gt;
+&lt;p&gt;使用 &amp;amp; 符可以指定多个限定条件。在其中，具有多个边界的类型变量是边界中列出的所有类型的子类型。如果其中一个边界是类，则必须首先指定它。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Class A { /* ... */ }
+interface B { /* ... */ }
+interface C { /* ... */ }
+
+class D &amp;lt;T extends A &amp;amp; B &amp;amp; C&amp;gt; { /* ... */ }
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&#34;泛型进阶&#34;&gt;泛型进阶&lt;/h2&gt;
+&lt;h3 id=&#34;类型擦除&#34;&gt;类型擦除&lt;/h3&gt;
+&lt;p&gt;Java泛型为了兼容之前的版本，本质上使用的是一种“伪泛型”策略，即Java在语法上支持泛型，但是在编译阶段会进行所谓的“类型擦除”(Type Erasure)，将所有的泛型表示(尖括号中的内容)都替换为具体的类型(其对应的原生态类型)，就像完全没有泛型一样。&lt;/p&gt;
+&lt;p&gt;泛型的类型擦除原则：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消除类型参数声明，即删除&amp;lt;&amp;gt;及其包围的部分。&lt;/li&gt;
+&lt;li&gt;根据类型参数的上下界推断并替换所有的类型参数为原生态类型(原始类型)：如果类型参数是无限制通配符或有下界限定通配符则替换为Object，如果存在上界限定则取限定的边界类型，即extends后的类型。&lt;/li&gt;
+&lt;li&gt;为了保证类型安全，必要时插入强制类型转换代码。&lt;/li&gt;
+&lt;li&gt;自动产生“桥接方法”以保证擦除类型后的代码仍然具有泛型的“多态性”。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;具体的类型擦除：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当类定义中的类型参数没有任何限制时，在类型擦除中直接被替换为Object，即形如 &lt;code&gt;&amp;lt;T&amp;gt;&lt;/code&gt;和&amp;lt;?&amp;gt;的类型参数都被替换为Object。&lt;/li&gt;
+&lt;li&gt;当类定义中的类型参数存在限制（上下界）时，在类型擦除中替换为类型参数的上界或者下界，比如形如 &lt;code&gt;&amp;lt;T extends Number&amp;gt;&lt;/code&gt;和&amp;lt;? extends Number&amp;gt;的类型参数被替换为Number，&amp;lt;? super Number&amp;gt;被替换为Object。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;基本类型不能作为泛型类型&#34;&gt;基本类型不能作为泛型类型&lt;/h4&gt;
+&lt;p&gt;基本类型是不能作为泛型类型的。因为当类型擦除后，ArrayList的原始类型变为Object，但是Object类型不能存储int值，只能引用Integer的值。&lt;/p&gt;
+&lt;p&gt;在代码中能够使用list.add(1)是因为Java基础类型的自动装箱拆箱操作，查看字节码会发现，其中使用Integer.valueOf()函数。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// IDE直接报错 Type argument cannot be of primitive type
+List&amp;lt;int&amp;gt; list1 = new ArrayList&amp;lt;&amp;gt;();
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230925001.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h4 id=&#34;原始类型&#34;&gt;原始类型&lt;/h4&gt;
+&lt;p&gt;原始类型指的是擦除泛型后在字节码中的类型变量的真正类型，无论何时定义一个泛型，相应的原始类型都会被自动提供，类型变量擦除，并使用其限定类型（无限定的变量用Object）替换。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 无限定原始泛型
+public class Node&amp;lt;T&amp;gt; {
+
+    private T data;
+    private Node&amp;lt;T&amp;gt; next;
+
+    public Node(T data, Node&amp;lt;T&amp;gt; next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public T getData() { return data; }
+    // ...
+}
+// java编译器将会自动替换T为Object，表明该原始类型为Object
+public class Node {
+
+    private Object data;
+    private Node next;
+
+    public Node(Object data, Node next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public Object getData() { return data; }
+    // ...
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 上限定原始泛型
+public class Node&amp;lt;T extends Comparable&amp;lt;T&amp;gt;&amp;gt; {
+
+    private T data;
+    private Node&amp;lt;T&amp;gt; next;
+
+    public Node(T data, Node&amp;lt;T&amp;gt; next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public T getData() { return data; }
+    // ...
+}
+// java编译器将会自动替换T为限定边界类型，即Comparable，表明该原始类型为Comparable
+public class Node {
+
+    private Comparable data;
+    private Node next;
+
+    public Node(Comparable data, Node next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public Comparable getData() { return data; }
+    // ...
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;类型擦除实证&#34;&gt;类型擦除实证&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;// 以下代码说明泛型类型已被擦除
+public static void main(String[] args) {
+    List&amp;lt;String&amp;gt; list1 = new ArrayList&amp;lt;&amp;gt;();
+    list1.add(&amp;quot;abc&amp;quot;);
+
+    List&amp;lt;Integer&amp;gt; list2 = new ArrayList&amp;lt;&amp;gt;();
+    list2.add(123);
+
+    // 打印 class java.util.ArrayList
+    System.out.println(list1.getClass());
+    System.out.println(list2.getClass());
+    // 打印true
+    System.out.println(list1.getClass() == list2.getClass());
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 利用反射机制可以添加非指定类型参数，说明泛型类型擦除确实存在
+public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    List&amp;lt;Integer&amp;gt; list = new ArrayList&amp;lt;&amp;gt;();
+    // 用add只能添加Integer类型参数，因为list已经限定了泛型类型为Integer
+    list.add(1);
+    // 利用反射可以添加非Integer参数
+    list.getClass().getMethod(&amp;quot;add&amp;quot;, Object.class).invoke(list, &amp;quot;hello&amp;quot;);
+    // 打印元素
+    for (int i = 0; i &amp;lt; list.size(); i++) {
+        System.out.println(list.get(i));
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;类型检查&#34;&gt;类型检查&lt;/h3&gt;
+&lt;p&gt;Java编译器会先检查代码中的泛型类型，之后再对泛型类型进行类型擦除，最后才开始编译。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static void main(String[] args) {
+    List&amp;lt;Integer&amp;gt; list = new ArrayList&amp;lt;&amp;gt;();
+    list.add(1);
+    // IDE 直接报错 add (java.lang.Integer) in List cannot be applied to (java.lang.String)
+    list.add(&amp;quot;weq&amp;quot;);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;类型检查实际上是针对引用的，谁是一个引用，用这个引用调用泛型方法，就会对这个引用调用的方法进行类型检测，而无关它真正引用的对象。&lt;/p&gt;
+&lt;p&gt;就如下例子，类型检查在编译时便会完成，new ArrayList()只是在内存中开辟了一个存储空间，可以存储任何类型对象，而真正涉及类型检查的是它的引用，因为在这个过程中，是使用它的引用list1来调用它的方法，比如说调用add方法，所以list1引用能完成泛型类型的检查。List2 未指定时泛型时，等同于List &lt;code&gt;&amp;lt;E&amp;gt;&lt;/code&gt;，擦除后即List &lt;code&gt;&amp;lt;Object&amp;gt;&lt;/code&gt;，Object对象可以放入Java中的所有对象类型。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static void main(String[] args) {
+    List&amp;lt;Integer&amp;gt; list1 = new ArrayList&amp;lt;&amp;gt;();
+    list1.add(1);
+    // IDE 直接报错 add (java.lang.Integer) in List cannot be applied to (java.lang.String)
+    list1.add(&amp;quot;weq&amp;quot;);
+    // 返回指定泛型类型
+    Integer o1 = list1.get(0);
+
+    // List 未指定时泛型时，等同于List&amp;lt;E&amp;gt;,擦除后即List&amp;lt;Object&amp;gt;
+    List list2 = new ArrayList&amp;lt;&amp;gt;();
+    // 警告 Unchecked call to &#39;add(E)&#39; as a member of raw type &#39;java.util.List&#39;
+    list2.add(&amp;quot;hello&amp;quot;);
+    list2.add(123);
+    // 未指定泛型时，返回Object
+    Object o2 = list2.get(0);
+    System.out.println(list2.toString());
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;桥接方法&#34;&gt;桥接方法&lt;/h3&gt;
+&lt;p&gt;为了解决泛型中因类型擦除导致的多态冲突，JVM提供了额外的桥接方法用以解决该问题。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class Generic {
+
+    public static void main(String[] args) {
+        Son son = new Son();
+        son.setValue(new Date());
+        // IDE错误：setValue (java.util.Date) in Son cannot be applied to (java.lang.Object)
+        son.setValue(new Object());
+    }
+}
+
+class Son extends Parent&amp;lt;Date&amp;gt; {
+    @Override
+    public Date getValue() {
+        return super.getValue();
+    }
+
+    @Override
+    public void setValue(Date value) {
+        super.setValue(value);
+    }
+}
+
+class Parent&amp;lt;T&amp;gt; {
+    private T value;
+
+    public T getValue() {
+        return value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;在这个子类Son中，已经假定了父类的泛型类型为Parent &lt;code&gt;&amp;lt;Date&amp;gt;&lt;/code&gt;，在子类中，@Override表示覆盖了父类的两个方法，这里本意是将父类的泛型类型限定为Date，那么父类里面的两个方法的参数都为Date类型。实际上，类型擦除后，父类的的泛型类型全部变为了原始类型Object。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;class Parent {
+    private Object value;
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;以上述例子对比子类中重写的函数，可以发现两者入参类型完全不一致，一个是Object，一个是Date，如果是在普通类中这应该是重载，而不是重写。&lt;/p&gt;
+&lt;p&gt;从如下编译的结果来看，本来只是为了重写setValue和getValue方法的子类，结果却有4个方法。在这其中，有两个方法，是编译器自己生成的桥方法。&lt;/p&gt;
+&lt;p&gt;可以看到桥方法的参数类型都是Object，也就是说，子类中真正覆盖父类两个方法的就是这两个看不到的桥方法。而打在程序自定义的setvalue和getValue方法上面的@Oveerride只不过是假象。而桥方法的内部实现，就只是去调用程序重写的那两个方法。&lt;/p&gt;
+&lt;p&gt;所以，虚拟机巧妙的使用了桥方法，来解决了类型擦除和多态的冲突。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;class com.philosopherzb.demo.test.Son extends com.philosopherzb.demo.test.Parent&amp;lt;java.util.Date&amp;gt; {
+  com.philosopherzb.demo.test.Son();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method com/philosopherzb/demo/test/Parent.&amp;quot;&amp;lt;init&amp;gt;&amp;quot;:()V
+       4: return
+
+  public java.util.Date getValue();
+    Code:
+       0: aload_0
+       1: invokespecial #2                  // Method com/philosopherzb/demo/test/Parent.getValue:()Ljava/lang/Object;
+       4: checkcast     #3                  // class java/util/Date
+       7: areturn
+
+  public void setValue(java.util.Date);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokespecial #4                  // Method com/philosopherzb/demo/test/Parent.setValue:(Ljava/lang/Object;)V
+       5: return
+  // 编译时由编译器生成的桥方法 
+  public void setValue(java.lang.Object);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: checkcast     #3                  // class java/util/Date
+       5: invokevirtual #5                  // Method setValue:(Ljava/util/Date;)V 去调用我们重写的setValue方法)
+       8: return
+  // 编译时由编译器生成的桥方法 
+  public java.lang.Object getValue();
+    Code:
+       0: aload_0
+       1: invokevirtual #6                  // Method getValue:()Ljava/util/Date; 去调用我们重写的setValue方法)
+       4: areturn
+}
+
+
+&lt;/code&gt;&lt;/pre&gt;
+">Java泛型机制详解</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述HashMap源码。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/rocks-821573_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;hashmap源码&#34;&gt;HashMap源码&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;HashMap 最早出现在 JDK 1.2中，底层基于散列算法实现。HashMap 允许 null 键和 null 值，在计算哈键的哈希值时，null 键哈希值为 0。HashMap 并不保证键值对的顺序，这意味着在进行某些操作后，键值对的顺序可能会发生变化。另外，需要注意的是，HashMap 是非线程安全类，在多线程环境下可能会存在问题。&lt;/p&gt;
+&lt;p&gt;在java1.7版本中，hashMap底层采用的是数组加链表；而在java1.8中，hashmap底层结构改为了数组加链表加红黑树。其中红黑树的引入主要是为了解决极端情况下链表过长导致查询速度过慢的问题。&lt;/p&gt;
+&lt;p&gt;哈希冲突(碰撞)解决方法：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开发地址方式： 这种方法也称再散列法，其基本思想是：当关键字key的哈希地址p=H（key）出现冲突时，以p为基础，产生另一个哈希地址p1，如果p1仍然冲突，再以p为基础，产生另一个哈希地址p2，…，直到找出一个不冲突的哈希地址pi ，将相应元素存入其中。这种方法有一个通用的再散列函数形式： Hi=（H（key）+di) % m   i=1,2,,3....,n&lt;/li&gt;
+&lt;li&gt;链式地址法：hashmap所使用的哈希冲突解决方案，也叫做拉链法。 基本思想是将所有哈希地址为i的元素构成一个称为同义词链的单链表，并将单链表的头指针存在哈希表的第i个单元中，因而查找、插入和删除主要在同义词链中进行。链地址法适用于经常进行插入和删除的情况。&lt;/li&gt;
+&lt;li&gt;再哈希法：这种方法是同时构造多个不同的哈希函数：Hi=RH1（key）  i=1，2，…，k。当哈希地址Hi=RH1（key）发生冲突时，再计算Hi=RH2（key）……，直到冲突不再产生。这种方法不易产生聚集，但增加了计算时间。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;构造器与核心变量&#34;&gt;构造器与核心变量&lt;/h3&gt;
+&lt;p&gt;HashMap 的构造方法不多，只有四个。HashMap 构造方法做的事情比较简单，一般都是初始化一些重要变量，比如 loadFactor 和 threshold。而底层的数据结构则是延迟到插入键值对时再进行初始化。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 下次重设置大小的阈值 (capacity * load factor).
+ */
+int threshold;
+
+/**
+ * 哈希表的负载因子.默认0.75
+ */
+final float loadFactor;
+
+/**
+ * 指定初始化大小以及负载因子
+ */
+public HashMap(int initialCapacity, float loadFactor) {
+    if (initialCapacity &amp;lt; 0)
+        throw new IllegalArgumentException(&amp;quot;Illegal initial capacity: &amp;quot; +
+                                           initialCapacity);
+    if (initialCapacity &amp;gt; MAXIMUM_CAPACITY)
+        initialCapacity = MAXIMUM_CAPACITY;
+    if (loadFactor &amp;lt;= 0 || Float.isNaN(loadFactor))
+        throw new IllegalArgumentException(&amp;quot;Illegal load factor: &amp;quot; +
+                                           loadFactor);
+    this.loadFactor = loadFactor;
+    // tableSizeFor是返回大于输入参数且最近的2的整数次幂的数。比如10，则返回16。
+    this.threshold = tableSizeFor(initialCapacity);
+}
+
+/**
+ * 指定初始化大小，负载因子默认为0.75
+ */
+public HashMap(int initialCapacity) {
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
+}
+
+/**
+ * 空构造器，大小默认16，负载因子默认为0.75
+ */
+public HashMap() {
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
+
+/**
+ * 将map作为参数进行初始化
+ */
+public HashMap(Map&amp;lt;? extends K, ? extends V&amp;gt; m) {
+        this.loadFactor = DEFAULT_LOAD_FACTOR;
+    putMapEntries(m, false);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Returns a power of two size for the given target capacity.
+ * 返回大于输入参数且最近的2的整数次幂的数。比如10，则返回16。
+ */
+static final int tableSizeFor(int cap) {
+    // 让cap-1再赋值给n的目的是另找到的目标值大于或等于原值。例如二进制1000，十进制数值为8。
+    // 如果不对它减1而直接操作，将得到答案10000，即16。显然不是结果。减1后二进制为111，
+    // 再进行操作则会得到原来的数值1000，即8
+    int n = cap - 1;
+    n |= n &amp;gt;&amp;gt;&amp;gt; 1;
+    n |= n &amp;gt;&amp;gt;&amp;gt; 2;
+    n |= n &amp;gt;&amp;gt;&amp;gt; 4;
+    n |= n &amp;gt;&amp;gt;&amp;gt; 8;
+    n |= n &amp;gt;&amp;gt;&amp;gt; 16;
+    return (n &amp;lt; 0) ? 1 : (n &amp;gt;= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;put操作&#34;&gt;put操作&lt;/h3&gt;
+&lt;p&gt;HashMap put作为添加数据的核心函数，其处理流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;判断hashmap是否已初始化(即是否为第一次put元素)，未初始化需进行初始化操作&lt;/li&gt;
+&lt;li&gt;计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp;amp; (length-1)&lt;/li&gt;
+&lt;li&gt;判断数组该位置处是否存在元素，不存在则直接插入，否则走下一步流程&lt;/li&gt;
+&lt;li&gt;判断该元素类型是否是 TreeNode，如果是则用红黑树的方法存储数据，否则用链表方式存储数据（链表长度达到指定值时（默认8），会转为红黑树）&lt;/li&gt;
+&lt;li&gt;在这个过程中如果出现key相同的情况，则使用值覆盖操作&lt;/li&gt;
+&lt;li&gt;键值对数量超过阈值时，则进行扩容&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在链表插入数据时，java7采用的头插法，而java8采用的尾插法。在扩容时，头插法会改变链表中元素原本的顺序，以至于在并发场景下导致链表成环的问题，而尾插法，在扩容时会保持链表元素原本的顺序，就不会出现链表成环的问题。当然，hashmap本身就不应该用于并发场景，它是非线程安全的。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public V put(K key, V value) {
+    return putVal(hash(key), key, value, false, true);
+}
+
+/**
+ * Implements Map.put and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @param value the value to put
+ * @param onlyIfAbsent if true, don&#39;t change existing value 为true时，不会改变已存在值
+ * @param evict if false, the table is in creation mode.
+ * @return previous value, or null if none
+ */
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) {
+    Node&amp;lt;K,V&amp;gt;[] tab; Node&amp;lt;K,V&amp;gt; p; int n, i;
+    // 第一次 put 值的时候，会触发下面的 resize()，进行初始化操作
+    // 注意，第一次 resize 和后续的扩容有些不一样，因为这次是数组从 null 初始化到默认的 16 或自定义的初始容量
+    if ((tab = table) == null || (n = tab.length) == 0)
+        // n表示数组长度--为2的幂次方
+        n = (tab = resize()).length;
+    // n-1为奇数，奇数的二进制最后一位必定为1，然后该值与hash做与运算，最后一位可能为0，也可能为1，这样可以防止散列不充分问题
+    // 找到具体的数组下标，如果此位置没有值，那么直接初始化一下 Node 并放置在这个位置   
+    if ((p = tab[i = (n - 1) &amp;amp; hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    // 该位置存在值  
+    else {
+        Node&amp;lt;K,V&amp;gt; e; K k;
+        // 如果键的值以及节点 hash 等于链表中的第一个键值对节点时，则将 e 指向该键值对
+        if (p.hash == hash &amp;amp;&amp;amp;
+            ((k = p.key) == key || (key != null &amp;amp;&amp;amp; key.equals(k))))
+            e = p;
+        // 如果该节点是代表红黑树的节点，调用红黑树的插值方法  
+        else if (p instanceof TreeNode)
+            e = ((TreeNode&amp;lt;K,V&amp;gt;)p).putTreeVal(this, tab, hash, key, value);
+        else {
+            // 链表插入，遍历链表并统计链表长度
+            for (int binCount = 0; ; ++binCount) {
+                // 链表中不包含要插入的键值对节点时，则将该节点接在链表的最后（java7是头插法）
+                if ((e = p.next) == null) {
+                    p.next = newNode(hash, key, value, null);
+                    // TREEIFY_THRESHOLD 为 8，所以，如果新插入的值是链表中的第 8 个
+                    // 会触发下面的 treeifyBin，也就是将链表转换为红黑树
+                    if (binCount &amp;gt;= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    break;
+                }
+                // 条件为 true，表示当前链表包含要插入的键值对，终止遍历
+                if (e.hash == hash &amp;amp;&amp;amp;
+                    ((k = e.key) == key || (key != null &amp;amp;&amp;amp; key.equals(k))))
+                    break;
+                p = e;
+            }
+        }
+        // 判断要插入的键值对是否存在 HashMap 中
+        if (e != null) { // existing mapping for key
+            V oldValue = e.value;
+            // onlyIfAbsent 表示是否仅在 oldValue 为 null 的情况下更新键值对的值
+            if (!onlyIfAbsent || oldValue == null)
+                e.value = value;
+            afterNodeAccess(e);
+            return oldValue;
+        }
+    }
+    ++modCount;
+    // 键值对数量超过阈值时，则进行扩容
+    if (++size &amp;gt; threshold)
+        resize();
+    afterNodeInsertion(evict);
+    return null;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;resize扩容函数&#34;&gt;resize扩容函数&lt;/h3&gt;
+&lt;p&gt;在 HashMap 中，数组的长度均是2的幂次方，阈值大小为数组长度与负载因子的乘积。当 HashMap 中的键值对数量超过阈值时，进行扩容。核心流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;计算新数组的容量 newCap 和新阈值 newThr&lt;/li&gt;
+&lt;li&gt;根据计算出的 newCap 创建新的数组，数组 table 也是在这里进行初始化的&lt;/li&gt;
+&lt;li&gt;将键值对节点重新映射到新的数组里。如果节点是 TreeNode 类型，则需要拆分红黑树。如果是普通节点，则节点按原顺序进行分组。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// 初始化或加倍表大小。 如果为空，则根据字段阈值中的初始容量目标进行分配。 
+// 否则，将进行二次幂扩展，即每个容器中的元素必须保持在相同的索引处，或者在新表中以二次方偏移量移动。
+final Node&amp;lt;K,V&amp;gt;[] resize() {
+    Node&amp;lt;K,V&amp;gt;[] oldTab = table;
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    // 容量不为空表明已初始化过
+    if (oldCap &amp;gt; 0) {
+        // 已达到最大容量，不再进行扩容
+        if (oldCap &amp;gt;= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
+        }
+        // 新容量及新阈值都按照旧值的两倍进行扩展  &amp;lt;&amp;lt; 1 左移一位等同于乘以2
+        else if ((newCap = oldCap &amp;lt;&amp;lt; 1) &amp;lt; MAXIMUM_CAPACITY &amp;amp;&amp;amp;
+                 oldCap &amp;gt;= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr &amp;lt;&amp;lt; 1; // double threshold
+    }
+    else if (oldThr &amp;gt; 0) // initial capacity was placed in threshold
+        // 初始化时，将 threshold 的值赋值给 newCap
+        newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+        // 使用默认参数构造容量(16)和阈值
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    }
+    // newThr 为 0 时，按阈值计算公式进行计算
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap &amp;lt; MAXIMUM_CAPACITY &amp;amp;&amp;amp; ft &amp;lt; (float)MAXIMUM_CAPACITY ?
+                  (int)ft : Integer.MAX_VALUE);
+    }
+    threshold = newThr;
+    // 创建新的数组，数组的初始化也是在这里完成的
+    @SuppressWarnings({&amp;quot;rawtypes&amp;quot;,&amp;quot;unchecked&amp;quot;})
+        Node&amp;lt;K,V&amp;gt;[] newTab = (Node&amp;lt;K,V&amp;gt;[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) {
+        // 如果旧的桶数组不为空，则遍历数组，并将键值对映射到新的数组中
+        for (int j = 0; j &amp;lt; oldCap; ++j) {
+            Node&amp;lt;K,V&amp;gt; e;
+            if ((e = oldTab[j]) != null) {
+                oldTab[j] = null;
+                // 单个元素直接迁移
+                if (e.next == null)
+                    newTab[e.hash &amp;amp; (newCap - 1)] = e;
+                // 红黑树需要进行重拆分  
+                else if (e instanceof TreeNode)
+                    ((TreeNode&amp;lt;K,V&amp;gt;)e).split(this, newTab, j, oldCap);
+                else { // preserve order
+                    // 需要将此链表拆成两个链表，放到新的数组中，并且保留原来的先后顺序 
+                    // loHead、loTail 对应一条链表，hiHead、hiTail 对应另一条链表
+                    Node&amp;lt;K,V&amp;gt; loHead = null, loTail = null;
+                    Node&amp;lt;K,V&amp;gt; hiHead = null, hiTail = null;
+                    Node&amp;lt;K,V&amp;gt; next;
+                    // 遍历链表，并将链表节点按原顺序进行分组
+                    do {
+                        next = e.next;
+                        if ((e.hash &amp;amp; oldCap) == 0) {
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
+                        }
+                        else {
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
+                        }
+                    } while ((e = next) != null);
+                    // 链表放入新表中
+                    if (loTail != null) {
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    }
+                    if (hiTail != null) {
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
+                    }
+                }
+            }
+        }
+    }
+    return newTab;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;红黑树操作&#34;&gt;红黑树操作&lt;/h3&gt;
+&lt;p&gt;在 HashMap 进行扩容时，需要满足链表长度大于等于 TREEIFY_THRESHOLD(8)，桶数组容量大于等于 MIN_TREEIFY_CAPACITY(64)才会进行红黑树化操作。&lt;/p&gt;
+&lt;p&gt;第一点是为了防止链表过长，而第二点则是为了防止容量过小导致冲突增加。&lt;/p&gt;
+&lt;p&gt;具体而言，即当数组容量比较小时，键值对节点 hash 的碰撞率可能会比较高，进而导致链表长度较长。这个时候应该优先扩容，而不是立马树化。毕竟高碰撞率是因为桶数组容量较小引起的，这个是主因。容量小时，优先扩容可以避免一些列的不必要的树化过程。同时，表容量较小时，扩容会比较频繁，扩容时需要拆分红黑树并重新映射。所以在表容量比较小的情况下，将长链表转成红黑树是一件吃力不讨好的事。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 操作红黑树结构
+final void treeifyBin(Node&amp;lt;K,V&amp;gt;[] tab, int hash) {
+    int n, index; Node&amp;lt;K,V&amp;gt; e;
+    // 如果表容量小于最小红黑树容量，则进行扩容
+    if (tab == null || (n = tab.length) &amp;lt; MIN_TREEIFY_CAPACITY)
+        resize();
+    else if ((e = tab[index = (n - 1) &amp;amp; hash]) != null) {
+        // hd头结点，tl尾结点
+        TreeNode&amp;lt;K,V&amp;gt; hd = null, tl = null;
+        do {
+            // 将链表节点转为树形节点
+            TreeNode&amp;lt;K,V&amp;gt; p = replacementTreeNode(e, null);
+            if (tl == null)
+                hd = p;
+            else {
+                p.prev = tl;
+                tl.next = p;
+            }
+            tl = p;
+        } while ((e = e.next) != null);
+        if ((tab[index] = hd) != null)
+            // 树形链表转为红黑树
+            hd.treeify(tab);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;扩容后，普通节点需要重新映射，红黑树节点也不例外。按照一般的思路，可以先把红黑树转成链表，之后再重新映射链表即可，但这样做会损失一定的效率。对此，hashmap采用了另一种实现思路，如上节所说，在将普通链表转成红黑树时，HashMap 通过两个额外的引用 next 和 prev 保留了原链表的节点顺序。这样再对红黑树进行重新映射时，完全可以按照映射链表的方式进行。这样就避免了将红黑树转成链表后再进行映射，无形中提高了效率。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;final void split(HashMap&amp;lt;K,V&amp;gt; map, Node&amp;lt;K,V&amp;gt;[] tab, int index, int bit) {
+    TreeNode&amp;lt;K,V&amp;gt; b = this;
+    // Relink into lo and hi lists, preserving order
+    TreeNode&amp;lt;K,V&amp;gt; loHead = null, loTail = null;
+    TreeNode&amp;lt;K,V&amp;gt; hiHead = null, hiTail = null;
+    int lc = 0, hc = 0;
+    // 直接遍历红黑树
+    for (TreeNode&amp;lt;K,V&amp;gt; e = b, next; e != null; e = next) {
+        next = (TreeNode&amp;lt;K,V&amp;gt;)e.next;
+        e.next = null;
+        if ((e.hash &amp;amp; bit) == 0) {
+            if ((e.prev = loTail) == null)
+                loHead = e;
+            else
+                loTail.next = e;
+            loTail = e;
+            ++lc;
+        }
+        else {
+            if ((e.prev = hiTail) == null)
+                hiHead = e;
+            else
+                hiTail.next = e;
+            hiTail = e;
+            ++hc;
+        }
+    }
+
+    if (loHead != null) {
+        // loHead小于等于链表化长度，则进行链表化操作
+        if (lc &amp;lt;= UNTREEIFY_THRESHOLD)
+            tab[index] = loHead.untreeify(map);
+        else {
+            tab[index] = loHead;
+            // 重新进行红黑树化
+            if (hiHead != null) // (else is already treeified)
+                loHead.treeify(tab);
+        }
+    }
+    if (hiHead != null) {
+        // hiHead 小于等于链表化长度，则进行链表化操作
+        if (hc &amp;lt;= UNTREEIFY_THRESHOLD)
+            tab[index + bit] = hiHead.untreeify(map);
+        else {
+            tab[index + bit] = hiHead;
+            // 重新进行红黑树化
+            if (loHead != null)
+                hiHead.treeify(tab);
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;红黑树中仍然保留了原链表节点顺序。在此前提下，再将红黑树转成链表就简单多了，仅需将 TreeNode 链表转成 Node 类型的链表即可。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;final Node&amp;lt;K,V&amp;gt; untreeify(HashMap&amp;lt;K,V&amp;gt; map) {
+    Node&amp;lt;K,V&amp;gt; hd = null, tl = null;
+    // 遍历树形节点，转为node
+    for (Node&amp;lt;K,V&amp;gt; q = this; q != null; q = q.next) {
+        // 替换节点类型为普通节点
+        Node&amp;lt;K,V&amp;gt; p = map.replacementNode(q, null);
+        if (tl == null)
+            hd = p;
+        else
+            tl.next = p;
+        tl = p;
+    }
+    return hd;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;get操作&#34;&gt;get操作&lt;/h3&gt;
+&lt;p&gt;相对而言，get获取数据的操作是比较简单的，核心流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp;amp; (length-1)&lt;/li&gt;
+&lt;li&gt;判断数组该位置处的元素是否刚好就是所需的，如果不是，继续下一步&lt;/li&gt;
+&lt;li&gt;判断该元素类型是否是 TreeNode，如果是，用红黑树的方法取数据，如果不是，继续下一步&lt;/li&gt;
+&lt;li&gt;遍历链表，直到找到相等(==或equals)的 key&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public V get(Object key) {
+    Node&amp;lt;K,V&amp;gt; e;
+    return (e = getNode(hash(key), key)) == null ? null : e.value;
+}
+
+/**
+ * Implements Map.get and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @return the node, or null if none
+ */
+final Node&amp;lt;K,V&amp;gt; getNode(int hash, Object key) {
+    Node&amp;lt;K,V&amp;gt;[] tab; Node&amp;lt;K,V&amp;gt; first, e; int n; K k;
+    if ((tab = table) != null &amp;amp;&amp;amp; (n = tab.length) &amp;gt; 0 &amp;amp;&amp;amp;
+        (first = tab[(n - 1) &amp;amp; hash]) != null) {
+        // 判断第一个节点是不是命中了目标  
+        if (first.hash == hash &amp;amp;&amp;amp; // always check first node
+            ((k = first.key) == key || (key != null &amp;amp;&amp;amp; key.equals(k))))
+            return first;
+        if ((e = first.next) != null) {
+            // 如果是红黑树，则从红黑树中取出对应的节点
+            if (first instanceof TreeNode)
+                return ((TreeNode&amp;lt;K,V&amp;gt;)first).getTreeNode(hash, key);
+            // 否则表明是链表，遍历链表从中取出数据  
+            do {
+                if (e.hash == hash &amp;amp;&amp;amp;
+                    ((k = e.key) == key || (key != null &amp;amp;&amp;amp; key.equals(k))))
+                    return e;
+            } while ((e = e.next) != null);
+        }
+    }
+    return null;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;remove操作&#34;&gt;remove操作&lt;/h3&gt;
+&lt;p&gt;hashmap中的remove删除数据的操作同样很简单的，核心流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp;amp; (length-1)&lt;/li&gt;
+&lt;li&gt;判断数组该位置处的node是否刚好就是所需的，如果不是，继续下一步&lt;/li&gt;
+&lt;li&gt;判断该元素类型是否是 TreeNode，如果是，用红黑树的方法取node，如果不是，继续下一步&lt;/li&gt;
+&lt;li&gt;遍历链表，直到找到相等(==或equals)的 key对应的node&lt;/li&gt;
+&lt;li&gt;删除上述流程找到的node，并修复红黑树或链表&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public V remove(Object key) {
+    Node&amp;lt;K,V&amp;gt; e;
+    return (e = removeNode(hash(key), key, null, false, true)) == null ?
+        null : e.value;
+}
+
+/**
+ * Implements Map.remove and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @param value the value to match if matchValue, else ignored
+ * @param matchValue if true only remove if value is equal
+ * @param movable if false do not move other nodes while removing
+ * @return the node, or null if none
+ */
+final Node&amp;lt;K,V&amp;gt; removeNode(int hash, Object key, Object value,
+                           boolean matchValue, boolean movable) {
+    Node&amp;lt;K,V&amp;gt;[] tab; Node&amp;lt;K,V&amp;gt; p; int n, index;
+    if ((tab = table) != null &amp;amp;&amp;amp; (n = tab.length) &amp;gt; 0 &amp;amp;&amp;amp;
+        (p = tab[index = (n - 1) &amp;amp; hash]) != null) {
+        Node&amp;lt;K,V&amp;gt; node = null, e; K k; V v;
+        // 判断第一个节点是不是命中了目标 
+        if (p.hash == hash &amp;amp;&amp;amp;
+            ((k = p.key) == key || (key != null &amp;amp;&amp;amp; key.equals(k))))
+            node = p;
+        else if ((e = p.next) != null) {
+            // 如果是红黑树，则从红黑树中取出对应的节点
+            if (p instanceof TreeNode)
+                node = ((TreeNode&amp;lt;K,V&amp;gt;)p).getTreeNode(hash, key);
+            else {
+                // 否则表明是链表，遍历链表从中取出数据 
+                do {
+                    if (e.hash == hash &amp;amp;&amp;amp;
+                        ((k = e.key) == key ||
+                         (key != null &amp;amp;&amp;amp; key.equals(k)))) {
+                        node = e;
+                        break;
+                    }
+                    p = e;
+                } while ((e = e.next) != null);
+            }
+        }
+        // 删除找到的节点，并修复红黑树或链表
+        if (node != null &amp;amp;&amp;amp; (!matchValue || (v = node.value) == value ||
+                             (value != null &amp;amp;&amp;amp; value.equals(v)))) {
+            if (node instanceof TreeNode)
+                ((TreeNode&amp;lt;K,V&amp;gt;)node).removeTreeNode(this, tab, movable);
+            else if (node == p)
+                tab[index] = node.next;
+            else
+                p.next = node.next;
+            ++modCount;
+            --size;
+            afterNodeRemoval(node);
+            return node;
+        }
+    }
+    return null;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">HashMap源码解析</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述LinkedList源码。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/bled-1797835_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;linkedlist源码&#34;&gt;LinkedList源码&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;LinkedList同时实现了List接口和Deque接口，也就是说它既可以看作一个顺序容器，又可以看作一个队列(Queue)，同时又可以看作一个栈(Stack)。这样看来，LinkedList简直就是个全能冠军。当你需要使用栈或者队列时，可以考虑使用LinkedList，一方面是因为Java官方已经声明不建议使用Stack类，更遗憾的是，Java里根本没有一个叫做Queue的类(它是个接口名字)。关于栈或队列，现在的首选是ArrayDeque，它有着比LinkedList(当作栈或队列使用时)有着更好的性能。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class LinkedList&amp;lt;E&amp;gt;
+    extends AbstractSequentialList&amp;lt;E&amp;gt;
+    implements List&amp;lt;E&amp;gt;, Deque&amp;lt;E&amp;gt;, Cloneable, java.io.Serializable
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;由上述代码可以看出LinkedList 继承自 AbstrackSequentialList 并实现了 List 接口以及 Deque 双向队列接口，因此 LinkedList 不但拥有 List 相关的操作方法，也有队列的相关操作方法。&lt;/p&gt;
+&lt;p&gt;LinkedList 和 ArrayList 一样实现了序列化接口 Serializable 和 Cloneable 接口使其拥有了序列化和克隆的特性。&lt;/p&gt;
+&lt;p&gt;LinkedList 一些主要特性：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;LinkedList 集合底层实现的数据结构为双向链表&lt;/li&gt;
+&lt;li&gt;LinkedList 集合中元素允许重复或者 null&lt;/li&gt;
+&lt;li&gt;LinkedList 中元素存放顺序为存入顺序。&lt;/li&gt;
+&lt;li&gt;LinkedList 是非线程安全的，如果想保证线程安全的前提下操作 LinkedList，可以使用 List list = Collections.synchronizedList(new LinkedList(...)); 来生成一个线程安全的 LinkedList&lt;/li&gt;
+&lt;li&gt;迭代器支持快速失败(Fail-Fast)，可能会抛出ConcurrentModificationException。&lt;/li&gt;
+&lt;li&gt;未实现RandomAccess接口。所以它不支持随机访问元素，我们只能按顺序访问元素。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;链表是一种不同于数组的数据结构，双向链表是链表的一种子数据结构，它具有以下的特点：每个节点上有三个字段：当前节点的数据字段（data）,指向上一个节点的字段（prev），和指向下一个节点的字段（next）。形如：headLink--&amp;gt;data--&amp;gt;tailLink&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;链表中的每个链接都是一个对象（也称为元素，节点等）。&lt;/li&gt;
+&lt;li&gt;每个对象都包含一个引用（地址）到下一个对象的位置。&lt;/li&gt;
+&lt;li&gt;链表中前驱节点指向null表示链表的头，链表中的后继节点指向null，表示链表的尾。&lt;/li&gt;
+&lt;li&gt;链接列表可以在运行时（程序运行时，编译后）动态增长和缩小，仅受可用物理内存的限制。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;底层结构与构造器&#34;&gt;底层结构与构造器&lt;/h3&gt;
+&lt;p&gt;LinkedList的底层结构是双向链表，具体实现如下。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private static class Node&amp;lt;E&amp;gt; {
+    // 当前节点数据
+    E item;
+    // 下一节点的指针
+    Node&amp;lt;E&amp;gt; next;
+    // 前一节点的指针
+    Node&amp;lt;E&amp;gt; prev;
+
+    Node(Node&amp;lt;E&amp;gt; prev, E element, Node&amp;lt;E&amp;gt; next) {
+        this.item = element;
+        this.next = next;
+        this.prev = prev;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;由上述基础节点组成了LinkedList基本变量。可以看见，LinkedList保存了链表的第一个节点和最后一个节点。这是因为LinkedList可以通过链表的头尾两端查找节点数据。当使用索引来查找节点的时候，可以根据 index 和 size/2 的大小,来决定从头查找还是从尾部查找，这在一定程度上弥补了单链表数据结构的缺点。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// transient 关键字表示该属性不会被序列化
+// 节点数
+transient int size = 0;
+
+/**
+ * 头结点
+ * Pointer to first node.
+ * Invariant: (first == null &amp;amp;&amp;amp; last == null) ||
+ *            (first.prev == null &amp;amp;&amp;amp; first.item != null)
+ */
+transient Node&amp;lt;E&amp;gt; first;
+
+/**
+ * 尾节点
+ * Pointer to last node.
+ * Invariant: (first == null &amp;amp;&amp;amp; last == null) ||
+ *            (last.next == null &amp;amp;&amp;amp; last.item != null)
+ */
+transient Node&amp;lt;E&amp;gt; last;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;LinkedList存在两个构造器，需要注意的是，跟ArrayList不同，LinkedList无需设置初始容器大小，因为链表可以动态扩缩。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 构造一个空的linkedlist
+ * Constructs an empty list.
+ */
+public LinkedList() {
+}
+
+/**
+  * 可以指定集合构造一个linkedlist
+ * Constructs a list containing the elements of the specified
+ * collection, in the order they are returned by the collection&#39;s
+ * iterator.
+ *
+ * @param  c the collection whose elements are to be placed into this list
+ * @throws NullPointerException if the specified collection is null
+ */
+public LinkedList(Collection&amp;lt;? extends E&amp;gt; c) {
+    this();
+    addAll(c);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;LinkedList第二个构造器，实际上也是先创建一个空的容器，然后使用addAll函数将指定集合添加进去。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 在指定索引后加入c中所有的元素
+public boolean addAll(int index, Collection&amp;lt;? extends E&amp;gt; c) {
+    // 检查索引是否越界：index &amp;gt;= 0 &amp;amp;&amp;amp; index &amp;lt;= size
+    checkPositionIndex(index);
+    // 转为数组
+    Object[] a = c.toArray();
+    // 数组长度为0表示没有需要添加的数据，直接返回
+    int numNew = a.length;
+    if (numNew == 0)
+        return false;
+
+    Node&amp;lt;E&amp;gt; pred, succ;
+    // index == size表示在链表尾部插入
+    if (index == size) {
+        succ = null;
+        pred = last;
+    } else {
+        succ = node(index);
+        pred = succ.prev;
+    }
+  
+    for (Object o : a) {
+        @SuppressWarnings(&amp;quot;unchecked&amp;quot;) E e = (E) o;
+        Node&amp;lt;E&amp;gt; newNode = new Node&amp;lt;&amp;gt;(pred, e, null);
+        // pred == null 表示列表为空，新节点直接作为头结点，放入first中
+        if (pred == null)
+            first = newNode;
+        else
+            pred.next = newNode;
+        // 新节点作为下一节点的前驱节点  
+        pred = newNode;
+    }
+    // succ == null 表示一开始从链表尾部插入数据，此时只需将pred放入末尾即可（pred = newNode）
+    if (succ == null) {
+        last = pred;
+    } else {
+        // pred的后继节点是succ，succ的前驱节点是pred
+        pred.next = succ;
+        succ.prev = pred;
+    }
+    // 更新链表大小
+    size += numNew;
+    modCount++;
+    return true;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;增删改查&#34;&gt;增删改查&lt;/h3&gt;
+&lt;h4 id=&#34;linkedlist添加元素&#34;&gt;LinkedList添加元素&lt;/h4&gt;
+&lt;p&gt;依赖于底层链表结构，linkedList可以很方便的进行添加操作，只需要更改对应的node前后索引即可。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Inserts the specified element at the beginning of this list.
+ * 在列表的头部插入指定元素
+ * @param e the element to add
+ */
+public void addFirst(E e) {
+    linkFirst(e);
+}
+
+/**
+ * Appends the specified element to the end of this list.
+ * 在列表的尾部追加指定元素
+ * &amp;lt;p&amp;gt;This method is equivalent to {@link #add}.
+ *
+ * @param e the element to add
+ */
+public void addLast(E e) {
+    linkLast(e);
+}
+
+/**
+ * Appends the specified element to the end of this list.
+ * 在列表的尾部追加指定元素，此方法等同于addLast
+ * &amp;lt;p&amp;gt;This method is equivalent to {@link #addLast}.
+ *
+ * @param e element to be appended to this list
+ * @return {@code true} (as specified by {@link Collection#add})
+ */
+public boolean add(E e) {
+    linkLast(e);
+    return true;
+}
+/**
+ * 将元素插入指定索引位置，如果指定索引存在元素或子元素，则将其整体向右偏移
+ */
+public void add(int index, E element) {
+    // 检查索引是否越界
+    checkPositionIndex(index);
+    // 插入索引等于列表大小，表示在列表末尾插入数据
+    if (index == size)
+        linkLast(element);
+    else
+        linkBefore(element, node(index));
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Links e as first element.
+ */
+private void linkFirst(E e) {
+    // 获取头结点
+    final Node&amp;lt;E&amp;gt; f = first;
+    // 构建新节点，并且新节点的后继节点指向头结点f
+    final Node&amp;lt;E&amp;gt; newNode = new Node&amp;lt;&amp;gt;(null, e, f);
+    // 新节点赋值给头结点
+    first = newNode;
+    // 头节点为空，说明链表是空，此时新节点也将成为last节点
+    if (f == null)
+        last = newNode;
+    else
+        f.prev = newNode; // 原先的头结点的前驱节点索引指向新节点
+    size++;
+    modCount++;
+}
+
+/**
+ * Links e as last element.
+ */
+void linkLast(E e) {
+    // 获取尾结点
+    final Node&amp;lt;E&amp;gt; l = last;
+    // 构建新节点，并且新节点的前驱节点指向尾结点l
+    final Node&amp;lt;E&amp;gt; newNode = new Node&amp;lt;&amp;gt;(l, e, null);
+    // 新节点赋值给尾结点
+    last = newNode;
+    // 尾节点为空，说明链表是空，此时新节点也将成为first节点
+    if (l == null)
+        first = newNode;
+    else
+        l.next = newNode;// 原先的尾结点的后继节点索引指向新节点
+    size++;
+    modCount++;
+}
+
+/**
+ * Inserts element e before non-null Node succ.
+ */
+void linkBefore(E e, Node&amp;lt;E&amp;gt; succ) {
+    // assert succ != null;
+    // succ即指定索引位置的节点数据，此处succ节点必定不为空
+    // 获取指定索引位置的前驱节点
+    final Node&amp;lt;E&amp;gt; pred = succ.prev;
+    // 构建新节点，并且新节点的前驱节点指向pred，后继节点指向succ
+    final Node&amp;lt;E&amp;gt; newNode = new Node&amp;lt;&amp;gt;(pred, e, succ);
+    // 新节点赋值给succ的前驱节点
+    succ.prev = newNode;
+    // pred 为空，说明插入索引位置为头结点，此时新节点将成为first节点
+    if (pred == null)
+        first = newNode;
+    else
+        pred.next = newNode;// 指定索引位置的前驱节点的后继节点索引指向新节点
+    size++;
+    modCount++;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;linkedlist删除元素&#34;&gt;LinkedList删除元素&lt;/h4&gt;
+&lt;p&gt;依赖于底层链表结构，linkedList可以很方便的进行删除操作，只需要更改对应的node前后索引即可。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 移除列表中的第一个元素
+ *
+ * Removes and returns the first element from this list.
+ * 
+ * @return the first element from this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E removeFirst() {
+    // 校验头结点是否存在
+    final Node&amp;lt;E&amp;gt; f = first;
+    if (f == null)
+        throw new NoSuchElementException();
+    return unlinkFirst(f);
+}
+
+/**
+ * 移除列表中的最后一个元素
+ * 
+ * Removes and returns the last element from this list.
+ * 
+ * @return the last element from this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E removeLast() {
+    // 校验尾结点是否存在
+    final Node&amp;lt;E&amp;gt; l = last;
+    if (l == null)
+        throw new NoSuchElementException();
+    return unlinkLast(l);
+}
+
+/**
+ * 移除指定索引位置的元素，该索引位置之后的元素集体往左偏移
+ * 
+ * Removes the element at the specified position in this list.  Shifts any
+ * subsequent elements to the left (subtracts one from their indices).
+ * Returns the element that was removed from the list.
+ * 
+ * @param index the index of the element to be removed
+ * @return the element previously at the specified position
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E remove(int index) {
+    checkElementIndex(index);
+    return unlink(node(index));
+}
+
+/**
+ * 如果存在指定元素，则将列表中第一次发现的指定元素移除，否则不作任何改变
+ *
+ * Removes the first occurrence of the specified element from this list,
+ * if it is present.  If this list does not contain the element, it is
+ * unchanged.  More formally, removes the element with the lowest index
+ * {@code i} such that
+ * &amp;lt;tt&amp;gt;(o==null ? get(i)==null : o.equals(get(i)))&amp;lt;/tt&amp;gt;
+ * (if such an element exists).  Returns {@code true} if this list
+ * contained the specified element (or equivalently, if this list
+ * changed as a result of the call).
+ * 
+ * @param o element to be removed from this list, if present
+ * @return {@code true} if this list contained the specified element
+ */
+public boolean remove(Object o) {
+    if (o == null) {
+        for (Node&amp;lt;E&amp;gt; x = first; x != null; x = x.next) {
+            if (x.item == null) {
+                unlink(x);
+                return true;
+            }
+        }
+    } else {
+        for (Node&amp;lt;E&amp;gt; x = first; x != null; x = x.next) {
+            if (o.equals(x.item)) {
+                unlink(x);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Unlinks non-null first node f.
+ */
+private E unlinkFirst(Node&amp;lt;E&amp;gt; f) {
+    // assert f == first &amp;amp;&amp;amp; f != null;
+    // 获取头结点元素
+    final E element = f.item;
+    // 获取头结点的后继节点
+    final Node&amp;lt;E&amp;gt; next = f.next;
+    // 直接设置头结点元素和后继索引为空（方便进行GC），因为是头结点，其前驱索引本就为空，无需设置
+    f.item = null;
+    f.next = null; // help GC
+    // 将下一个节点设置为头结点
+    first = next;
+    // 如果下一个节点为空，表明链表为空，此时尾结点也设置为空
+    if (next == null)
+        last = null;
+    else
+        next.prev = null;// 成为头结点的下一节点的前驱索引设置为空（头结点的前驱节点索引必须为空）
+    size--;
+    modCount++;
+    return element;
+}
+
+/**
+ * Unlinks non-null last node l.
+ */
+private E unlinkLast(Node&amp;lt;E&amp;gt; l) {
+    // assert l == last &amp;amp;&amp;amp; l != null;
+    // 获取尾结点元素
+    final E element = l.item;
+    // 获取尾结点的前驱节点
+    final Node&amp;lt;E&amp;gt; prev = l.prev;
+    // 直接设置尾结点元素和前驱索引为空（方便进行GC），因为是尾结点，其后继索引本就为空，无需设置
+    l.item = null;
+    l.prev = null; // help GC
+    // 将前一个节点设置为尾结点
+    last = prev;
+    // 如果前一个节点为空，表明链表为空，此时头结点也设置为空
+    if (prev == null)
+        first = null;
+    else
+        prev.next = null;// 成为尾结点的前一节点的后继索引设置为空（尾结点的后继节点索引必须为空）
+    size--;
+    modCount++;
+    return element;
+}
+
+/**
+ * Unlinks non-null node x.
+ */
+E unlink(Node&amp;lt;E&amp;gt; x) {
+    // assert x != null;
+    // 获取指定节点的元素
+    final E element = x.item;
+    // 获取指定节点的后继节点
+    final Node&amp;lt;E&amp;gt; next = x.next;
+    // 获取指定节点的前驱节点
+    final Node&amp;lt;E&amp;gt; prev = x.prev;
+    // 如果指定节点的前驱节点为空，表明其为头结点，直接将指定节点的后继节点赋给头结点即可
+    if (prev == null) {
+        first = next;
+    } else {
+        // 指定节点的前驱节点的后继索引指向指定节点的后继节点
+        prev.next = next;
+        // 将指定元素的前驱索引置空
+        x.prev = null;
+    }
+    // 如果指定节点的后继节点为空，表明其为尾结点，直接将指定节点的前驱节点赋给尾结点即可
+    if (next == null) {
+        last = prev;
+    } else {
+        // 指定节点的后继节点的前驱索引指向指定节点的前驱节点
+        next.prev = prev;
+        // 将指定元素的后继索引置空
+        x.next = null;
+    }
+    // 将指定元素置空，方向进行GC
+    x.item = null;
+    // 列表大小减一
+    size--;
+    modCount++;
+    return element;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;linkedlist修改元素&#34;&gt;LinkedList修改元素&lt;/h4&gt;
+&lt;p&gt;linkedList可以修改指定节点的元素内容。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 修改操作十分简单，就是将对应节点中的元素替换为指定内容
+ * Replaces the element at the specified position in this list with the
+ * specified element.
+ *
+ * @param index index of the element to replace
+ * @param element element to be stored at the specified position
+ * @return the element previously at the specified position
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E set(int index, E element) {
+    // 检查是否越界
+    checkElementIndex(index);
+    Node&amp;lt;E&amp;gt; x = node(index);
+    E oldVal = x.item;
+    // 替换元素内容
+    x.item = element;
+    return oldVal;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;linkedlist查询元素&#34;&gt;LinkedList查询元素&lt;/h4&gt;
+&lt;p&gt;linkedList中通过指定索引进行查询时，实际上是遍历列表获取对应的数据。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/** 
+ * 查询头结点，因为本就保存在first中了，所以可以直接获取
+ * Returns the first element in this list.
+ *
+ * @return the first element in this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E getFirst() {
+    final Node&amp;lt;E&amp;gt; f = first;
+    if (f == null)
+        throw new NoSuchElementException();
+    return f.item;
+}
+
+/**
+ * 查询尾结点，因为本就保存在last中了，所以可以直接获取
+ * Returns the last element in this list.
+ *
+ * @return the last element in this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E getLast() {
+    final Node&amp;lt;E&amp;gt; l = last;
+    if (l == null)
+        throw new NoSuchElementException();
+    return l.item;
+}
+
+/**
+ * 查询指定索引的元素
+ * Returns the element at the specified position in this list.
+ *
+ * @param index index of the element to return
+ * @return the element at the specified position in this list
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E get(int index) {
+    // 检查是否越界
+    checkElementIndex(index);
+    // node函数本质上是针对列表进行一次二分，随后再决定是从头结点开始遍历，还是由尾结点开始遍历
+    return node(index).item;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Returns the (non-null) Node at the specified element index.
+ */
+Node&amp;lt;E&amp;gt; node(int index) {
+    // assert isElementIndex(index);
+    // size &amp;gt;&amp;gt; 1 右移一位表示除以2，index 小于该值时，从头结点开始遍历，否则从尾结点开始遍历
+    if (index &amp;lt; (size &amp;gt;&amp;gt; 1)) {
+        Node&amp;lt;E&amp;gt; x = first;
+        for (int i = 0; i &amp;lt; index; i++)
+            x = x.next;
+        return x;
+    } else {
+        Node&amp;lt;E&amp;gt; x = last;
+        for (int i = size - 1; i &amp;gt; index; i--)
+            x = x.prev;
+        return x;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;作为队列&#34;&gt;作为队列&lt;/h3&gt;
+&lt;p&gt;linkedList实现了Deque接口，而Deque 作为双端队列既可以实现栈的操作，也可以实现队列的操作，也即是说linkedList既可以作为栈使用也可以作为队列使用。&lt;/p&gt;
+&lt;p&gt;Queue 中的方法及区别：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Queue 的 offer 和 add 都是在队列中插入一个元素，具体区别在于，对于一些 Queue 的实现的队列是有大小限制的，因此如果想在一个满的队列中加入一个新项，多出的项就会被拒绝。此时调用 add()方法会抛出异常，而 offer() 只是返回的 false。&lt;/li&gt;
+&lt;li&gt;remove() 和 poll() 方法都是从队列中删除第一个元素。remove()也将抛出异常，而 poll() 则会返回 null&lt;/li&gt;
+&lt;li&gt;element() 和 peek() 用于在队列的头部查询元素。在队列为空时， element() 抛出一个异常，而 peek() 返回 null。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;头部&lt;/th&gt;
+&lt;th&gt;头部&lt;/th&gt;
+&lt;th&gt;尾部&lt;/th&gt;
+&lt;th&gt;尾部&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;增加&lt;/td&gt;
+&lt;td&gt;addFirst(e)&lt;/td&gt;
+&lt;td&gt;offerFirst(e)&lt;/td&gt;
+&lt;td&gt;addLast(e)&lt;/td&gt;
+&lt;td&gt;offerLast(e)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;删除&lt;/td&gt;
+&lt;td&gt;removeFirst()&lt;/td&gt;
+&lt;td&gt;pollFirst()&lt;/td&gt;
+&lt;td&gt;remveLast()&lt;/td&gt;
+&lt;td&gt;pollLast()&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;查询&lt;/td&gt;
+&lt;td&gt;getFirst()&lt;/td&gt;
+&lt;td&gt;peekFirst()&lt;/td&gt;
+&lt;td&gt;getLast()&lt;/td&gt;
+&lt;td&gt;peekLast()&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre&gt;&lt;code&gt;// Deque operations
+/**
+ * Inserts the specified element at the front of this list.
+ *
+ * @param e the element to insert
+ * @return {@code true} (as specified by {@link Deque#offerFirst})
+ * @since 1.6
+ */
+public boolean offerFirst(E e) {
+    addFirst(e);
+    return true;
+}
+
+/**
+ * Inserts the specified element at the end of this list.
+ *
+ * @param e the element to insert
+ * @return {@code true} (as specified by {@link Deque#offerLast})
+ * @since 1.6
+ */
+public boolean offerLast(E e) {
+    addLast(e);
+    return true;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Retrieves and removes the first element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the first element of this list, or {@code null} if
+ *     this list is empty
+ * @since 1.6
+ */
+public E pollFirst() {
+    final Node&amp;lt;E&amp;gt; f = first;
+    return (f == null) ? null : unlinkFirst(f);
+}
+
+/**
+ * Retrieves and removes the last element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the last element of this list, or {@code null} if
+ *     this list is empty
+ * @since 1.6
+ */
+public E pollLast() {
+    final Node&amp;lt;E&amp;gt; l = last;
+    return (l == null) ? null : unlinkLast(l);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Retrieves, but does not remove, the first element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the first element of this list, or {@code null}
+ *         if this list is empty
+ * @since 1.6
+ */
+public E peekFirst() {
+    final Node&amp;lt;E&amp;gt; f = first;
+    return (f == null) ? null : f.item;
+ }
+
+/**
+ * Retrieves, but does not remove, the last element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the last element of this list, or {@code null}
+ *         if this list is empty
+ * @since 1.6
+ */
+public E peekLast() {
+    final Node&amp;lt;E&amp;gt; l = last;
+    return (l == null) ? null : l.item;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">LinkedList源码解析</a>
       </div>
       
       <div class="item">

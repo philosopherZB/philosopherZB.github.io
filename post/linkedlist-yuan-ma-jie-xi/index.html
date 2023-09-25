@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>RocketMQ源码解读之消息存储(下) | Philosopher</title>
+<title>LinkedList源码解析 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1695620160592">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="RocketMQ源码解读之消息存储(下)" />
-  <meta name="keywords" content="rocketmq" />
+  <meta name="description" content="LinkedList源码解析" />
+  <meta name="keywords" content="java" />
 </head>
 
 <body>
@@ -255,16 +255,19 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E6%B6%88%E6%81%AF%E5%AD%98%E5%82%A8">消息存储</a>
+<li><a href="#linkedlist%E6%BA%90%E7%A0%81">LinkedList源码</a>
 <ul>
-<li><a href="#%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D">文件恢复</a></li>
-<li><a href="#%E6%96%87%E4%BB%B6%E5%88%B7%E7%9B%98%E6%9C%BA%E5%88%B6">文件刷盘机制</a>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E5%BA%95%E5%B1%82%E7%BB%93%E6%9E%84%E4%B8%8E%E6%9E%84%E9%80%A0%E5%99%A8">底层结构与构造器</a></li>
+<li><a href="#%E5%A2%9E%E5%88%A0%E6%94%B9%E6%9F%A5">增删改查</a>
 <ul>
-<li><a href="#%E5%90%8C%E6%AD%A5%E5%88%B7%E7%9B%98">同步刷盘</a></li>
-<li><a href="#%E5%BC%82%E6%AD%A5%E5%88%B7%E7%9B%98">异步刷盘</a></li>
+<li><a href="#linkedlist%E6%B7%BB%E5%8A%A0%E5%85%83%E7%B4%A0">LinkedList添加元素</a></li>
+<li><a href="#linkedlist%E5%88%A0%E9%99%A4%E5%85%83%E7%B4%A0">LinkedList删除元素</a></li>
+<li><a href="#linkedlist%E4%BF%AE%E6%94%B9%E5%85%83%E7%B4%A0">LinkedList修改元素</a></li>
+<li><a href="#linkedlist%E6%9F%A5%E8%AF%A2%E5%85%83%E7%B4%A0">LinkedList查询元素</a></li>
 </ul>
 </li>
-<li><a href="#%E8%BF%87%E6%9C%9F%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E6%9C%BA%E5%88%B6">过期文件删除机制</a></li>
+<li><a href="#%E4%BD%9C%E4%B8%BA%E9%98%9F%E5%88%97">作为队列</a></li>
 </ul>
 </li>
 </ul>
@@ -534,8 +537,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/">
-      RocketMQ源码解读之消息存储(下)
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/">
+      LinkedList源码解析
     </a>
   </h1>
   <div class="post-meta">
@@ -543,7 +546,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-10-22 11:23:23">2022-10-22</span>
+      <span class="publish-time" data-t="2021-04-17 10:05:05">2021-04-17</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -552,8 +555,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/">
-        <span>rocketmq</span>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
       </a>
       
       
@@ -562,17 +565,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>20<span class="language" data-lan="minute">分钟</span></span>
+      <span>19<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4176<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>4107<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" data-flag-title="RocketMQ源码解读之消息存储(下)" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/linkedlist-yuan-ma-jie-xi/" data-flag-title="LinkedList源码解析" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -582,617 +585,630 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之消息存储下篇。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/peak-190053_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="消息存储">消息存储</h2>
-<h3 id="文件恢复">文件恢复</h3>
-<p>RocketMQ所有消息都会先存储在commitLog中，随后再异步生成转发任务更新consumerQueue，indexFile文件。在此异步过程中，如果broker宕机，那么可能会出现数据不一致的问题。比如消息未同步至consumerQueue中，那么消费者将永远都消费不到该消息。此时便需要一种方案能够异步宕机导致的数据不一致问题。以下从源码角度分析rocketmq是如何实现数据同步操作的。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件加载
-public boolean load() {
-    boolean result = true;
+<p>本章主要简述LinkedList源码。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/bled-1797835_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="linkedlist源码">LinkedList源码</h2>
+<h3 id="简介">简介</h3>
+<p>LinkedList同时实现了List接口和Deque接口，也就是说它既可以看作一个顺序容器，又可以看作一个队列(Queue)，同时又可以看作一个栈(Stack)。这样看来，LinkedList简直就是个全能冠军。当你需要使用栈或者队列时，可以考虑使用LinkedList，一方面是因为Java官方已经声明不建议使用Stack类，更遗憾的是，Java里根本没有一个叫做Queue的类(它是个接口名字)。关于栈或队列，现在的首选是ArrayDeque，它有着比LinkedList(当作栈或队列使用时)有着更好的性能。</p>
+<pre><code>public class LinkedList&lt;E&gt;
+    extends AbstractSequentialList&lt;E&gt;
+    implements List&lt;E&gt;, Deque&lt;E&gt;, Cloneable, java.io.Serializable
+</code></pre>
+<p>由上述代码可以看出LinkedList 继承自 AbstrackSequentialList 并实现了 List 接口以及 Deque 双向队列接口，因此 LinkedList 不但拥有 List 相关的操作方法，也有队列的相关操作方法。</p>
+<p>LinkedList 和 ArrayList 一样实现了序列化接口 Serializable 和 Cloneable 接口使其拥有了序列化和克隆的特性。</p>
+<p>LinkedList 一些主要特性：</p>
+<ol>
+<li>LinkedList 集合底层实现的数据结构为双向链表</li>
+<li>LinkedList 集合中元素允许重复或者 null</li>
+<li>LinkedList 中元素存放顺序为存入顺序。</li>
+<li>LinkedList 是非线程安全的，如果想保证线程安全的前提下操作 LinkedList，可以使用 List list = Collections.synchronizedList(new LinkedList(...)); 来生成一个线程安全的 LinkedList</li>
+<li>迭代器支持快速失败(Fail-Fast)，可能会抛出ConcurrentModificationException。</li>
+<li>未实现RandomAccess接口。所以它不支持随机访问元素，我们只能按顺序访问元素。</li>
+</ol>
+<p>链表是一种不同于数组的数据结构，双向链表是链表的一种子数据结构，它具有以下的特点：每个节点上有三个字段：当前节点的数据字段（data）,指向上一个节点的字段（prev），和指向下一个节点的字段（next）。形如：headLink--&gt;data--&gt;tailLink</p>
+<ul>
+<li>链表中的每个链接都是一个对象（也称为元素，节点等）。</li>
+<li>每个对象都包含一个引用（地址）到下一个对象的位置。</li>
+<li>链表中前驱节点指向null表示链表的头，链表中的后继节点指向null，表示链表的尾。</li>
+<li>链接列表可以在运行时（程序运行时，编译后）动态增长和缩小，仅受可用物理内存的限制。</li>
+</ul>
+<h3 id="底层结构与构造器">底层结构与构造器</h3>
+<p>LinkedList的底层结构是双向链表，具体实现如下。</p>
+<pre><code>private static class Node&lt;E&gt; {
+    // 当前节点数据
+    E item;
+    // 下一节点的指针
+    Node&lt;E&gt; next;
+    // 前一节点的指针
+    Node&lt;E&gt; prev;
 
-    try {
-        // 判断上一次退出是否正常
-        boolean lastExitOK = !this.isTempFileExist();
-        log.info(&quot;last shutdown {}&quot;, lastExitOK ? &quot;normally&quot; : &quot;abnormally&quot;);
-
-        // 加载 CommitLog文件
-        result = result &amp;&amp; this.commitLog.load();
-
-        // 加载 ConsumeQueue文件---&gt;遍历消费队列根目录，获取所有主题文件，随后遍历每个主题文件，将其中的内容加载至ConsumeQueue对象中
-        result = result &amp;&amp; this.loadConsumeQueue();
-
-        if (result) {
-            // 加载存储检查点，即文件对应的刷盘点
-            this.storeCheckpoint =
-                new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-            // 加载索引文件---&gt;如果上次异常退出，且索引文件最后刷盘时间小于该文件最大的消息时间戳，那么该文件将被销毁
-            this.indexService.load(lastExitOK);
-            // 根据broker是否正常退出进行文件恢复
-            this.recover(lastExitOK);
-
-            log.info(&quot;load over, and the max phy offset = {}&quot;, this.getMaxPhyOffset());
-            // 加载延迟消息相关的服务 
-            if (null != scheduleMessageService) {
-                result =  this.scheduleMessageService.load();
-            }
-        }
-
-    } catch (Exception e) {
-        log.error(&quot;load exception&quot;, e);
-        result = false;
+    Node(Node&lt;E&gt; prev, E element, Node&lt;E&gt; next) {
+        this.item = element;
+        this.next = next;
+        this.prev = prev;
     }
+}
+</code></pre>
+<p>由上述基础节点组成了LinkedList基本变量。可以看见，LinkedList保存了链表的第一个节点和最后一个节点。这是因为LinkedList可以通过链表的头尾两端查找节点数据。当使用索引来查找节点的时候，可以根据 index 和 size/2 的大小,来决定从头查找还是从尾部查找，这在一定程度上弥补了单链表数据结构的缺点。</p>
+<pre><code>// transient 关键字表示该属性不会被序列化
+// 节点数
+transient int size = 0;
 
-    if (!result) {
-        this.allocateMappedFileService.shutdown();
-    }
+/**
+ * 头结点
+ * Pointer to first node.
+ * Invariant: (first == null &amp;&amp; last == null) ||
+ *            (first.prev == null &amp;&amp; first.item != null)
+ */
+transient Node&lt;E&gt; first;
 
-    return result;
+/**
+ * 尾节点
+ * Pointer to last node.
+ * Invariant: (first == null &amp;&amp; last == null) ||
+ *            (last.next == null &amp;&amp; last.item != null)
+ */
+transient Node&lt;E&gt; last;
+</code></pre>
+<p>LinkedList存在两个构造器，需要注意的是，跟ArrayList不同，LinkedList无需设置初始容器大小，因为链表可以动态扩缩。</p>
+<pre><code>/**
+ * 构造一个空的linkedlist
+ * Constructs an empty list.
+ */
+public LinkedList() {
 }
 
-// 判断存储根目录下是否存在abort文件，存在说明为异常退出
-// 正常退出时，abort文件将会被删除--&gt;可参见: org.apache.rocketmq.store.DefaultMessageStore#shutdown
-private boolean isTempFileExist() {
-    String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
-    File file = new File(fileName);
-    return file.exists();
+/**
+  * 可以指定集合构造一个linkedlist
+ * Constructs a list containing the elements of the specified
+ * collection, in the order they are returned by the collection's
+ * iterator.
+ *
+ * @param  c the collection whose elements are to be placed into this list
+ * @throws NullPointerException if the specified collection is null
+ */
+public LinkedList(Collection&lt;? extends E&gt; c) {
+    this();
+    addAll(c);
 }
 
-// 加载commitLog文件
-public boolean doLoad(List&lt;File&gt; files) {
-    // ascending order
-    // 按照文件名进行排序
-    files.sort(Comparator.comparing(File::getName));
+</code></pre>
+<p>LinkedList第二个构造器，实际上也是先创建一个空的容器，然后使用addAll函数将指定集合添加进去。</p>
+<pre><code>// 在指定索引后加入c中所有的元素
+public boolean addAll(int index, Collection&lt;? extends E&gt; c) {
+    // 检查索引是否越界：index &gt;= 0 &amp;&amp; index &lt;= size
+    checkPositionIndex(index);
+    // 转为数组
+    Object[] a = c.toArray();
+    // 数组长度为0表示没有需要添加的数据，直接返回
+    int numNew = a.length;
+    if (numNew == 0)
+        return false;
 
-    for (File file : files) {
-        // 如果文件大小与预先配置的不一致，将被忽略。
-        if (file.length() != this.mappedFileSize) {
-            log.warn(file + &quot;\t&quot; + file.length()
-                    + &quot; length not matched message store config value, please check it manually&quot;);
-            return false;
-        }
-
-        try {
-            // 创建一个新的MappedFile 
-            MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-            // 设置三个指针为文件大小
-            mappedFile.setWrotePosition(this.mappedFileSize);
-            mappedFile.setFlushedPosition(this.mappedFileSize);
-            mappedFile.setCommittedPosition(this.mappedFileSize);
-            this.mappedFiles.add(mappedFile);
-            log.info(&quot;load &quot; + file.getPath() + &quot; OK&quot;);
-        } catch (IOException e) {
-            log.error(&quot;load file &quot; + file + &quot; error&quot;, e);
-            return false;
-        }
+    Node&lt;E&gt; pred, succ;
+    // index == size表示在链表尾部插入
+    if (index == size) {
+        succ = null;
+        pred = last;
+    } else {
+        succ = node(index);
+        pred = succ.prev;
     }
+  
+    for (Object o : a) {
+        @SuppressWarnings(&quot;unchecked&quot;) E e = (E) o;
+        Node&lt;E&gt; newNode = new Node&lt;&gt;(pred, e, null);
+        // pred == null 表示列表为空，新节点直接作为头结点，放入first中
+        if (pred == null)
+            first = newNode;
+        else
+            pred.next = newNode;
+        // 新节点作为下一节点的前驱节点  
+        pred = newNode;
+    }
+    // succ == null 表示一开始从链表尾部插入数据，此时只需将pred放入末尾即可（pred = newNode）
+    if (succ == null) {
+        last = pred;
+    } else {
+        // pred的后继节点是succ，succ的前驱节点是pred
+        pred.next = succ;
+        succ.prev = pred;
+    }
+    // 更新链表大小
+    size += numNew;
+    modCount++;
     return true;
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件恢复
-private void recover(final boolean lastExitOK) {
-    long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
-
-    if (lastExitOK) {
-        // 正常退出恢复
-        this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
-    } else {
-        // 异常退出恢复
-        this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
-    }
-    // 恢复TopicQueueTable
-    this.recoverTopicQueueTable();
+<h3 id="增删改查">增删改查</h3>
+<h4 id="linkedlist添加元素">LinkedList添加元素</h4>
+<p>依赖于底层链表结构，linkedList可以很方便的进行添加操作，只需要更改对应的node前后索引即可。</p>
+<pre><code>/**
+ * Inserts the specified element at the beginning of this list.
+ * 在列表的头部插入指定元素
+ * @param e the element to add
+ */
+public void addFirst(E e) {
+    linkFirst(e);
 }
 
-// 此函数表示消息中不仅存储了主题，队列id，还存储了消息队列的偏移量
-public void recoverTopicQueueTable() {
-    HashMap&lt;String/* topic-queueid */, Long/* offset */&gt; table = new HashMap&lt;String, Long&gt;(1024);
-    // 获取commitLog的最小偏移量
-    long minPhyOffset = this.commitLog.getMinOffset();
-    for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : this.consumeQueueTable.values()) {
-        for (ConsumeQueue logic : maps.values()) {
-            String key = logic.getTopic() + &quot;-&quot; + logic.getQueueId();
-            // 将队列中最大的偏移量存储table中
-            table.put(key, logic.getMaxOffsetInQueue());
-            logic.correctMinOffset(minPhyOffset);
-        }
-    }
-    // 将table设置进commitLog的TopicQueueTable
-    this.commitLog.setTopicQueueTable(table);
+/**
+ * Appends the specified element to the end of this list.
+ * 在列表的尾部追加指定元素
+ * &lt;p&gt;This method is equivalent to {@link #add}.
+ *
+ * @param e the element to add
+ */
+public void addLast(E e) {
+    linkLast(e);
 }
 
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker正常退出，所有的文件都将恢复，内存数据也将被刷盘
-public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-    // checkCRCOnRecover 表示文件恢复过程中查找消息时是否需要验证CRC
-    boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
-    final List&lt;MappedFile&gt; mappedFiles = this.mappedFileQueue.getMappedFiles();
-    if (!mappedFiles.isEmpty()) {
-        // 从倒数第三个文件开始进行恢复
-        int index = mappedFiles.size() - 3;
-        // 如果不足三个文件，则从第一个文件开始
-        if (index &lt; 0)
-            index = 0;
-        // 通过index获取MappedFile 
-        MappedFile mappedFile = mappedFiles.get(index);
-        // 获取共享ByteBuffer
-        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-        // commitLog已确认的物理偏移量
-        long processOffset = mappedFile.getFileFromOffset();
-        // 当前文件已校验通过offset
-        long mappedFileOffset = 0;
-        while (true) {
-            // 检查消息是否合规，并返回消息大小
-            DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
-            int size = dispatchRequest.getMsgSize();
-            // 消息合规，且消息大小大于0：mappedFileOffset 向前移动本条消息的长度
-            if (dispatchRequest.isSuccess() &amp;&amp; size &gt; 0) {
-                mappedFileOffset += size;
-            }
-            // Come the end of the file, switch to the next file Since the
-            // return 0 representatives met last hole,
-            // this can not be included in truncate offset
-            // 消息合规，且消息大小等于0，表示已抵达文件末尾
-            else if (dispatchRequest.isSuccess() &amp;&amp; size == 0) {
-                index++;
-                // 是否还有下一个文件，没有则直接跳出循环
-                if (index &gt;= mappedFiles.size()) {
-                    // Current branch can not happen
-                    log.info(&quot;recover last 3 physics file over, last mapped file &quot; + mappedFile.getFileName());
-                    break;
-                } else {
-                    // 否则重置processOffset，processOffset，并重复上述步骤
-                    mappedFile = mappedFiles.get(index);
-                    byteBuffer = mappedFile.sliceByteBuffer();
-                    processOffset = mappedFile.getFileFromOffset();
-                    processOffset = 0;
-                    log.info(&quot;recover next physics file, &quot; + mappedFile.getFileName());
-                }
-            }
-            // Intermediate file read error
-            // 消息不合规，直接跳出循环
-            else if (!dispatchRequest.isSuccess()) {
-                log.info(&quot;recover physics file end, &quot; + mappedFile.getFileName());
-                break;
-            }
-        }
-        // processOffset 为 mappedFile.getFileFromOffset() + mappedFileOffset
-        processOffset += mappedFileOffset;
-        // 更新FlushedWhere，CommittedWhere指针
-        this.mappedFileQueue.setFlushedWhere(processOffset);
-        this.mappedFileQueue.setCommittedWhere(processOffset);
-        // 删除processOffset之后的所有文件
-        this.mappedFileQueue.truncateDirtyFiles(processOffset);
-
-        // Clear ConsumeQueue redundant data
-        // 清除processOffset之后的所有逻辑文件 
-        if (maxPhyOffsetOfConsumeQueue &gt;= processOffset) {
-            log.warn(&quot;maxPhyOffsetOfConsumeQueue({}) &gt;= processOffset({}), truncate dirty logic files&quot;, maxPhyOffsetOfConsumeQueue, processOffset);
-            this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
-        }
-    } else {
-        // Commitlog case files are deleted
-        // commitlog 文件已被删除
-        log.warn(&quot;The commitlog files are deleted, and delete the consume queue files&quot;);
-        this.mappedFileQueue.setFlushedWhere(0);
-        this.mappedFileQueue.setCommittedWhere(0);
-        this.defaultMessageStore.destroyLogics();
-    }
+/**
+ * Appends the specified element to the end of this list.
+ * 在列表的尾部追加指定元素，此方法等同于addLast
+ * &lt;p&gt;This method is equivalent to {@link #addLast}.
+ *
+ * @param e element to be appended to this list
+ * @return {@code true} (as specified by {@link Collection#add})
+ */
+public boolean add(E e) {
+    linkLast(e);
+    return true;
+}
+/**
+ * 将元素插入指定索引位置，如果指定索引存在元素或子元素，则将其整体向右偏移
+ */
+public void add(int index, E element) {
+    // 检查索引是否越界
+    checkPositionIndex(index);
+    // 插入索引等于列表大小，表示在列表末尾插入数据
+    if (index == size)
+        linkLast(element);
+    else
+        linkBefore(element, node(index));
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker异常退出，文件恢复过程与正常退出基本一致。
-// 主要差别在于：异常退出会从最后一个文件开始往前遍历，找到第一个消息存储正常的文件进行恢复；
-// 从此处也可看出rocketmq可能会存在重复消费的问题，消费幂等还是需要靠客户端自己保证。
-// 判断MappedFile文件是否正常
-private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
-    ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+<pre><code>/**
+ * Links e as first element.
+ */
+private void linkFirst(E e) {
+    // 获取头结点
+    final Node&lt;E&gt; f = first;
+    // 构建新节点，并且新节点的后继节点指向头结点f
+    final Node&lt;E&gt; newNode = new Node&lt;&gt;(null, e, f);
+    // 新节点赋值给头结点
+    first = newNode;
+    // 头节点为空，说明链表是空，此时新节点也将成为last节点
+    if (f == null)
+        last = newNode;
+    else
+        f.prev = newNode; // 原先的头结点的前驱节点索引指向新节点
+    size++;
+    modCount++;
+}
 
-     // 判断文件魔数是否等于 MESSAGE_MAGIC_CODE，如果不等于则表示该文件不符合commitLog存储格式
-    int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
-    if (magicCode != MESSAGE_MAGIC_CODE) {
-        return false;
-    }
-  
-    int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-    int bornhostLength = (sysFlag &amp; MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-    int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
-    // 如果文件中第一条消息的存储时间等于0，等于0表示该文件中未存储消息
-    long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
-    if (0 == storeTimestamp) {
-        return false;
-    }
+/**
+ * Links e as last element.
+ */
+void linkLast(E e) {
+    // 获取尾结点
+    final Node&lt;E&gt; l = last;
+    // 构建新节点，并且新节点的前驱节点指向尾结点l
+    final Node&lt;E&gt; newNode = new Node&lt;&gt;(l, e, null);
+    // 新节点赋值给尾结点
+    last = newNode;
+    // 尾节点为空，说明链表是空，此时新节点也将成为first节点
+    if (l == null)
+        first = newNode;
+    else
+        l.next = newNode;// 原先的尾结点的后继节点索引指向新节点
+    size++;
+    modCount++;
+}
 
-    // 如果启用了消息索引，那么判断文件中第一条消息的存储时间是否小于等于存储检查点的最小索引时间戳 
-    if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-        &amp;&amp; this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
+/**
+ * Inserts element e before non-null Node succ.
+ */
+void linkBefore(E e, Node&lt;E&gt; succ) {
+    // assert succ != null;
+    // succ即指定索引位置的节点数据，此处succ节点必定不为空
+    // 获取指定索引位置的前驱节点
+    final Node&lt;E&gt; pred = succ.prev;
+    // 构建新节点，并且新节点的前驱节点指向pred，后继节点指向succ
+    final Node&lt;E&gt; newNode = new Node&lt;&gt;(pred, e, succ);
+    // 新节点赋值给succ的前驱节点
+    succ.prev = newNode;
+    // pred 为空，说明插入索引位置为头结点，此时新节点将成为first节点
+    if (pred == null)
+        first = newNode;
+    else
+        pred.next = newNode;// 指定索引位置的前驱节点的后继节点索引指向新节点
+    size++;
+    modCount++;
+}
+
+</code></pre>
+<h4 id="linkedlist删除元素">LinkedList删除元素</h4>
+<p>依赖于底层链表结构，linkedList可以很方便的进行删除操作，只需要更改对应的node前后索引即可。</p>
+<pre><code>/**
+ * 移除列表中的第一个元素
+ *
+ * Removes and returns the first element from this list.
+ * 
+ * @return the first element from this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E removeFirst() {
+    // 校验头结点是否存在
+    final Node&lt;E&gt; f = first;
+    if (f == null)
+        throw new NoSuchElementException();
+    return unlinkFirst(f);
+}
+
+/**
+ * 移除列表中的最后一个元素
+ * 
+ * Removes and returns the last element from this list.
+ * 
+ * @return the last element from this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E removeLast() {
+    // 校验尾结点是否存在
+    final Node&lt;E&gt; l = last;
+    if (l == null)
+        throw new NoSuchElementException();
+    return unlinkLast(l);
+}
+
+/**
+ * 移除指定索引位置的元素，该索引位置之后的元素集体往左偏移
+ * 
+ * Removes the element at the specified position in this list.  Shifts any
+ * subsequent elements to the left (subtracts one from their indices).
+ * Returns the element that was removed from the list.
+ * 
+ * @param index the index of the element to be removed
+ * @return the element previously at the specified position
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E remove(int index) {
+    checkElementIndex(index);
+    return unlink(node(index));
+}
+
+/**
+ * 如果存在指定元素，则将列表中第一次发现的指定元素移除，否则不作任何改变
+ *
+ * Removes the first occurrence of the specified element from this list,
+ * if it is present.  If this list does not contain the element, it is
+ * unchanged.  More formally, removes the element with the lowest index
+ * {@code i} such that
+ * &lt;tt&gt;(o==null ? get(i)==null : o.equals(get(i)))&lt;/tt&gt;
+ * (if such an element exists).  Returns {@code true} if this list
+ * contained the specified element (or equivalently, if this list
+ * changed as a result of the call).
+ * 
+ * @param o element to be removed from this list, if present
+ * @return {@code true} if this list contained the specified element
+ */
+public boolean remove(Object o) {
+    if (o == null) {
+        for (Node&lt;E&gt; x = first; x != null; x = x.next) {
+            if (x.item == null) {
+                unlink(x);
+                return true;
+            }
         }
     } else {
-        // 否则判断文件中第一条消息的存储时间是否小于等于存储检查点的最小时间戳 
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
+        for (Node&lt;E&gt; x = first; x != null; x = x.next) {
+            if (o.equals(x.item)) {
+                unlink(x);
+                return true;
+            }
         }
     }
-
     return false;
 }
 
 </code></pre>
-<h3 id="文件刷盘机制">文件刷盘机制</h3>
-<p>RocketMQ的读写是基于JDK NIO的内存映射机制（MappedByteBuffer），消息存储时首先将消息追加至内存，再根据配置的刷盘策略在不同时间进行刷盘。</p>
+<pre><code>/**
+ * Unlinks non-null first node f.
+ */
+private E unlinkFirst(Node&lt;E&gt; f) {
+    // assert f == first &amp;&amp; f != null;
+    // 获取头结点元素
+    final E element = f.item;
+    // 获取头结点的后继节点
+    final Node&lt;E&gt; next = f.next;
+    // 直接设置头结点元素和后继索引为空（方便进行GC），因为是头结点，其前驱索引本就为空，无需设置
+    f.item = null;
+    f.next = null; // help GC
+    // 将下一个节点设置为头结点
+    first = next;
+    // 如果下一个节点为空，表明链表为空，此时尾结点也设置为空
+    if (next == null)
+        last = null;
+    else
+        next.prev = null;// 成为头结点的下一节点的前驱索引设置为空（头结点的前驱节点索引必须为空）
+    size--;
+    modCount++;
+    return element;
+}
+
+/**
+ * Unlinks non-null last node l.
+ */
+private E unlinkLast(Node&lt;E&gt; l) {
+    // assert l == last &amp;&amp; l != null;
+    // 获取尾结点元素
+    final E element = l.item;
+    // 获取尾结点的前驱节点
+    final Node&lt;E&gt; prev = l.prev;
+    // 直接设置尾结点元素和前驱索引为空（方便进行GC），因为是尾结点，其后继索引本就为空，无需设置
+    l.item = null;
+    l.prev = null; // help GC
+    // 将前一个节点设置为尾结点
+    last = prev;
+    // 如果前一个节点为空，表明链表为空，此时头结点也设置为空
+    if (prev == null)
+        first = null;
+    else
+        prev.next = null;// 成为尾结点的前一节点的后继索引设置为空（尾结点的后继节点索引必须为空）
+    size--;
+    modCount++;
+    return element;
+}
+
+/**
+ * Unlinks non-null node x.
+ */
+E unlink(Node&lt;E&gt; x) {
+    // assert x != null;
+    // 获取指定节点的元素
+    final E element = x.item;
+    // 获取指定节点的后继节点
+    final Node&lt;E&gt; next = x.next;
+    // 获取指定节点的前驱节点
+    final Node&lt;E&gt; prev = x.prev;
+    // 如果指定节点的前驱节点为空，表明其为头结点，直接将指定节点的后继节点赋给头结点即可
+    if (prev == null) {
+        first = next;
+    } else {
+        // 指定节点的前驱节点的后继索引指向指定节点的后继节点
+        prev.next = next;
+        // 将指定元素的前驱索引置空
+        x.prev = null;
+    }
+    // 如果指定节点的后继节点为空，表明其为尾结点，直接将指定节点的前驱节点赋给尾结点即可
+    if (next == null) {
+        last = prev;
+    } else {
+        // 指定节点的后继节点的前驱索引指向指定节点的前驱节点
+        next.prev = prev;
+        // 将指定元素的后继索引置空
+        x.next = null;
+    }
+    // 将指定元素置空，方向进行GC
+    x.item = null;
+    // 列表大小减一
+    size--;
+    modCount++;
+    return element;
+}
+
+</code></pre>
+<h4 id="linkedlist修改元素">LinkedList修改元素</h4>
+<p>linkedList可以修改指定节点的元素内容。</p>
+<pre><code>/**
+ * 修改操作十分简单，就是将对应节点中的元素替换为指定内容
+ * Replaces the element at the specified position in this list with the
+ * specified element.
+ *
+ * @param index index of the element to replace
+ * @param element element to be stored at the specified position
+ * @return the element previously at the specified position
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E set(int index, E element) {
+    // 检查是否越界
+    checkElementIndex(index);
+    Node&lt;E&gt; x = node(index);
+    E oldVal = x.item;
+    // 替换元素内容
+    x.item = element;
+    return oldVal;
+}
+
+</code></pre>
+<h4 id="linkedlist查询元素">LinkedList查询元素</h4>
+<p>linkedList中通过指定索引进行查询时，实际上是遍历列表获取对应的数据。</p>
+<pre><code>/** 
+ * 查询头结点，因为本就保存在first中了，所以可以直接获取
+ * Returns the first element in this list.
+ *
+ * @return the first element in this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E getFirst() {
+    final Node&lt;E&gt; f = first;
+    if (f == null)
+        throw new NoSuchElementException();
+    return f.item;
+}
+
+/**
+ * 查询尾结点，因为本就保存在last中了，所以可以直接获取
+ * Returns the last element in this list.
+ *
+ * @return the last element in this list
+ * @throws NoSuchElementException if this list is empty
+ */
+public E getLast() {
+    final Node&lt;E&gt; l = last;
+    if (l == null)
+        throw new NoSuchElementException();
+    return l.item;
+}
+
+/**
+ * 查询指定索引的元素
+ * Returns the element at the specified position in this list.
+ *
+ * @param index index of the element to return
+ * @return the element at the specified position in this list
+ * @throws IndexOutOfBoundsException {@inheritDoc}
+ */
+public E get(int index) {
+    // 检查是否越界
+    checkElementIndex(index);
+    // node函数本质上是针对列表进行一次二分，随后再决定是从头结点开始遍历，还是由尾结点开始遍历
+    return node(index).item;
+}
+
+</code></pre>
+<pre><code>/**
+ * Returns the (non-null) Node at the specified element index.
+ */
+Node&lt;E&gt; node(int index) {
+    // assert isElementIndex(index);
+    // size &gt;&gt; 1 右移一位表示除以2，index 小于该值时，从头结点开始遍历，否则从尾结点开始遍历
+    if (index &lt; (size &gt;&gt; 1)) {
+        Node&lt;E&gt; x = first;
+        for (int i = 0; i &lt; index; i++)
+            x = x.next;
+        return x;
+    } else {
+        Node&lt;E&gt; x = last;
+        for (int i = size - 1; i &gt; index; i--)
+            x = x.prev;
+        return x;
+    }
+}
+
+</code></pre>
+<h3 id="作为队列">作为队列</h3>
+<p>linkedList实现了Deque接口，而Deque 作为双端队列既可以实现栈的操作，也可以实现队列的操作，也即是说linkedList既可以作为栈使用也可以作为队列使用。</p>
+<p>Queue 中的方法及区别：</p>
 <ul>
-<li>同步刷盘（SYNC_FLUSH）：消息追加至内存后，将同步调用MappedByteBuffer的force函数进行刷盘操作。</li>
-<li>异步刷盘（ASYNC_FLUSH）：在消息追加至内存后将立刻返回给消息发送端，rocketmq后端会起一个独立线程按照配置的频率进行刷盘。</li>
+<li>Queue 的 offer 和 add 都是在队列中插入一个元素，具体区别在于，对于一些 Queue 的实现的队列是有大小限制的，因此如果想在一个满的队列中加入一个新项，多出的项就会被拒绝。此时调用 add()方法会抛出异常，而 offer() 只是返回的 false。</li>
+<li>remove() 和 poll() 方法都是从队列中删除第一个元素。remove()也将抛出异常，而 poll() 则会返回 null</li>
+<li>element() 和 peek() 用于在队列的头部查询元素。在队列为空时， element() 抛出一个异常，而 peek() 返回 null。</li>
 </ul>
-<h4 id="同步刷盘">同步刷盘</h4>
-<p>同步刷盘主要是构建GroupCommitRequest 参数提交至GroupCommitService 进行处理，源码如下：</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-    // 设置GroupCommitService 
-    final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
-    if (messageExt.isWaitStoreMsgOK()) {
-        // 构建GroupCommitRequest 对象
-        GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-         // 将请求提交至刷盘监听器   
-        flushDiskWatcher.add(request);
-        service.putRequest(request);
-        // 等待返回结果
-        return request.future();
-    } else {
-        // 唤醒GroupCommitService 
-        service.wakeup();
-        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
-    }
+<table>
+<thead>
+<tr>
+<th></th>
+<th>头部</th>
+<th>头部</th>
+<th>尾部</th>
+<th>尾部</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>增加</td>
+<td>addFirst(e)</td>
+<td>offerFirst(e)</td>
+<td>addLast(e)</td>
+<td>offerLast(e)</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>removeFirst()</td>
+<td>pollFirst()</td>
+<td>remveLast()</td>
+<td>pollLast()</td>
+</tr>
+<tr>
+<td>查询</td>
+<td>getFirst()</td>
+<td>peekFirst()</td>
+<td>getLast()</td>
+<td>peekLast()</td>
+</tr>
+</tbody>
+</table>
+<pre><code>// Deque operations
+/**
+ * Inserts the specified element at the front of this list.
+ *
+ * @param e the element to insert
+ * @return {@code true} (as specified by {@link Deque#offerFirst})
+ * @since 1.6
+ */
+public boolean offerFirst(E e) {
+    addFirst(e);
+    return true;
+}
+
+/**
+ * Inserts the specified element at the end of this list.
+ *
+ * @param e the element to insert
+ * @return {@code true} (as specified by {@link Deque#offerLast})
+ * @since 1.6
+ */
+public boolean offerLast(E e) {
+    addLast(e);
+    return true;
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#GroupCommitService
-
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-
-    // 每处理一批请求后会休眠10秒 
-    while (!this.isStopped()) {
-        try {
-            this.waitForRunning(10);
-            // 核心处理函数
-            this.doCommit();
-        } catch (Exception e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
-    }
-
-    // 正常情况下宕机，会等待请求的到来，并进行刷盘操作
-    try {
-        Thread.sleep(10);
-    } catch (InterruptedException e) {
-        CommitLog.log.warn(this.getServiceName() + &quot; Exception, &quot;, e);
-    }
-    synchronized (this) {
-        this.swapRequests();
-    }
-    this.doCommit();
-
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
+<pre><code>/**
+ * Retrieves and removes the first element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the first element of this list, or {@code null} if
+ *     this list is empty
+ * @since 1.6
+ */
+public E pollFirst() {
+    final Node&lt;E&gt; f = first;
+    return (f == null) ? null : unlinkFirst(f);
 }
 
-private void doCommit() {
-    if (!this.requestsRead.isEmpty()) {
-        // 遍历请求，依次进行刷盘操作
-        for (GroupCommitRequest req : this.requestsRead) {
-            // There may be a message in the next file, so a maximum of
-            // two times the flush
-            boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            for (int i = 0; i &lt; 2 &amp;&amp; !flushOK; i++) {
-                // 实际上是调用了MappedByteBuffer.force函数进行了刷盘操作
-                // 
-                CommitLog.this.mappedFileQueue.flush(0);
-                flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            }
-            // 唤醒线程通知发送客户端刷盘结果--&gt;执行flushOKFuture.complete函数
-            req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
-        }
-    
-        // 刷盘完成后，需要更新存储检查点的时间戳。此处仅在内存中更新了该属性，并未落地到磁盘
-        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-        if (storeTimestamp &gt; 0) {
-            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-        }
-
-        this.requestsRead = new LinkedList&lt;&gt;();
-    } else {
-        // Because of individual messages is set to not sync flush, it
-        // will come to this process
-        CommitLog.this.mappedFileQueue.flush(0);
-    }
+/**
+ * Retrieves and removes the last element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the last element of this list, or {@code null} if
+ *     this list is empty
+ * @since 1.6
+ */
+public E pollLast() {
+    final Node&lt;E&gt; l = last;
+    return (l == null) ? null : unlinkLast(l);
 }
 
 </code></pre>
-<h4 id="异步刷盘">异步刷盘</h4>
-<p>异步刷盘根据是否开启了transientStorePoolEnable机制，刷盘实现会有些许区别。</p>
-<p>如果transientStorePoolEnable为true，rocketmq会单独申请一块与目标物理文件（commitLog）同样大小的堆外内存，该堆外内存会使用内存锁定，确保不会被置换到虚拟内存中，消息首先提交至堆外内存，然后提交至物理文件对应的映射内存中，最后再flush到磁盘。</p>
-<p>如果transientStorePoolEnable为false，消息是直接追加到内存映射文件中，然后flush到磁盘。</p>
-<p>当transientStorePoolEnable为true时，消息刷盘流程如下所示：</p>
-<ol>
-<li>首先将消息追加至ByteBuffer（堆外内存DirectByteBuffer），writePosition随着消息不断向后移动。</li>
-<li>CommitRealTimeService 线程默认每200ms将ByteBuffer新追加的内容数据提交至MappedFileBuffer中。</li>
-<li>FlushRealTimeService 线程默认每500ms调用MappedByteBuffer#force函数将新追加的内存数据刷写到磁盘。</li>
-</ol>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-// Asynchronous flush
-else {
-    if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-        // 唤醒FlushRealTimeService 线程
-        flushCommitLogService.wakeup();
-    } else  {
-        // 唤醒CommitRealTimeService 线程
-        commitLogService.wakeup();
-    }
-    // 异步刷盘时直接返回ok
-    return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
-}
+<pre><code>/**
+ * Retrieves, but does not remove, the first element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the first element of this list, or {@code null}
+ *         if this list is empty
+ * @since 1.6
+ */
+public E peekFirst() {
+    final Node&lt;E&gt; f = first;
+    return (f == null) ? null : f.item;
+ }
 
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#CommitRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-    while (!this.isStopped()) {
-        // 获取配置的提交间隔时间，默认200ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
-        // 一次提交任务中最少待提交页数，默认4，如果小于该值，将忽略本次提交
-        int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
-         // 两次提交任务间隔，默认200ms
-        int commitDataThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
-
-        // 如果距上次提交时间超过 commitDataThoroughInterval，那么忽略commitDataLeastPages 参数
-        long begin = System.currentTimeMillis();
-        if (begin &gt;= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
-            this.lastCommitTimestamp = begin;
-            commitDataLeastPages = 0;
-        }
-
-        try {
-            // 提交数据值映射内存中，提交操作返回false，不代表提交失败，而是只提交了部分数据
-            boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
-            long end = System.currentTimeMillis();
-            if (!result) {
-                this.lastCommitTimestamp = end; // result = false means some data committed.
-                //now wake up flush thread.
-                // 唤醒FlushRealTimeService 线程，进行刷盘操作
-                flushCommitLogService.wakeup();
-            }
-
-            if (end - begin &gt; 500) {
-                log.info(&quot;Commit data to file costs {} ms&quot;, end - begin);
-            }
-            this.waitForRunning(interval);
-        } catch (Throwable e) {
-            CommitLog.log.error(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
-    }
-    // 针对commit失败的情况进行重试提交
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.commit(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
-    }
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#FlushRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-
-    while (!this.isStopped()) {
-        // 是否定时刷新，默认true
-        boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-        // 刷盘间隔，默认500ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
-        // 一次刷盘任务中最少待刷盘页数，默认4，如果小于该值，将忽略本次刷盘
-        int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-        // 两次刷盘任务间隔，默认10s 
-        int flushPhysicQueueThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
-        // 是否打印刷盘过程信息，默认false 
-        boolean printFlushProgress = false;
-
-        // 如果距上次刷盘时间超过 flushPhysicQueueThoroughInterval，那么忽略flushPhysicQueueThoroughInterval参数
-        // Print flush progress
-        long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis &gt;= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
-            this.lastFlushTimestamp = currentTimeMillis;
-            flushPhysicQueueLeastPages = 0;
-            printFlushProgress = (printTimes++ % 10) == 0;
-        }
-
-        try {
-            // 延迟刷盘
-            if (flushCommitLogTimed) {
-                Thread.sleep(interval);
-            } else {
-                this.waitForRunning(interval);
-            }
-            // 打印刷盘过程信息
-            if (printFlushProgress) {
-                this.printFlushProgress();
-            }
-
-            // 数据刷盘，刷盘操作返回false，不代表fush失败，而是只flush了部分数据
-            // 刷盘操作过程还会更新flushedPosition指针
-            long begin = System.currentTimeMillis();
-            CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-            long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-            if (storeTimestamp &gt; 0) {
-                CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-            }
-            long past = System.currentTimeMillis() - begin;
-            if (past &gt; 500) {
-                log.info(&quot;Flush data to disk costs {} ms&quot;, past);
-            }
-        } catch (Throwable e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-            this.printFlushProgress();
-        }
-    }
-
-    // 针对flush失败的情况进行重试刷盘
-    // Normal shutdown, to ensure that all the flush before exit
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.flush(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
-    }
-
-    this.printFlushProgress();
-
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<h3 id="过期文件删除机制">过期文件删除机制</h3>
-<p>为了避免内存（内存映射机制）与磁盘资源的浪费，rocketmq中的文件不可能永远存储在消息服务器上，这时便需要一种文件过期清除策略来删除已过期的文件。</p>
-<p>RocketMQ顺序写文件，也就是说所有的写操作都将落在最后一个文件，之前的文件在下一个文件创建后将不会再被更新。这样便可以引入一种过期策略：如果非当前写文件在一定时间间隔内没有再被更新，则认为该文件过期，可被删除。</p>
-<p>RocketMQ不会关注文件上的消息是否已被全部消费，当抵达指定的过期时间时（默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时）便会执行清除操作。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#addScheduleTask
-this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-    @Override
-    public void run() {
-        DefaultMessageStore.this.cleanFilesPeriodically();
-    }
-   // 默认每隔10秒执行一次清除任务，可以设置cleanResourceInterval来控制执行频率
-}, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
-
-private void cleanFilesPeriodically() {
-    // 清除commitLog文件
-    this.cleanCommitLogService.run();
-    // 清除consumerQueue文件
-    this.cleanConsumeQueueService.run();
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanCommitLogService
-// 清除commitLog文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-
-        this.redeleteHangedFile();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-    }
-}
-
-private void deleteExpiredFiles() {
-    int deleteCount = 0;
-    // 文件保留时间，即最后一次更新到现在的时间，如果超过了该时间，则认为是过期文件，可以被删除
-    // 默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时
-    long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
-    // 两次文件删除间隔，默认100ms；在一次清除过程中，可能需要删除的文件不止一个，该属性指定了两次删除文件的间隔
-    int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-    // 在清除文件过程中，如果该文件被其他线程所占用（引用次数大于0，例如读消息），此时会阻止本次删除操作，
-    // 同时在第一次试图删除该文件时记录当前时间戳，destroyMapedFileIntervalForcibly 表示第一次拒绝删除后能保留的最大时间，默认120s
-    // 在此时间内，删除操作将会被拒绝，同时引用次数减1000，超过该时间后，文件会被强制删除
-    int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-  
-    // 指定删除文件的时间点，可以通过设置deleteWhen来指定在一天的哪个时间点进行删除，默认凌晨4点
-    boolean timeup = this.isTimeToDelete();
-    // 磁盘空间是否充足，如果不足则应该执行删除操作
-    boolean spacefull = this.isSpaceToDelete();
-    // 手动删除
-    boolean manualDelete = this.manualDeleteFileSeveralTimes &gt; 0;
-
-    if (timeup || spacefull || manualDelete) {
-
-        if (manualDelete)
-            this.manualDeleteFileSeveralTimes--;
-
-        boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() &amp;&amp; this.cleanImmediately;
-
-        log.info(&quot;begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}&quot;,
-            fileReservedTime,
-            timeup,
-            spacefull,
-            manualDeleteFileSeveralTimes,
-            cleanAtOnce);
-
-        fileReservedTime *= 60 * 60 * 1000;
-        // 删除文件
-        deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-            destroyMapedFileIntervalForcibly, cleanAtOnce);
-        if (deleteCount &gt; 0) {
-        } else if (spacefull) {
-            log.warn(&quot;disk space will be full soon, but delete file failed.&quot;);
-        }
-    }
-}
-// 针对挂起的文件，重新删除
-private void redeleteHangedFile() {
-    int interval = DefaultMessageStore.this.getMessageStoreConfig().getRedeleteHangedFileInterval();
-    long currentTimestamp = System.currentTimeMillis();
-    if ((currentTimestamp - this.lastRedeleteTimestamp) &gt; interval) {
-        this.lastRedeleteTimestamp = currentTimestamp;
-        int destroyMapedFileIntervalForcibly =
-            DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-        if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
-        }
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanConsumeQueueService
-// 清除consumerQueue文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-    }
-}
-
-private void deleteExpiredFiles() {
-    // 两次文件删除间隔，默认100ms
-    int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
-    // 获取最小偏移量
-    long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
-    // 当前最小偏移量大于上次最小偏移量才进行删除操纵，说明存在需要删除的内容
-    if (minOffset &gt; this.lastPhysicalMinOffset) {
-        // 重新设置lastPhysicalMinOffset 
-        this.lastPhysicalMinOffset = minOffset;
-
-        ConcurrentMap&lt;String, ConcurrentMap&lt;Integer, ConsumeQueue&gt;&gt; tables = DefaultMessageStore.this.consumeQueueTable;
-
-        for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : tables.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                // 删除minOffset之前的所有ConsumeQueue 文件
-                int deleteCount = logic.deleteExpiredFile(minOffset);
-
-                if (deleteCount &gt; 0 &amp;&amp; deleteLogicsFilesInterval &gt; 0) {
-                    try {
-                        Thread.sleep(deleteLogicsFilesInterval);
-                    } catch (InterruptedException ignored) {
-                    }
-                }
-            }
-        }
-        // 删除minOffset之前的所有索引文件
-        DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
-    }
+/**
+ * Retrieves, but does not remove, the last element of this list,
+ * or returns {@code null} if this list is empty.
+ *
+ * @return the last element of this list, or {@code null}
+ *         if this list is empty
+ * @since 1.6
+ */
+public E peekLast() {
+    final Node&lt;E&gt; l = last;
+    return (l == null) ? null : l.item;
 }
 
 </code></pre>
@@ -1208,7 +1224,7 @@ private void deleteExpiredFiles() {
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" title="RocketMQ源码解读之消息存储(下)">https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/</a>
+      <a href="https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/" title="LinkedList源码解析">https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1217,21 +1233,21 @@ private void deleteExpiredFiles() {
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/"># rocketmq</a>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">RocketMQ源码解读之消息消费(上)</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">上一篇</a>
+        <a class="nav-pc-next" title="HashMap源码解析" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/">HashMap源码解析</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="HashMap源码解析" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">RocketMQ源码解读之消息存储(上)</a>
-        <a class="nav-mobile-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">下一篇</a>
+        <a class="nav-pc-next" title="IDEA属性及插件配置" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/">IDEA属性及插件配置</a>
+        <a class="nav-mobile-next" title="IDEA属性及插件配置" href="https://philosopherzb.github.io/post/idea-shu-xing-ji-cha-jian-pei-zhi/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>

@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>RocketMQ源码解读之消息存储(下) | Philosopher</title>
+<title>HashMap源码解析 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1695620160592">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="RocketMQ源码解读之消息存储(下)" />
-  <meta name="keywords" content="rocketmq" />
+  <meta name="description" content="HashMap源码解析" />
+  <meta name="keywords" content="java" />
 </head>
 
 <body>
@@ -255,16 +255,15 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E6%B6%88%E6%81%AF%E5%AD%98%E5%82%A8">消息存储</a>
+<li><a href="#hashmap%E6%BA%90%E7%A0%81">HashMap源码</a>
 <ul>
-<li><a href="#%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D">文件恢复</a></li>
-<li><a href="#%E6%96%87%E4%BB%B6%E5%88%B7%E7%9B%98%E6%9C%BA%E5%88%B6">文件刷盘机制</a>
-<ul>
-<li><a href="#%E5%90%8C%E6%AD%A5%E5%88%B7%E7%9B%98">同步刷盘</a></li>
-<li><a href="#%E5%BC%82%E6%AD%A5%E5%88%B7%E7%9B%98">异步刷盘</a></li>
-</ul>
-</li>
-<li><a href="#%E8%BF%87%E6%9C%9F%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E6%9C%BA%E5%88%B6">过期文件删除机制</a></li>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E6%9E%84%E9%80%A0%E5%99%A8%E4%B8%8E%E6%A0%B8%E5%BF%83%E5%8F%98%E9%87%8F">构造器与核心变量</a></li>
+<li><a href="#put%E6%93%8D%E4%BD%9C">put操作</a></li>
+<li><a href="#resize%E6%89%A9%E5%AE%B9%E5%87%BD%E6%95%B0">resize扩容函数</a></li>
+<li><a href="#%E7%BA%A2%E9%BB%91%E6%A0%91%E6%93%8D%E4%BD%9C">红黑树操作</a></li>
+<li><a href="#get%E6%93%8D%E4%BD%9C">get操作</a></li>
+<li><a href="#remove%E6%93%8D%E4%BD%9C">remove操作</a></li>
 </ul>
 </li>
 </ul>
@@ -534,8 +533,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/">
-      RocketMQ源码解读之消息存储(下)
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/">
+      HashMap源码解析
     </a>
   </h1>
   <div class="post-meta">
@@ -543,7 +542,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-10-22 11:23:23">2022-10-22</span>
+      <span class="publish-time" data-t="2021-04-24 10:19:07">2021-04-24</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -552,8 +551,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/">
-        <span>rocketmq</span>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
       </a>
       
       
@@ -567,12 +566,12 @@
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4176<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>4402<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" data-flag-title="RocketMQ源码解读之消息存储(下)" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/hashmap-yuan-ma-jie-xi/" data-flag-title="HashMap源码解析" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -582,617 +581,485 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之消息存储下篇。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/peak-190053_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="消息存储">消息存储</h2>
-<h3 id="文件恢复">文件恢复</h3>
-<p>RocketMQ所有消息都会先存储在commitLog中，随后再异步生成转发任务更新consumerQueue，indexFile文件。在此异步过程中，如果broker宕机，那么可能会出现数据不一致的问题。比如消息未同步至consumerQueue中，那么消费者将永远都消费不到该消息。此时便需要一种方案能够异步宕机导致的数据不一致问题。以下从源码角度分析rocketmq是如何实现数据同步操作的。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件加载
-public boolean load() {
-    boolean result = true;
-
-    try {
-        // 判断上一次退出是否正常
-        boolean lastExitOK = !this.isTempFileExist();
-        log.info(&quot;last shutdown {}&quot;, lastExitOK ? &quot;normally&quot; : &quot;abnormally&quot;);
-
-        // 加载 CommitLog文件
-        result = result &amp;&amp; this.commitLog.load();
-
-        // 加载 ConsumeQueue文件---&gt;遍历消费队列根目录，获取所有主题文件，随后遍历每个主题文件，将其中的内容加载至ConsumeQueue对象中
-        result = result &amp;&amp; this.loadConsumeQueue();
-
-        if (result) {
-            // 加载存储检查点，即文件对应的刷盘点
-            this.storeCheckpoint =
-                new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-            // 加载索引文件---&gt;如果上次异常退出，且索引文件最后刷盘时间小于该文件最大的消息时间戳，那么该文件将被销毁
-            this.indexService.load(lastExitOK);
-            // 根据broker是否正常退出进行文件恢复
-            this.recover(lastExitOK);
-
-            log.info(&quot;load over, and the max phy offset = {}&quot;, this.getMaxPhyOffset());
-            // 加载延迟消息相关的服务 
-            if (null != scheduleMessageService) {
-                result =  this.scheduleMessageService.load();
-            }
-        }
-
-    } catch (Exception e) {
-        log.error(&quot;load exception&quot;, e);
-        result = false;
-    }
-
-    if (!result) {
-        this.allocateMappedFileService.shutdown();
-    }
-
-    return result;
-}
-
-// 判断存储根目录下是否存在abort文件，存在说明为异常退出
-// 正常退出时，abort文件将会被删除--&gt;可参见: org.apache.rocketmq.store.DefaultMessageStore#shutdown
-private boolean isTempFileExist() {
-    String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
-    File file = new File(fileName);
-    return file.exists();
-}
-
-// 加载commitLog文件
-public boolean doLoad(List&lt;File&gt; files) {
-    // ascending order
-    // 按照文件名进行排序
-    files.sort(Comparator.comparing(File::getName));
-
-    for (File file : files) {
-        // 如果文件大小与预先配置的不一致，将被忽略。
-        if (file.length() != this.mappedFileSize) {
-            log.warn(file + &quot;\t&quot; + file.length()
-                    + &quot; length not matched message store config value, please check it manually&quot;);
-            return false;
-        }
-
-        try {
-            // 创建一个新的MappedFile 
-            MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-            // 设置三个指针为文件大小
-            mappedFile.setWrotePosition(this.mappedFileSize);
-            mappedFile.setFlushedPosition(this.mappedFileSize);
-            mappedFile.setCommittedPosition(this.mappedFileSize);
-            this.mappedFiles.add(mappedFile);
-            log.info(&quot;load &quot; + file.getPath() + &quot; OK&quot;);
-        } catch (IOException e) {
-            log.error(&quot;load file &quot; + file + &quot; error&quot;, e);
-            return false;
-        }
-    }
-    return true;
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件恢复
-private void recover(final boolean lastExitOK) {
-    long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
-
-    if (lastExitOK) {
-        // 正常退出恢复
-        this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
-    } else {
-        // 异常退出恢复
-        this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
-    }
-    // 恢复TopicQueueTable
-    this.recoverTopicQueueTable();
-}
-
-// 此函数表示消息中不仅存储了主题，队列id，还存储了消息队列的偏移量
-public void recoverTopicQueueTable() {
-    HashMap&lt;String/* topic-queueid */, Long/* offset */&gt; table = new HashMap&lt;String, Long&gt;(1024);
-    // 获取commitLog的最小偏移量
-    long minPhyOffset = this.commitLog.getMinOffset();
-    for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : this.consumeQueueTable.values()) {
-        for (ConsumeQueue logic : maps.values()) {
-            String key = logic.getTopic() + &quot;-&quot; + logic.getQueueId();
-            // 将队列中最大的偏移量存储table中
-            table.put(key, logic.getMaxOffsetInQueue());
-            logic.correctMinOffset(minPhyOffset);
-        }
-    }
-    // 将table设置进commitLog的TopicQueueTable
-    this.commitLog.setTopicQueueTable(table);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker正常退出，所有的文件都将恢复，内存数据也将被刷盘
-public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-    // checkCRCOnRecover 表示文件恢复过程中查找消息时是否需要验证CRC
-    boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
-    final List&lt;MappedFile&gt; mappedFiles = this.mappedFileQueue.getMappedFiles();
-    if (!mappedFiles.isEmpty()) {
-        // 从倒数第三个文件开始进行恢复
-        int index = mappedFiles.size() - 3;
-        // 如果不足三个文件，则从第一个文件开始
-        if (index &lt; 0)
-            index = 0;
-        // 通过index获取MappedFile 
-        MappedFile mappedFile = mappedFiles.get(index);
-        // 获取共享ByteBuffer
-        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-        // commitLog已确认的物理偏移量
-        long processOffset = mappedFile.getFileFromOffset();
-        // 当前文件已校验通过offset
-        long mappedFileOffset = 0;
-        while (true) {
-            // 检查消息是否合规，并返回消息大小
-            DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
-            int size = dispatchRequest.getMsgSize();
-            // 消息合规，且消息大小大于0：mappedFileOffset 向前移动本条消息的长度
-            if (dispatchRequest.isSuccess() &amp;&amp; size &gt; 0) {
-                mappedFileOffset += size;
-            }
-            // Come the end of the file, switch to the next file Since the
-            // return 0 representatives met last hole,
-            // this can not be included in truncate offset
-            // 消息合规，且消息大小等于0，表示已抵达文件末尾
-            else if (dispatchRequest.isSuccess() &amp;&amp; size == 0) {
-                index++;
-                // 是否还有下一个文件，没有则直接跳出循环
-                if (index &gt;= mappedFiles.size()) {
-                    // Current branch can not happen
-                    log.info(&quot;recover last 3 physics file over, last mapped file &quot; + mappedFile.getFileName());
-                    break;
-                } else {
-                    // 否则重置processOffset，processOffset，并重复上述步骤
-                    mappedFile = mappedFiles.get(index);
-                    byteBuffer = mappedFile.sliceByteBuffer();
-                    processOffset = mappedFile.getFileFromOffset();
-                    processOffset = 0;
-                    log.info(&quot;recover next physics file, &quot; + mappedFile.getFileName());
-                }
-            }
-            // Intermediate file read error
-            // 消息不合规，直接跳出循环
-            else if (!dispatchRequest.isSuccess()) {
-                log.info(&quot;recover physics file end, &quot; + mappedFile.getFileName());
-                break;
-            }
-        }
-        // processOffset 为 mappedFile.getFileFromOffset() + mappedFileOffset
-        processOffset += mappedFileOffset;
-        // 更新FlushedWhere，CommittedWhere指针
-        this.mappedFileQueue.setFlushedWhere(processOffset);
-        this.mappedFileQueue.setCommittedWhere(processOffset);
-        // 删除processOffset之后的所有文件
-        this.mappedFileQueue.truncateDirtyFiles(processOffset);
-
-        // Clear ConsumeQueue redundant data
-        // 清除processOffset之后的所有逻辑文件 
-        if (maxPhyOffsetOfConsumeQueue &gt;= processOffset) {
-            log.warn(&quot;maxPhyOffsetOfConsumeQueue({}) &gt;= processOffset({}), truncate dirty logic files&quot;, maxPhyOffsetOfConsumeQueue, processOffset);
-            this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
-        }
-    } else {
-        // Commitlog case files are deleted
-        // commitlog 文件已被删除
-        log.warn(&quot;The commitlog files are deleted, and delete the consume queue files&quot;);
-        this.mappedFileQueue.setFlushedWhere(0);
-        this.mappedFileQueue.setCommittedWhere(0);
-        this.defaultMessageStore.destroyLogics();
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker异常退出，文件恢复过程与正常退出基本一致。
-// 主要差别在于：异常退出会从最后一个文件开始往前遍历，找到第一个消息存储正常的文件进行恢复；
-// 从此处也可看出rocketmq可能会存在重复消费的问题，消费幂等还是需要靠客户端自己保证。
-// 判断MappedFile文件是否正常
-private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
-    ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-
-     // 判断文件魔数是否等于 MESSAGE_MAGIC_CODE，如果不等于则表示该文件不符合commitLog存储格式
-    int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
-    if (magicCode != MESSAGE_MAGIC_CODE) {
-        return false;
-    }
-  
-    int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-    int bornhostLength = (sysFlag &amp; MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-    int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
-    // 如果文件中第一条消息的存储时间等于0，等于0表示该文件中未存储消息
-    long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
-    if (0 == storeTimestamp) {
-        return false;
-    }
-
-    // 如果启用了消息索引，那么判断文件中第一条消息的存储时间是否小于等于存储检查点的最小索引时间戳 
-    if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-        &amp;&amp; this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
-        }
-    } else {
-        // 否则判断文件中第一条消息的存储时间是否小于等于存储检查点的最小时间戳 
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
-        }
-    }
-
-    return false;
-}
-
-</code></pre>
-<h3 id="文件刷盘机制">文件刷盘机制</h3>
-<p>RocketMQ的读写是基于JDK NIO的内存映射机制（MappedByteBuffer），消息存储时首先将消息追加至内存，再根据配置的刷盘策略在不同时间进行刷盘。</p>
+<p>本章主要简述HashMap源码。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/rocks-821573_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="hashmap源码">HashMap源码</h2>
+<h3 id="简介">简介</h3>
+<p>HashMap 最早出现在 JDK 1.2中，底层基于散列算法实现。HashMap 允许 null 键和 null 值，在计算哈键的哈希值时，null 键哈希值为 0。HashMap 并不保证键值对的顺序，这意味着在进行某些操作后，键值对的顺序可能会发生变化。另外，需要注意的是，HashMap 是非线程安全类，在多线程环境下可能会存在问题。</p>
+<p>在java1.7版本中，hashMap底层采用的是数组加链表；而在java1.8中，hashmap底层结构改为了数组加链表加红黑树。其中红黑树的引入主要是为了解决极端情况下链表过长导致查询速度过慢的问题。</p>
+<p>哈希冲突(碰撞)解决方法：</p>
 <ul>
-<li>同步刷盘（SYNC_FLUSH）：消息追加至内存后，将同步调用MappedByteBuffer的force函数进行刷盘操作。</li>
-<li>异步刷盘（ASYNC_FLUSH）：在消息追加至内存后将立刻返回给消息发送端，rocketmq后端会起一个独立线程按照配置的频率进行刷盘。</li>
+<li>开发地址方式： 这种方法也称再散列法，其基本思想是：当关键字key的哈希地址p=H（key）出现冲突时，以p为基础，产生另一个哈希地址p1，如果p1仍然冲突，再以p为基础，产生另一个哈希地址p2，…，直到找出一个不冲突的哈希地址pi ，将相应元素存入其中。这种方法有一个通用的再散列函数形式： Hi=（H（key）+di) % m   i=1,2,,3....,n</li>
+<li>链式地址法：hashmap所使用的哈希冲突解决方案，也叫做拉链法。 基本思想是将所有哈希地址为i的元素构成一个称为同义词链的单链表，并将单链表的头指针存在哈希表的第i个单元中，因而查找、插入和删除主要在同义词链中进行。链地址法适用于经常进行插入和删除的情况。</li>
+<li>再哈希法：这种方法是同时构造多个不同的哈希函数：Hi=RH1（key）  i=1，2，…，k。当哈希地址Hi=RH1（key）发生冲突时，再计算Hi=RH2（key）……，直到冲突不再产生。这种方法不易产生聚集，但增加了计算时间。</li>
 </ul>
-<h4 id="同步刷盘">同步刷盘</h4>
-<p>同步刷盘主要是构建GroupCommitRequest 参数提交至GroupCommitService 进行处理，源码如下：</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-    // 设置GroupCommitService 
-    final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
-    if (messageExt.isWaitStoreMsgOK()) {
-        // 构建GroupCommitRequest 对象
-        GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-         // 将请求提交至刷盘监听器   
-        flushDiskWatcher.add(request);
-        service.putRequest(request);
-        // 等待返回结果
-        return request.future();
-    } else {
-        // 唤醒GroupCommitService 
-        service.wakeup();
-        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
-    }
+<h3 id="构造器与核心变量">构造器与核心变量</h3>
+<p>HashMap 的构造方法不多，只有四个。HashMap 构造方法做的事情比较简单，一般都是初始化一些重要变量，比如 loadFactor 和 threshold。而底层的数据结构则是延迟到插入键值对时再进行初始化。</p>
+<pre><code>/**
+ * 下次重设置大小的阈值 (capacity * load factor).
+ */
+int threshold;
+
+/**
+ * 哈希表的负载因子.默认0.75
+ */
+final float loadFactor;
+
+/**
+ * 指定初始化大小以及负载因子
+ */
+public HashMap(int initialCapacity, float loadFactor) {
+    if (initialCapacity &lt; 0)
+        throw new IllegalArgumentException(&quot;Illegal initial capacity: &quot; +
+                                           initialCapacity);
+    if (initialCapacity &gt; MAXIMUM_CAPACITY)
+        initialCapacity = MAXIMUM_CAPACITY;
+    if (loadFactor &lt;= 0 || Float.isNaN(loadFactor))
+        throw new IllegalArgumentException(&quot;Illegal load factor: &quot; +
+                                           loadFactor);
+    this.loadFactor = loadFactor;
+    // tableSizeFor是返回大于输入参数且最近的2的整数次幂的数。比如10，则返回16。
+    this.threshold = tableSizeFor(initialCapacity);
+}
+
+/**
+ * 指定初始化大小，负载因子默认为0.75
+ */
+public HashMap(int initialCapacity) {
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
+}
+
+/**
+ * 空构造器，大小默认16，负载因子默认为0.75
+ */
+public HashMap() {
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
+
+/**
+ * 将map作为参数进行初始化
+ */
+public HashMap(Map&lt;? extends K, ? extends V&gt; m) {
+        this.loadFactor = DEFAULT_LOAD_FACTOR;
+    putMapEntries(m, false);
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#GroupCommitService
-
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-
-    // 每处理一批请求后会休眠10秒 
-    while (!this.isStopped()) {
-        try {
-            this.waitForRunning(10);
-            // 核心处理函数
-            this.doCommit();
-        } catch (Exception e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
-    }
-
-    // 正常情况下宕机，会等待请求的到来，并进行刷盘操作
-    try {
-        Thread.sleep(10);
-    } catch (InterruptedException e) {
-        CommitLog.log.warn(this.getServiceName() + &quot; Exception, &quot;, e);
-    }
-    synchronized (this) {
-        this.swapRequests();
-    }
-    this.doCommit();
-
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-private void doCommit() {
-    if (!this.requestsRead.isEmpty()) {
-        // 遍历请求，依次进行刷盘操作
-        for (GroupCommitRequest req : this.requestsRead) {
-            // There may be a message in the next file, so a maximum of
-            // two times the flush
-            boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            for (int i = 0; i &lt; 2 &amp;&amp; !flushOK; i++) {
-                // 实际上是调用了MappedByteBuffer.force函数进行了刷盘操作
-                // 
-                CommitLog.this.mappedFileQueue.flush(0);
-                flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            }
-            // 唤醒线程通知发送客户端刷盘结果--&gt;执行flushOKFuture.complete函数
-            req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
-        }
-    
-        // 刷盘完成后，需要更新存储检查点的时间戳。此处仅在内存中更新了该属性，并未落地到磁盘
-        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-        if (storeTimestamp &gt; 0) {
-            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-        }
-
-        this.requestsRead = new LinkedList&lt;&gt;();
-    } else {
-        // Because of individual messages is set to not sync flush, it
-        // will come to this process
-        CommitLog.this.mappedFileQueue.flush(0);
-    }
+<pre><code>/**
+ * Returns a power of two size for the given target capacity.
+ * 返回大于输入参数且最近的2的整数次幂的数。比如10，则返回16。
+ */
+static final int tableSizeFor(int cap) {
+    // 让cap-1再赋值给n的目的是另找到的目标值大于或等于原值。例如二进制1000，十进制数值为8。
+    // 如果不对它减1而直接操作，将得到答案10000，即16。显然不是结果。减1后二进制为111，
+    // 再进行操作则会得到原来的数值1000，即8
+    int n = cap - 1;
+    n |= n &gt;&gt;&gt; 1;
+    n |= n &gt;&gt;&gt; 2;
+    n |= n &gt;&gt;&gt; 4;
+    n |= n &gt;&gt;&gt; 8;
+    n |= n &gt;&gt;&gt; 16;
+    return (n &lt; 0) ? 1 : (n &gt;= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
 }
 
 </code></pre>
-<h4 id="异步刷盘">异步刷盘</h4>
-<p>异步刷盘根据是否开启了transientStorePoolEnable机制，刷盘实现会有些许区别。</p>
-<p>如果transientStorePoolEnable为true，rocketmq会单独申请一块与目标物理文件（commitLog）同样大小的堆外内存，该堆外内存会使用内存锁定，确保不会被置换到虚拟内存中，消息首先提交至堆外内存，然后提交至物理文件对应的映射内存中，最后再flush到磁盘。</p>
-<p>如果transientStorePoolEnable为false，消息是直接追加到内存映射文件中，然后flush到磁盘。</p>
-<p>当transientStorePoolEnable为true时，消息刷盘流程如下所示：</p>
-<ol>
-<li>首先将消息追加至ByteBuffer（堆外内存DirectByteBuffer），writePosition随着消息不断向后移动。</li>
-<li>CommitRealTimeService 线程默认每200ms将ByteBuffer新追加的内容数据提交至MappedFileBuffer中。</li>
-<li>FlushRealTimeService 线程默认每500ms调用MappedByteBuffer#force函数将新追加的内存数据刷写到磁盘。</li>
-</ol>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-// Asynchronous flush
-else {
-    if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-        // 唤醒FlushRealTimeService 线程
-        flushCommitLogService.wakeup();
-    } else  {
-        // 唤醒CommitRealTimeService 线程
-        commitLogService.wakeup();
+<h3 id="put操作">put操作</h3>
+<p>HashMap put作为添加数据的核心函数，其处理流程如下：</p>
+<ul>
+<li>判断hashmap是否已初始化(即是否为第一次put元素)，未初始化需进行初始化操作</li>
+<li>计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp; (length-1)</li>
+<li>判断数组该位置处是否存在元素，不存在则直接插入，否则走下一步流程</li>
+<li>判断该元素类型是否是 TreeNode，如果是则用红黑树的方法存储数据，否则用链表方式存储数据（链表长度达到指定值时（默认8），会转为红黑树）</li>
+<li>在这个过程中如果出现key相同的情况，则使用值覆盖操作</li>
+<li>键值对数量超过阈值时，则进行扩容</li>
+</ul>
+<p>在链表插入数据时，java7采用的头插法，而java8采用的尾插法。在扩容时，头插法会改变链表中元素原本的顺序，以至于在并发场景下导致链表成环的问题，而尾插法，在扩容时会保持链表元素原本的顺序，就不会出现链表成环的问题。当然，hashmap本身就不应该用于并发场景，它是非线程安全的。</p>
+<pre><code>public V put(K key, V value) {
+    return putVal(hash(key), key, value, false, true);
+}
+
+/**
+ * Implements Map.put and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @param value the value to put
+ * @param onlyIfAbsent if true, don't change existing value 为true时，不会改变已存在值
+ * @param evict if false, the table is in creation mode.
+ * @return previous value, or null if none
+ */
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) {
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, i;
+    // 第一次 put 值的时候，会触发下面的 resize()，进行初始化操作
+    // 注意，第一次 resize 和后续的扩容有些不一样，因为这次是数组从 null 初始化到默认的 16 或自定义的初始容量
+    if ((tab = table) == null || (n = tab.length) == 0)
+        // n表示数组长度--为2的幂次方
+        n = (tab = resize()).length;
+    // n-1为奇数，奇数的二进制最后一位必定为1，然后该值与hash做与运算，最后一位可能为0，也可能为1，这样可以防止散列不充分问题
+    // 找到具体的数组下标，如果此位置没有值，那么直接初始化一下 Node 并放置在这个位置   
+    if ((p = tab[i = (n - 1) &amp; hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    // 该位置存在值  
+    else {
+        Node&lt;K,V&gt; e; K k;
+        // 如果键的值以及节点 hash 等于链表中的第一个键值对节点时，则将 e 指向该键值对
+        if (p.hash == hash &amp;&amp;
+            ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))
+            e = p;
+        // 如果该节点是代表红黑树的节点，调用红黑树的插值方法  
+        else if (p instanceof TreeNode)
+            e = ((TreeNode&lt;K,V&gt;)p).putTreeVal(this, tab, hash, key, value);
+        else {
+            // 链表插入，遍历链表并统计链表长度
+            for (int binCount = 0; ; ++binCount) {
+                // 链表中不包含要插入的键值对节点时，则将该节点接在链表的最后（java7是头插法）
+                if ((e = p.next) == null) {
+                    p.next = newNode(hash, key, value, null);
+                    // TREEIFY_THRESHOLD 为 8，所以，如果新插入的值是链表中的第 8 个
+                    // 会触发下面的 treeifyBin，也就是将链表转换为红黑树
+                    if (binCount &gt;= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    break;
+                }
+                // 条件为 true，表示当前链表包含要插入的键值对，终止遍历
+                if (e.hash == hash &amp;&amp;
+                    ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                    break;
+                p = e;
+            }
+        }
+        // 判断要插入的键值对是否存在 HashMap 中
+        if (e != null) { // existing mapping for key
+            V oldValue = e.value;
+            // onlyIfAbsent 表示是否仅在 oldValue 为 null 的情况下更新键值对的值
+            if (!onlyIfAbsent || oldValue == null)
+                e.value = value;
+            afterNodeAccess(e);
+            return oldValue;
+        }
     }
-    // 异步刷盘时直接返回ok
-    return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+    ++modCount;
+    // 键值对数量超过阈值时，则进行扩容
+    if (++size &gt; threshold)
+        resize();
+    afterNodeInsertion(evict);
+    return null;
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#CommitRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-    while (!this.isStopped()) {
-        // 获取配置的提交间隔时间，默认200ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
-        // 一次提交任务中最少待提交页数，默认4，如果小于该值，将忽略本次提交
-        int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
-         // 两次提交任务间隔，默认200ms
-        int commitDataThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
-
-        // 如果距上次提交时间超过 commitDataThoroughInterval，那么忽略commitDataLeastPages 参数
-        long begin = System.currentTimeMillis();
-        if (begin &gt;= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
-            this.lastCommitTimestamp = begin;
-            commitDataLeastPages = 0;
+<h3 id="resize扩容函数">resize扩容函数</h3>
+<p>在 HashMap 中，数组的长度均是2的幂次方，阈值大小为数组长度与负载因子的乘积。当 HashMap 中的键值对数量超过阈值时，进行扩容。核心流程如下：</p>
+<ul>
+<li>计算新数组的容量 newCap 和新阈值 newThr</li>
+<li>根据计算出的 newCap 创建新的数组，数组 table 也是在这里进行初始化的</li>
+<li>将键值对节点重新映射到新的数组里。如果节点是 TreeNode 类型，则需要拆分红黑树。如果是普通节点，则节点按原顺序进行分组。</li>
+</ul>
+<pre><code>// 初始化或加倍表大小。 如果为空，则根据字段阈值中的初始容量目标进行分配。 
+// 否则，将进行二次幂扩展，即每个容器中的元素必须保持在相同的索引处，或者在新表中以二次方偏移量移动。
+final Node&lt;K,V&gt;[] resize() {
+    Node&lt;K,V&gt;[] oldTab = table;
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    // 容量不为空表明已初始化过
+    if (oldCap &gt; 0) {
+        // 已达到最大容量，不再进行扩容
+        if (oldCap &gt;= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
         }
-
-        try {
-            // 提交数据值映射内存中，提交操作返回false，不代表提交失败，而是只提交了部分数据
-            boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
-            long end = System.currentTimeMillis();
-            if (!result) {
-                this.lastCommitTimestamp = end; // result = false means some data committed.
-                //now wake up flush thread.
-                // 唤醒FlushRealTimeService 线程，进行刷盘操作
-                flushCommitLogService.wakeup();
-            }
-
-            if (end - begin &gt; 500) {
-                log.info(&quot;Commit data to file costs {} ms&quot;, end - begin);
-            }
-            this.waitForRunning(interval);
-        } catch (Throwable e) {
-            CommitLog.log.error(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
+        // 新容量及新阈值都按照旧值的两倍进行扩展  &lt;&lt; 1 左移一位等同于乘以2
+        else if ((newCap = oldCap &lt;&lt; 1) &lt; MAXIMUM_CAPACITY &amp;&amp;
+                 oldCap &gt;= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr &lt;&lt; 1; // double threshold
     }
-    // 针对commit失败的情况进行重试提交
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.commit(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
+    else if (oldThr &gt; 0) // initial capacity was placed in threshold
+        // 初始化时，将 threshold 的值赋值给 newCap
+        newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+        // 使用默认参数构造容量(16)和阈值
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
     }
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#FlushRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-
-    while (!this.isStopped()) {
-        // 是否定时刷新，默认true
-        boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-        // 刷盘间隔，默认500ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
-        // 一次刷盘任务中最少待刷盘页数，默认4，如果小于该值，将忽略本次刷盘
-        int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-        // 两次刷盘任务间隔，默认10s 
-        int flushPhysicQueueThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
-        // 是否打印刷盘过程信息，默认false 
-        boolean printFlushProgress = false;
-
-        // 如果距上次刷盘时间超过 flushPhysicQueueThoroughInterval，那么忽略flushPhysicQueueThoroughInterval参数
-        // Print flush progress
-        long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis &gt;= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
-            this.lastFlushTimestamp = currentTimeMillis;
-            flushPhysicQueueLeastPages = 0;
-            printFlushProgress = (printTimes++ % 10) == 0;
-        }
-
-        try {
-            // 延迟刷盘
-            if (flushCommitLogTimed) {
-                Thread.sleep(interval);
-            } else {
-                this.waitForRunning(interval);
-            }
-            // 打印刷盘过程信息
-            if (printFlushProgress) {
-                this.printFlushProgress();
-            }
-
-            // 数据刷盘，刷盘操作返回false，不代表fush失败，而是只flush了部分数据
-            // 刷盘操作过程还会更新flushedPosition指针
-            long begin = System.currentTimeMillis();
-            CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-            long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-            if (storeTimestamp &gt; 0) {
-                CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-            }
-            long past = System.currentTimeMillis() - begin;
-            if (past &gt; 500) {
-                log.info(&quot;Flush data to disk costs {} ms&quot;, past);
-            }
-        } catch (Throwable e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-            this.printFlushProgress();
-        }
+    // newThr 为 0 时，按阈值计算公式进行计算
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap &lt; MAXIMUM_CAPACITY &amp;&amp; ft &lt; (float)MAXIMUM_CAPACITY ?
+                  (int)ft : Integer.MAX_VALUE);
     }
-
-    // 针对flush失败的情况进行重试刷盘
-    // Normal shutdown, to ensure that all the flush before exit
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.flush(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
-    }
-
-    this.printFlushProgress();
-
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<h3 id="过期文件删除机制">过期文件删除机制</h3>
-<p>为了避免内存（内存映射机制）与磁盘资源的浪费，rocketmq中的文件不可能永远存储在消息服务器上，这时便需要一种文件过期清除策略来删除已过期的文件。</p>
-<p>RocketMQ顺序写文件，也就是说所有的写操作都将落在最后一个文件，之前的文件在下一个文件创建后将不会再被更新。这样便可以引入一种过期策略：如果非当前写文件在一定时间间隔内没有再被更新，则认为该文件过期，可被删除。</p>
-<p>RocketMQ不会关注文件上的消息是否已被全部消费，当抵达指定的过期时间时（默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时）便会执行清除操作。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#addScheduleTask
-this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-    @Override
-    public void run() {
-        DefaultMessageStore.this.cleanFilesPeriodically();
-    }
-   // 默认每隔10秒执行一次清除任务，可以设置cleanResourceInterval来控制执行频率
-}, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
-
-private void cleanFilesPeriodically() {
-    // 清除commitLog文件
-    this.cleanCommitLogService.run();
-    // 清除consumerQueue文件
-    this.cleanConsumeQueueService.run();
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanCommitLogService
-// 清除commitLog文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-
-        this.redeleteHangedFile();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-    }
-}
-
-private void deleteExpiredFiles() {
-    int deleteCount = 0;
-    // 文件保留时间，即最后一次更新到现在的时间，如果超过了该时间，则认为是过期文件，可以被删除
-    // 默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时
-    long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
-    // 两次文件删除间隔，默认100ms；在一次清除过程中，可能需要删除的文件不止一个，该属性指定了两次删除文件的间隔
-    int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-    // 在清除文件过程中，如果该文件被其他线程所占用（引用次数大于0，例如读消息），此时会阻止本次删除操作，
-    // 同时在第一次试图删除该文件时记录当前时间戳，destroyMapedFileIntervalForcibly 表示第一次拒绝删除后能保留的最大时间，默认120s
-    // 在此时间内，删除操作将会被拒绝，同时引用次数减1000，超过该时间后，文件会被强制删除
-    int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-  
-    // 指定删除文件的时间点，可以通过设置deleteWhen来指定在一天的哪个时间点进行删除，默认凌晨4点
-    boolean timeup = this.isTimeToDelete();
-    // 磁盘空间是否充足，如果不足则应该执行删除操作
-    boolean spacefull = this.isSpaceToDelete();
-    // 手动删除
-    boolean manualDelete = this.manualDeleteFileSeveralTimes &gt; 0;
-
-    if (timeup || spacefull || manualDelete) {
-
-        if (manualDelete)
-            this.manualDeleteFileSeveralTimes--;
-
-        boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() &amp;&amp; this.cleanImmediately;
-
-        log.info(&quot;begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}&quot;,
-            fileReservedTime,
-            timeup,
-            spacefull,
-            manualDeleteFileSeveralTimes,
-            cleanAtOnce);
-
-        fileReservedTime *= 60 * 60 * 1000;
-        // 删除文件
-        deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-            destroyMapedFileIntervalForcibly, cleanAtOnce);
-        if (deleteCount &gt; 0) {
-        } else if (spacefull) {
-            log.warn(&quot;disk space will be full soon, but delete file failed.&quot;);
-        }
-    }
-}
-// 针对挂起的文件，重新删除
-private void redeleteHangedFile() {
-    int interval = DefaultMessageStore.this.getMessageStoreConfig().getRedeleteHangedFileInterval();
-    long currentTimestamp = System.currentTimeMillis();
-    if ((currentTimestamp - this.lastRedeleteTimestamp) &gt; interval) {
-        this.lastRedeleteTimestamp = currentTimestamp;
-        int destroyMapedFileIntervalForcibly =
-            DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-        if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
-        }
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanConsumeQueueService
-// 清除consumerQueue文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-    }
-}
-
-private void deleteExpiredFiles() {
-    // 两次文件删除间隔，默认100ms
-    int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
-    // 获取最小偏移量
-    long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
-    // 当前最小偏移量大于上次最小偏移量才进行删除操纵，说明存在需要删除的内容
-    if (minOffset &gt; this.lastPhysicalMinOffset) {
-        // 重新设置lastPhysicalMinOffset 
-        this.lastPhysicalMinOffset = minOffset;
-
-        ConcurrentMap&lt;String, ConcurrentMap&lt;Integer, ConsumeQueue&gt;&gt; tables = DefaultMessageStore.this.consumeQueueTable;
-
-        for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : tables.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                // 删除minOffset之前的所有ConsumeQueue 文件
-                int deleteCount = logic.deleteExpiredFile(minOffset);
-
-                if (deleteCount &gt; 0 &amp;&amp; deleteLogicsFilesInterval &gt; 0) {
-                    try {
-                        Thread.sleep(deleteLogicsFilesInterval);
-                    } catch (InterruptedException ignored) {
+    threshold = newThr;
+    // 创建新的数组，数组的初始化也是在这里完成的
+    @SuppressWarnings({&quot;rawtypes&quot;,&quot;unchecked&quot;})
+        Node&lt;K,V&gt;[] newTab = (Node&lt;K,V&gt;[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) {
+        // 如果旧的桶数组不为空，则遍历数组，并将键值对映射到新的数组中
+        for (int j = 0; j &lt; oldCap; ++j) {
+            Node&lt;K,V&gt; e;
+            if ((e = oldTab[j]) != null) {
+                oldTab[j] = null;
+                // 单个元素直接迁移
+                if (e.next == null)
+                    newTab[e.hash &amp; (newCap - 1)] = e;
+                // 红黑树需要进行重拆分  
+                else if (e instanceof TreeNode)
+                    ((TreeNode&lt;K,V&gt;)e).split(this, newTab, j, oldCap);
+                else { // preserve order
+                    // 需要将此链表拆成两个链表，放到新的数组中，并且保留原来的先后顺序 
+                    // loHead、loTail 对应一条链表，hiHead、hiTail 对应另一条链表
+                    Node&lt;K,V&gt; loHead = null, loTail = null;
+                    Node&lt;K,V&gt; hiHead = null, hiTail = null;
+                    Node&lt;K,V&gt; next;
+                    // 遍历链表，并将链表节点按原顺序进行分组
+                    do {
+                        next = e.next;
+                        if ((e.hash &amp; oldCap) == 0) {
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
+                        }
+                        else {
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
+                        }
+                    } while ((e = next) != null);
+                    // 链表放入新表中
+                    if (loTail != null) {
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    }
+                    if (hiTail != null) {
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
                     }
                 }
             }
         }
-        // 删除minOffset之前的所有索引文件
-        DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
     }
+    return newTab;
+}
+
+</code></pre>
+<h3 id="红黑树操作">红黑树操作</h3>
+<p>在 HashMap 进行扩容时，需要满足链表长度大于等于 TREEIFY_THRESHOLD(8)，桶数组容量大于等于 MIN_TREEIFY_CAPACITY(64)才会进行红黑树化操作。</p>
+<p>第一点是为了防止链表过长，而第二点则是为了防止容量过小导致冲突增加。</p>
+<p>具体而言，即当数组容量比较小时，键值对节点 hash 的碰撞率可能会比较高，进而导致链表长度较长。这个时候应该优先扩容，而不是立马树化。毕竟高碰撞率是因为桶数组容量较小引起的，这个是主因。容量小时，优先扩容可以避免一些列的不必要的树化过程。同时，表容量较小时，扩容会比较频繁，扩容时需要拆分红黑树并重新映射。所以在表容量比较小的情况下，将长链表转成红黑树是一件吃力不讨好的事。</p>
+<pre><code>// 操作红黑树结构
+final void treeifyBin(Node&lt;K,V&gt;[] tab, int hash) {
+    int n, index; Node&lt;K,V&gt; e;
+    // 如果表容量小于最小红黑树容量，则进行扩容
+    if (tab == null || (n = tab.length) &lt; MIN_TREEIFY_CAPACITY)
+        resize();
+    else if ((e = tab[index = (n - 1) &amp; hash]) != null) {
+        // hd头结点，tl尾结点
+        TreeNode&lt;K,V&gt; hd = null, tl = null;
+        do {
+            // 将链表节点转为树形节点
+            TreeNode&lt;K,V&gt; p = replacementTreeNode(e, null);
+            if (tl == null)
+                hd = p;
+            else {
+                p.prev = tl;
+                tl.next = p;
+            }
+            tl = p;
+        } while ((e = e.next) != null);
+        if ((tab[index] = hd) != null)
+            // 树形链表转为红黑树
+            hd.treeify(tab);
+    }
+}
+
+</code></pre>
+<p>扩容后，普通节点需要重新映射，红黑树节点也不例外。按照一般的思路，可以先把红黑树转成链表，之后再重新映射链表即可，但这样做会损失一定的效率。对此，hashmap采用了另一种实现思路，如上节所说，在将普通链表转成红黑树时，HashMap 通过两个额外的引用 next 和 prev 保留了原链表的节点顺序。这样再对红黑树进行重新映射时，完全可以按照映射链表的方式进行。这样就避免了将红黑树转成链表后再进行映射，无形中提高了效率。</p>
+<pre><code>final void split(HashMap&lt;K,V&gt; map, Node&lt;K,V&gt;[] tab, int index, int bit) {
+    TreeNode&lt;K,V&gt; b = this;
+    // Relink into lo and hi lists, preserving order
+    TreeNode&lt;K,V&gt; loHead = null, loTail = null;
+    TreeNode&lt;K,V&gt; hiHead = null, hiTail = null;
+    int lc = 0, hc = 0;
+    // 直接遍历红黑树
+    for (TreeNode&lt;K,V&gt; e = b, next; e != null; e = next) {
+        next = (TreeNode&lt;K,V&gt;)e.next;
+        e.next = null;
+        if ((e.hash &amp; bit) == 0) {
+            if ((e.prev = loTail) == null)
+                loHead = e;
+            else
+                loTail.next = e;
+            loTail = e;
+            ++lc;
+        }
+        else {
+            if ((e.prev = hiTail) == null)
+                hiHead = e;
+            else
+                hiTail.next = e;
+            hiTail = e;
+            ++hc;
+        }
+    }
+
+    if (loHead != null) {
+        // loHead小于等于链表化长度，则进行链表化操作
+        if (lc &lt;= UNTREEIFY_THRESHOLD)
+            tab[index] = loHead.untreeify(map);
+        else {
+            tab[index] = loHead;
+            // 重新进行红黑树化
+            if (hiHead != null) // (else is already treeified)
+                loHead.treeify(tab);
+        }
+    }
+    if (hiHead != null) {
+        // hiHead 小于等于链表化长度，则进行链表化操作
+        if (hc &lt;= UNTREEIFY_THRESHOLD)
+            tab[index + bit] = hiHead.untreeify(map);
+        else {
+            tab[index + bit] = hiHead;
+            // 重新进行红黑树化
+            if (loHead != null)
+                hiHead.treeify(tab);
+        }
+    }
+}
+
+</code></pre>
+<p>红黑树中仍然保留了原链表节点顺序。在此前提下，再将红黑树转成链表就简单多了，仅需将 TreeNode 链表转成 Node 类型的链表即可。</p>
+<pre><code>final Node&lt;K,V&gt; untreeify(HashMap&lt;K,V&gt; map) {
+    Node&lt;K,V&gt; hd = null, tl = null;
+    // 遍历树形节点，转为node
+    for (Node&lt;K,V&gt; q = this; q != null; q = q.next) {
+        // 替换节点类型为普通节点
+        Node&lt;K,V&gt; p = map.replacementNode(q, null);
+        if (tl == null)
+            hd = p;
+        else
+            tl.next = p;
+        tl = p;
+    }
+    return hd;
+}
+
+</code></pre>
+<h3 id="get操作">get操作</h3>
+<p>相对而言，get获取数据的操作是比较简单的，核心流程如下：</p>
+<ul>
+<li>计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp; (length-1)</li>
+<li>判断数组该位置处的元素是否刚好就是所需的，如果不是，继续下一步</li>
+<li>判断该元素类型是否是 TreeNode，如果是，用红黑树的方法取数据，如果不是，继续下一步</li>
+<li>遍历链表，直到找到相等(==或equals)的 key</li>
+</ul>
+<pre><code>public V get(Object key) {
+    Node&lt;K,V&gt; e;
+    return (e = getNode(hash(key), key)) == null ? null : e.value;
+}
+
+/**
+ * Implements Map.get and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @return the node, or null if none
+ */
+final Node&lt;K,V&gt; getNode(int hash, Object key) {
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; first, e; int n; K k;
+    if ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;
+        (first = tab[(n - 1) &amp; hash]) != null) {
+        // 判断第一个节点是不是命中了目标  
+        if (first.hash == hash &amp;&amp; // always check first node
+            ((k = first.key) == key || (key != null &amp;&amp; key.equals(k))))
+            return first;
+        if ((e = first.next) != null) {
+            // 如果是红黑树，则从红黑树中取出对应的节点
+            if (first instanceof TreeNode)
+                return ((TreeNode&lt;K,V&gt;)first).getTreeNode(hash, key);
+            // 否则表明是链表，遍历链表从中取出数据  
+            do {
+                if (e.hash == hash &amp;&amp;
+                    ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                    return e;
+            } while ((e = e.next) != null);
+        }
+    }
+    return null;
+}
+
+</code></pre>
+<h3 id="remove操作">remove操作</h3>
+<p>hashmap中的remove删除数据的操作同样很简单的，核心流程如下：</p>
+<ul>
+<li>计算 key 的 hash 值，根据 hash 值找到对应数组下标: hash &amp; (length-1)</li>
+<li>判断数组该位置处的node是否刚好就是所需的，如果不是，继续下一步</li>
+<li>判断该元素类型是否是 TreeNode，如果是，用红黑树的方法取node，如果不是，继续下一步</li>
+<li>遍历链表，直到找到相等(==或equals)的 key对应的node</li>
+<li>删除上述流程找到的node，并修复红黑树或链表</li>
+</ul>
+<pre><code>public V remove(Object key) {
+    Node&lt;K,V&gt; e;
+    return (e = removeNode(hash(key), key, null, false, true)) == null ?
+        null : e.value;
+}
+
+/**
+ * Implements Map.remove and related methods
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @param value the value to match if matchValue, else ignored
+ * @param matchValue if true only remove if value is equal
+ * @param movable if false do not move other nodes while removing
+ * @return the node, or null if none
+ */
+final Node&lt;K,V&gt; removeNode(int hash, Object key, Object value,
+                           boolean matchValue, boolean movable) {
+    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, index;
+    if ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;
+        (p = tab[index = (n - 1) &amp; hash]) != null) {
+        Node&lt;K,V&gt; node = null, e; K k; V v;
+        // 判断第一个节点是不是命中了目标 
+        if (p.hash == hash &amp;&amp;
+            ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))
+            node = p;
+        else if ((e = p.next) != null) {
+            // 如果是红黑树，则从红黑树中取出对应的节点
+            if (p instanceof TreeNode)
+                node = ((TreeNode&lt;K,V&gt;)p).getTreeNode(hash, key);
+            else {
+                // 否则表明是链表，遍历链表从中取出数据 
+                do {
+                    if (e.hash == hash &amp;&amp;
+                        ((k = e.key) == key ||
+                         (key != null &amp;&amp; key.equals(k)))) {
+                        node = e;
+                        break;
+                    }
+                    p = e;
+                } while ((e = e.next) != null);
+            }
+        }
+        // 删除找到的节点，并修复红黑树或链表
+        if (node != null &amp;&amp; (!matchValue || (v = node.value) == value ||
+                             (value != null &amp;&amp; value.equals(v)))) {
+            if (node instanceof TreeNode)
+                ((TreeNode&lt;K,V&gt;)node).removeTreeNode(this, tab, movable);
+            else if (node == p)
+                tab[index] = node.next;
+            else
+                p.next = node.next;
+            ++modCount;
+            --size;
+            afterNodeRemoval(node);
+            return node;
+        }
+    }
+    return null;
 }
 
 </code></pre>
@@ -1208,7 +1075,7 @@ private void deleteExpiredFiles() {
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" title="RocketMQ源码解读之消息存储(下)">https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/</a>
+      <a href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/" title="HashMap源码解析">https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1217,21 +1084,21 @@ private void deleteExpiredFiles() {
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/"># rocketmq</a>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">RocketMQ源码解读之消息消费(上)</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">上一篇</a>
+        <a class="nav-pc-next" title="Java泛型机制详解" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/">Java泛型机制详解</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="Java泛型机制详解" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">RocketMQ源码解读之消息存储(上)</a>
-        <a class="nav-mobile-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">下一篇</a>
+        <a class="nav-pc-next" title="LinkedList源码解析" href="https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/">LinkedList源码解析</a>
+        <a class="nav-mobile-next" title="LinkedList源码解析" href="https://philosopherzb.github.io/post/linkedlist-yuan-ma-jie-xi/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>

@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>RocketMQ源码解读之消息存储(下) | Philosopher</title>
+<title>Java泛型机制详解 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1695620160592">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="RocketMQ源码解读之消息存储(下)" />
-  <meta name="keywords" content="rocketmq" />
+  <meta name="description" content="Java泛型机制详解" />
+  <meta name="keywords" content="java" />
 </head>
 
 <body>
@@ -255,16 +255,37 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E6%B6%88%E6%81%AF%E5%AD%98%E5%82%A8">消息存储</a>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E5%9F%BA%E7%A1%80">泛型基础</a>
 <ul>
-<li><a href="#%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D">文件恢复</a></li>
-<li><a href="#%E6%96%87%E4%BB%B6%E5%88%B7%E7%9B%98%E6%9C%BA%E5%88%B6">文件刷盘机制</a>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8">基本使用</a>
 <ul>
-<li><a href="#%E5%90%8C%E6%AD%A5%E5%88%B7%E7%9B%98">同步刷盘</a></li>
-<li><a href="#%E5%BC%82%E6%AD%A5%E5%88%B7%E7%9B%98">异步刷盘</a></li>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E7%B1%BB">泛型类</a></li>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E6%8E%A5%E5%8F%A3">泛型接口</a></li>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E6%96%B9%E6%B3%95">泛型方法</a></li>
 </ul>
 </li>
-<li><a href="#%E8%BF%87%E6%9C%9F%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E6%9C%BA%E5%88%B6">过期文件删除机制</a></li>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E4%B8%8A%E4%B8%8B%E9%99%90">泛型上下限</a>
+<ul>
+<li><a href="#%E6%97%A0%E9%99%90%E5%AE%9A%E9%80%9A%E9%85%8D%E7%AC%A6">无限定通配符</a></li>
+<li><a href="#%E4%B8%8A%E9%99%90%E9%80%9A%E9%85%8D%E7%AC%A6">上限通配符</a></li>
+<li><a href="#%E4%B8%8B%E9%99%90%E9%80%9A%E9%85%8D%E7%AC%A6">下限通配符</a></li>
+<li><a href="#%E5%A4%9A%E9%87%8D%E9%99%90%E5%AE%9A">多重限定</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E6%B3%9B%E5%9E%8B%E8%BF%9B%E9%98%B6">泛型进阶</a>
+<ul>
+<li><a href="#%E7%B1%BB%E5%9E%8B%E6%93%A6%E9%99%A4">类型擦除</a>
+<ul>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E7%B1%BB%E5%9E%8B%E4%B8%8D%E8%83%BD%E4%BD%9C%E4%B8%BA%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B">基本类型不能作为泛型类型</a></li>
+<li><a href="#%E5%8E%9F%E5%A7%8B%E7%B1%BB%E5%9E%8B">原始类型</a></li>
+<li><a href="#%E7%B1%BB%E5%9E%8B%E6%93%A6%E9%99%A4%E5%AE%9E%E8%AF%81">类型擦除实证</a></li>
+</ul>
+</li>
+<li><a href="#%E7%B1%BB%E5%9E%8B%E6%A3%80%E6%9F%A5">类型检查</a></li>
+<li><a href="#%E6%A1%A5%E6%8E%A5%E6%96%B9%E6%B3%95">桥接方法</a></li>
 </ul>
 </li>
 </ul>
@@ -534,8 +555,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/">
-      RocketMQ源码解读之消息存储(下)
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/">
+      Java泛型机制详解
     </a>
   </h1>
   <div class="post-meta">
@@ -543,7 +564,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-10-22 11:23:23">2022-10-22</span>
+      <span class="publish-time" data-t="2021-04-30 10:43:23">2021-04-30</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -552,8 +573,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/">
-        <span>rocketmq</span>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
       </a>
       
       
@@ -562,17 +583,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>20<span class="language" data-lan="minute">分钟</span></span>
+      <span>18<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>4176<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>4064<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" data-flag-title="RocketMQ源码解读之消息存储(下)" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/java-fan-xing-ji-zhi-xiang-jie/" data-flag-title="Java泛型机制详解" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -582,618 +603,470 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之消息存储下篇。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/peak-190053_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="消息存储">消息存储</h2>
-<h3 id="文件恢复">文件恢复</h3>
-<p>RocketMQ所有消息都会先存储在commitLog中，随后再异步生成转发任务更新consumerQueue，indexFile文件。在此异步过程中，如果broker宕机，那么可能会出现数据不一致的问题。比如消息未同步至consumerQueue中，那么消费者将永远都消费不到该消息。此时便需要一种方案能够异步宕机导致的数据不一致问题。以下从源码角度分析rocketmq是如何实现数据同步操作的。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件加载
-public boolean load() {
-    boolean result = true;
-
-    try {
-        // 判断上一次退出是否正常
-        boolean lastExitOK = !this.isTempFileExist();
-        log.info(&quot;last shutdown {}&quot;, lastExitOK ? &quot;normally&quot; : &quot;abnormally&quot;);
-
-        // 加载 CommitLog文件
-        result = result &amp;&amp; this.commitLog.load();
-
-        // 加载 ConsumeQueue文件---&gt;遍历消费队列根目录，获取所有主题文件，随后遍历每个主题文件，将其中的内容加载至ConsumeQueue对象中
-        result = result &amp;&amp; this.loadConsumeQueue();
-
-        if (result) {
-            // 加载存储检查点，即文件对应的刷盘点
-            this.storeCheckpoint =
-                new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-            // 加载索引文件---&gt;如果上次异常退出，且索引文件最后刷盘时间小于该文件最大的消息时间戳，那么该文件将被销毁
-            this.indexService.load(lastExitOK);
-            // 根据broker是否正常退出进行文件恢复
-            this.recover(lastExitOK);
-
-            log.info(&quot;load over, and the max phy offset = {}&quot;, this.getMaxPhyOffset());
-            // 加载延迟消息相关的服务 
-            if (null != scheduleMessageService) {
-                result =  this.scheduleMessageService.load();
-            }
-        }
-
-    } catch (Exception e) {
-        log.error(&quot;load exception&quot;, e);
-        result = false;
-    }
-
-    if (!result) {
-        this.allocateMappedFileService.shutdown();
-    }
-
-    return result;
-}
-
-// 判断存储根目录下是否存在abort文件，存在说明为异常退出
-// 正常退出时，abort文件将会被删除--&gt;可参见: org.apache.rocketmq.store.DefaultMessageStore#shutdown
-private boolean isTempFileExist() {
-    String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
-    File file = new File(fileName);
-    return file.exists();
-}
-
-// 加载commitLog文件
-public boolean doLoad(List&lt;File&gt; files) {
-    // ascending order
-    // 按照文件名进行排序
-    files.sort(Comparator.comparing(File::getName));
-
-    for (File file : files) {
-        // 如果文件大小与预先配置的不一致，将被忽略。
-        if (file.length() != this.mappedFileSize) {
-            log.warn(file + &quot;\t&quot; + file.length()
-                    + &quot; length not matched message store config value, please check it manually&quot;);
-            return false;
-        }
-
-        try {
-            // 创建一个新的MappedFile 
-            MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-            // 设置三个指针为文件大小
-            mappedFile.setWrotePosition(this.mappedFileSize);
-            mappedFile.setFlushedPosition(this.mappedFileSize);
-            mappedFile.setCommittedPosition(this.mappedFileSize);
-            this.mappedFiles.add(mappedFile);
-            log.info(&quot;load &quot; + file.getPath() + &quot; OK&quot;);
-        } catch (IOException e) {
-            log.error(&quot;load file &quot; + file + &quot; error&quot;, e);
-            return false;
-        }
-    }
-    return true;
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore
-// 文件恢复
-private void recover(final boolean lastExitOK) {
-    long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
-
-    if (lastExitOK) {
-        // 正常退出恢复
-        this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
-    } else {
-        // 异常退出恢复
-        this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
-    }
-    // 恢复TopicQueueTable
-    this.recoverTopicQueueTable();
-}
-
-// 此函数表示消息中不仅存储了主题，队列id，还存储了消息队列的偏移量
-public void recoverTopicQueueTable() {
-    HashMap&lt;String/* topic-queueid */, Long/* offset */&gt; table = new HashMap&lt;String, Long&gt;(1024);
-    // 获取commitLog的最小偏移量
-    long minPhyOffset = this.commitLog.getMinOffset();
-    for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : this.consumeQueueTable.values()) {
-        for (ConsumeQueue logic : maps.values()) {
-            String key = logic.getTopic() + &quot;-&quot; + logic.getQueueId();
-            // 将队列中最大的偏移量存储table中
-            table.put(key, logic.getMaxOffsetInQueue());
-            logic.correctMinOffset(minPhyOffset);
-        }
-    }
-    // 将table设置进commitLog的TopicQueueTable
-    this.commitLog.setTopicQueueTable(table);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker正常退出，所有的文件都将恢复，内存数据也将被刷盘
-public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-    // checkCRCOnRecover 表示文件恢复过程中查找消息时是否需要验证CRC
-    boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
-    final List&lt;MappedFile&gt; mappedFiles = this.mappedFileQueue.getMappedFiles();
-    if (!mappedFiles.isEmpty()) {
-        // 从倒数第三个文件开始进行恢复
-        int index = mappedFiles.size() - 3;
-        // 如果不足三个文件，则从第一个文件开始
-        if (index &lt; 0)
-            index = 0;
-        // 通过index获取MappedFile 
-        MappedFile mappedFile = mappedFiles.get(index);
-        // 获取共享ByteBuffer
-        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-        // commitLog已确认的物理偏移量
-        long processOffset = mappedFile.getFileFromOffset();
-        // 当前文件已校验通过offset
-        long mappedFileOffset = 0;
-        while (true) {
-            // 检查消息是否合规，并返回消息大小
-            DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
-            int size = dispatchRequest.getMsgSize();
-            // 消息合规，且消息大小大于0：mappedFileOffset 向前移动本条消息的长度
-            if (dispatchRequest.isSuccess() &amp;&amp; size &gt; 0) {
-                mappedFileOffset += size;
-            }
-            // Come the end of the file, switch to the next file Since the
-            // return 0 representatives met last hole,
-            // this can not be included in truncate offset
-            // 消息合规，且消息大小等于0，表示已抵达文件末尾
-            else if (dispatchRequest.isSuccess() &amp;&amp; size == 0) {
-                index++;
-                // 是否还有下一个文件，没有则直接跳出循环
-                if (index &gt;= mappedFiles.size()) {
-                    // Current branch can not happen
-                    log.info(&quot;recover last 3 physics file over, last mapped file &quot; + mappedFile.getFileName());
-                    break;
-                } else {
-                    // 否则重置processOffset，processOffset，并重复上述步骤
-                    mappedFile = mappedFiles.get(index);
-                    byteBuffer = mappedFile.sliceByteBuffer();
-                    processOffset = mappedFile.getFileFromOffset();
-                    processOffset = 0;
-                    log.info(&quot;recover next physics file, &quot; + mappedFile.getFileName());
-                }
-            }
-            // Intermediate file read error
-            // 消息不合规，直接跳出循环
-            else if (!dispatchRequest.isSuccess()) {
-                log.info(&quot;recover physics file end, &quot; + mappedFile.getFileName());
-                break;
-            }
-        }
-        // processOffset 为 mappedFile.getFileFromOffset() + mappedFileOffset
-        processOffset += mappedFileOffset;
-        // 更新FlushedWhere，CommittedWhere指针
-        this.mappedFileQueue.setFlushedWhere(processOffset);
-        this.mappedFileQueue.setCommittedWhere(processOffset);
-        // 删除processOffset之后的所有文件
-        this.mappedFileQueue.truncateDirtyFiles(processOffset);
-
-        // Clear ConsumeQueue redundant data
-        // 清除processOffset之后的所有逻辑文件 
-        if (maxPhyOffsetOfConsumeQueue &gt;= processOffset) {
-            log.warn(&quot;maxPhyOffsetOfConsumeQueue({}) &gt;= processOffset({}), truncate dirty logic files&quot;, maxPhyOffsetOfConsumeQueue, processOffset);
-            this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
-        }
-    } else {
-        // Commitlog case files are deleted
-        // commitlog 文件已被删除
-        log.warn(&quot;The commitlog files are deleted, and delete the consume queue files&quot;);
-        this.mappedFileQueue.setFlushedWhere(0);
-        this.mappedFileQueue.setCommittedWhere(0);
-        this.defaultMessageStore.destroyLogics();
-    }
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog
-// broker异常退出，文件恢复过程与正常退出基本一致。
-// 主要差别在于：异常退出会从最后一个文件开始往前遍历，找到第一个消息存储正常的文件进行恢复；
-// 从此处也可看出rocketmq可能会存在重复消费的问题，消费幂等还是需要靠客户端自己保证。
-// 判断MappedFile文件是否正常
-private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
-    ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-
-     // 判断文件魔数是否等于 MESSAGE_MAGIC_CODE，如果不等于则表示该文件不符合commitLog存储格式
-    int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
-    if (magicCode != MESSAGE_MAGIC_CODE) {
-        return false;
-    }
-  
-    int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-    int bornhostLength = (sysFlag &amp; MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-    int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
-    // 如果文件中第一条消息的存储时间等于0，等于0表示该文件中未存储消息
-    long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
-    if (0 == storeTimestamp) {
-        return false;
-    }
-
-    // 如果启用了消息索引，那么判断文件中第一条消息的存储时间是否小于等于存储检查点的最小索引时间戳 
-    if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-        &amp;&amp; this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
-        }
-    } else {
-        // 否则判断文件中第一条消息的存储时间是否小于等于存储检查点的最小时间戳 
-        if (storeTimestamp &lt;= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-            log.info(&quot;find check timestamp, {} {}&quot;,
-                storeTimestamp,
-                UtilAll.timeMillisToHumanString(storeTimestamp));
-            return true;
-        }
-    }
-
-    return false;
-}
-
-</code></pre>
-<h3 id="文件刷盘机制">文件刷盘机制</h3>
-<p>RocketMQ的读写是基于JDK NIO的内存映射机制（MappedByteBuffer），消息存储时首先将消息追加至内存，再根据配置的刷盘策略在不同时间进行刷盘。</p>
+<p>本章主要简述Java泛型机制。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountains-482689_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="泛型基础">泛型基础</h2>
+<h3 id="简介">简介</h3>
+<p>Java泛型这个特性是从JDK 1.5才开始加入的，因此为了兼容之前的版本，Java泛型的实现采取了“伪泛型”的策略，即Java在语法上支持泛型，但是在编译阶段会进行所谓的“类型擦除”（Type Erasure），将所有的泛型表示（尖括号中的内容）都替换为具体的类型（其对应的原生态类型），就像完全没有泛型一样。</p>
+<p>同时，泛型还提供了编译时类型安全检测机制，该机制可以在编译时就检测到非法的类型。</p>
+<p>泛型的本质是为了参数化类型（在不创建新的类型的情况下，通过泛型指定的不同类型来控制形参具体限制的类型）。也就是说在泛型使用过程中，操作的数据类型被指定为一个参数。</p>
+<p>其一般具有以下特点：</p>
 <ul>
-<li>同步刷盘（SYNC_FLUSH）：消息追加至内存后，将同步调用MappedByteBuffer的force函数进行刷盘操作。</li>
-<li>异步刷盘（ASYNC_FLUSH）：在消息追加至内存后将立刻返回给消息发送端，rocketmq后端会起一个独立线程按照配置的频率进行刷盘。</li>
+<li>与普通的 Object 代替一切类型这样简单粗暴而言，泛型使得数据的类别可以像参数一样由外部传递进来。它提供了一种扩展能力。它更符合面向抽象开发的软件编程宗旨。</li>
+<li>当具体的类型确定后，泛型又提供了一种类型检测的机制，只有相匹配的数据才能正常的赋值，否则编译器就不通过。所以说，它是一种类型安全检测机制，一定程度上提高了软件的安全性防止出现低级的失误。</li>
+<li>泛型提高了程序代码的可读性，不必要等到运行的时候才去强制转换，在定义或者实例化阶段，因为 Cache这个类型显化的效果，程序员能够一目了然猜测出代码要操作的数据类型。</li>
 </ul>
-<h4 id="同步刷盘">同步刷盘</h4>
-<p>同步刷盘主要是构建GroupCommitRequest 参数提交至GroupCommitService 进行处理，源码如下：</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-    // 设置GroupCommitService 
-    final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
-    if (messageExt.isWaitStoreMsgOK()) {
-        // 构建GroupCommitRequest 对象
-        GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-         // 将请求提交至刷盘监听器   
-        flushDiskWatcher.add(request);
-        service.putRequest(request);
-        // 等待返回结果
-        return request.future();
-    } else {
-        // 唤醒GroupCommitService 
-        service.wakeup();
-        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+<p>oracle官方文档：<a href="https://docs.oracle.com/javase/tutorial/java/generics/index.html">https://docs.oracle.com/javase/tutorial/java/generics/index.html</a></p>
+<p>引入泛型的意义在于：适用于多种数据类型执行相同的代码（代码复用）</p>
+<pre><code>private static int add(int a, int b) {
+    System.out.println(a + &quot;+&quot; + b + &quot;=&quot; + (a + b));
+    return a + b;
+}
+private static long add(long a, long b) {
+    System.out.println(a + &quot;+&quot; + b + &quot;=&quot; + (a + b));
+    return a + b;
+}
+
+// 上述两个方法可以用如下的泛型方法替换
+private static &lt;T extends Number&gt; long add(T a, T b) {
+    System.out.println(a + &quot;+&quot; + b + &quot;=&quot; + (a.longValue() + b.longValue()));
+    return a.longValue() + b.longValue();
+}
+
+</code></pre>
+<h3 id="基本使用">基本使用</h3>
+<p>泛型按照使用情况可以分为3种：泛型类、泛型接口、泛型方法。</p>
+<p>其中泛型标志符只要使用大写的英文字母即可，例如A,B,C...X,Y,Z；当然，这其中也有一些约定俗成的符号如下所示：</p>
+<ul>
+<li>T：代表一般的任何类</li>
+<li>E：代表 Element 的意思，或者 Exception 异常的意思。Java 集合框架广泛使用</li>
+<li>K：代表 Key 的意思</li>
+<li>V：代表 Value 的意思，通常与 K 一起配合使用</li>
+<li>S：代表 Subtype 的意思</li>
+<li>N：Number（数值类型）</li>
+<li>R：Result （返回结果，多用于函数式编程）</li>
+</ul>
+<h4 id="泛型类">泛型类</h4>
+<p>简单泛型类：</p>
+<pre><code>public class Generic&lt;T&gt; {
+
+    private T var;
+
+    public T getVar() {
+        return var;
+    }
+
+    public void setVar(T var) {
+        this.var = var;
+    }
+
+    public static void main(String[] args) {
+        Generic&lt;String&gt; s = new Generic&lt;&gt;();
+        s.setVar(&quot;hello&quot;);
+        Generic&lt;Integer&gt; i = new Generic&lt;&gt;();
+        i.setVar(123);
+        System.out.println(s.getVar());
+        System.out.println(i.getVar());
     }
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#GroupCommitService
+<p>多元泛型类：</p>
+<pre><code>public class Generic&lt;K, V&gt; {
 
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
+    private K key;
+    private V value;
 
-    // 每处理一批请求后会休眠10秒 
-    while (!this.isStopped()) {
-        try {
-            this.waitForRunning(10);
-            // 核心处理函数
-            this.doCommit();
-        } catch (Exception e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
+    public K getKey() {
+        return key;
     }
 
-    // 正常情况下宕机，会等待请求的到来，并进行刷盘操作
-    try {
-        Thread.sleep(10);
-    } catch (InterruptedException e) {
-        CommitLog.log.warn(this.getServiceName() + &quot; Exception, &quot;, e);
+    public void setKey(K key) {
+        this.key = key;
     }
-    synchronized (this) {
-        this.swapRequests();
+
+    public V getValue() {
+        return value;
     }
-    this.doCommit();
 
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
+    public void setValue(V value) {
+        this.value = value;
+    }
 
-private void doCommit() {
-    if (!this.requestsRead.isEmpty()) {
-        // 遍历请求，依次进行刷盘操作
-        for (GroupCommitRequest req : this.requestsRead) {
-            // There may be a message in the next file, so a maximum of
-            // two times the flush
-            boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            for (int i = 0; i &lt; 2 &amp;&amp; !flushOK; i++) {
-                // 实际上是调用了MappedByteBuffer.force函数进行了刷盘操作
-                // 
-                CommitLog.this.mappedFileQueue.flush(0);
-                flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() &gt;= req.getNextOffset();
-            }
-            // 唤醒线程通知发送客户端刷盘结果--&gt;执行flushOKFuture.complete函数
-            req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
-        }
-    
-        // 刷盘完成后，需要更新存储检查点的时间戳。此处仅在内存中更新了该属性，并未落地到磁盘
-        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-        if (storeTimestamp &gt; 0) {
-            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-        }
-
-        this.requestsRead = new LinkedList&lt;&gt;();
-    } else {
-        // Because of individual messages is set to not sync flush, it
-        // will come to this process
-        CommitLog.this.mappedFileQueue.flush(0);
+    public static void main(String[] args) {
+        Generic&lt;String, Integer&gt; s = new Generic&lt;&gt;();
+        s.setKey(&quot;hello&quot;);
+        s.setValue(123);
+        System.out.println(s.getKey() + &quot; &quot; + s.getValue());
     }
 }
 
 </code></pre>
-<h4 id="异步刷盘">异步刷盘</h4>
-<p>异步刷盘根据是否开启了transientStorePoolEnable机制，刷盘实现会有些许区别。</p>
-<p>如果transientStorePoolEnable为true，rocketmq会单独申请一块与目标物理文件（commitLog）同样大小的堆外内存，该堆外内存会使用内存锁定，确保不会被置换到虚拟内存中，消息首先提交至堆外内存，然后提交至物理文件对应的映射内存中，最后再flush到磁盘。</p>
-<p>如果transientStorePoolEnable为false，消息是直接追加到内存映射文件中，然后flush到磁盘。</p>
-<p>当transientStorePoolEnable为true时，消息刷盘流程如下所示：</p>
-<ol>
-<li>首先将消息追加至ByteBuffer（堆外内存DirectByteBuffer），writePosition随着消息不断向后移动。</li>
-<li>CommitRealTimeService 线程默认每200ms将ByteBuffer新追加的内容数据提交至MappedFileBuffer中。</li>
-<li>FlushRealTimeService 线程默认每500ms调用MappedByteBuffer#force函数将新追加的内存数据刷写到磁盘。</li>
-</ol>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#submitFlushRequest
-// Asynchronous flush
-else {
-    if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-        // 唤醒FlushRealTimeService 线程
-        flushCommitLogService.wakeup();
-    } else  {
-        // 唤醒CommitRealTimeService 线程
-        commitLogService.wakeup();
-    }
-    // 异步刷盘时直接返回ok
-    return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
-}
+<h4 id="泛型接口">泛型接口</h4>
+<pre><code>import org.apache.commons.lang3.RandomUtils;
 
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#CommitRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-    while (!this.isStopped()) {
-        // 获取配置的提交间隔时间，默认200ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
-        // 一次提交任务中最少待提交页数，默认4，如果小于该值，将忽略本次提交
-        int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
-         // 两次提交任务间隔，默认200ms
-        int commitDataThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
-
-        // 如果距上次提交时间超过 commitDataThoroughInterval，那么忽略commitDataLeastPages 参数
-        long begin = System.currentTimeMillis();
-        if (begin &gt;= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
-            this.lastCommitTimestamp = begin;
-            commitDataLeastPages = 0;
-        }
-
-        try {
-            // 提交数据值映射内存中，提交操作返回false，不代表提交失败，而是只提交了部分数据
-            boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
-            long end = System.currentTimeMillis();
-            if (!result) {
-                this.lastCommitTimestamp = end; // result = false means some data committed.
-                //now wake up flush thread.
-                // 唤醒FlushRealTimeService 线程，进行刷盘操作
-                flushCommitLogService.wakeup();
-            }
-
-            if (end - begin &gt; 500) {
-                log.info(&quot;Commit data to file costs {} ms&quot;, end - begin);
-            }
-            this.waitForRunning(interval);
-        } catch (Throwable e) {
-            CommitLog.log.error(this.getServiceName() + &quot; service has exception. &quot;, e);
-        }
-    }
-    // 针对commit失败的情况进行重试提交
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.commit(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
-    }
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.CommitLog#FlushRealTimeService
-public void run() {
-    CommitLog.log.info(this.getServiceName() + &quot; service started&quot;);
-
-    while (!this.isStopped()) {
-        // 是否定时刷新，默认true
-        boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-        // 刷盘间隔，默认500ms
-        int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
-        // 一次刷盘任务中最少待刷盘页数，默认4，如果小于该值，将忽略本次刷盘
-        int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-        // 两次刷盘任务间隔，默认10s 
-        int flushPhysicQueueThoroughInterval =
-            CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
-        // 是否打印刷盘过程信息，默认false 
-        boolean printFlushProgress = false;
-
-        // 如果距上次刷盘时间超过 flushPhysicQueueThoroughInterval，那么忽略flushPhysicQueueThoroughInterval参数
-        // Print flush progress
-        long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis &gt;= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
-            this.lastFlushTimestamp = currentTimeMillis;
-            flushPhysicQueueLeastPages = 0;
-            printFlushProgress = (printTimes++ % 10) == 0;
-        }
-
-        try {
-            // 延迟刷盘
-            if (flushCommitLogTimed) {
-                Thread.sleep(interval);
-            } else {
-                this.waitForRunning(interval);
-            }
-            // 打印刷盘过程信息
-            if (printFlushProgress) {
-                this.printFlushProgress();
-            }
-
-            // 数据刷盘，刷盘操作返回false，不代表fush失败，而是只flush了部分数据
-            // 刷盘操作过程还会更新flushedPosition指针
-            long begin = System.currentTimeMillis();
-            CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-            long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-            if (storeTimestamp &gt; 0) {
-                CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-            }
-            long past = System.currentTimeMillis() - begin;
-            if (past &gt; 500) {
-                log.info(&quot;Flush data to disk costs {} ms&quot;, past);
-            }
-        } catch (Throwable e) {
-            CommitLog.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
-            this.printFlushProgress();
-        }
-    }
-
-    // 针对flush失败的情况进行重试刷盘
-    // Normal shutdown, to ensure that all the flush before exit
-    boolean result = false;
-    for (int i = 0; i &lt; RETRY_TIMES_OVER &amp;&amp; !result; i++) {
-        result = CommitLog.this.mappedFileQueue.flush(0);
-        CommitLog.log.info(this.getServiceName() + &quot; service shutdown, retry &quot; + (i + 1) + &quot; times &quot; + (result ? &quot;OK&quot; : &quot;Not OK&quot;));
-    }
-
-    this.printFlushProgress();
-
-    CommitLog.log.info(this.getServiceName() + &quot; service end&quot;);
-}
-
-</code></pre>
-<h3 id="过期文件删除机制">过期文件删除机制</h3>
-<p>为了避免内存（内存映射机制）与磁盘资源的浪费，rocketmq中的文件不可能永远存储在消息服务器上，这时便需要一种文件过期清除策略来删除已过期的文件。</p>
-<p>RocketMQ顺序写文件，也就是说所有的写操作都将落在最后一个文件，之前的文件在下一个文件创建后将不会再被更新。这样便可以引入一种过期策略：如果非当前写文件在一定时间间隔内没有再被更新，则认为该文件过期，可被删除。</p>
-<p>RocketMQ不会关注文件上的消息是否已被全部消费，当抵达指定的过期时间时（默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时）便会执行清除操作。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#addScheduleTask
-this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+/**
+ * 未传入泛型实参时，与泛型类的定义相同，在声明类的时候，需将泛型的声明也一起加到类中
+ *
+ * @param &lt;T&gt; 泛型&lt;T&gt;
+ */
+class GenericImpl&lt;T&gt; implements Generic&lt;T&gt; {
     @Override
-    public void run() {
-        DefaultMessageStore.this.cleanFilesPeriodically();
+    public T output() {
+        System.out.println(&quot;hello&quot;);
+        return null;
     }
-   // 默认每隔10秒执行一次清除任务，可以设置cleanResourceInterval来控制执行频率
-}, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
-private void cleanFilesPeriodically() {
-    // 清除commitLog文件
-    this.cleanCommitLogService.run();
-    // 清除consumerQueue文件
-    this.cleanConsumeQueueService.run();
+    public static void main(String[] args) {
+        Generic&lt;String&gt; generic = new GenericImpl&lt;&gt;();
+        generic.output();
+    }
+}
+
+/**
+ * 传入泛型实参时,定义一个生产器实现这个接口,虽然我们只创建了一个泛型接口Generic&lt;T&gt;
+ * 但是我们可以为T传入无数个实参，形成无数种类型的Generic接口。
+ * 在实现类实现泛型接口时，如已将泛型类型传入实参类型，则所有使用泛型的地方都要替换成传入的实参类型
+ * 即：Generic&lt;T&gt;，T output();中的的T都要替换成传入的String类型。
+ */
+class GenericImpl2 implements Generic&lt;String&gt; {
+    @Override
+    public String output() {
+        return String.valueOf(RandomUtils.nextInt());
+    }
+
+    public static void main(String[] args) {
+        Generic&lt;String&gt; generic = new GenericImpl2();
+        System.out.println(generic.output());
+    }
+}
+
+/**
+ * 泛型接口
+ *
+ * @param &lt;T&gt; T
+ */
+interface Generic&lt;T&gt; {
+    T output();
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanCommitLogService
-// 清除commitLog文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-
-        this.redeleteHangedFile();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
+<h4 id="泛型方法">泛型方法</h4>
+<p>定义泛型方法时，必须在返回值前边加一个 <code>&lt;T&gt;</code>，来声明这是一个泛型方法，持有一个泛型T，然后才可以用泛型T作为方法的返回值。</p>
+<pre><code>public class Generic {
+    public &lt;T&gt; void test(T value) {
+        System.out.println(value.toString());
     }
-}
 
-private void deleteExpiredFiles() {
-    int deleteCount = 0;
-    // 文件保留时间，即最后一次更新到现在的时间，如果超过了该时间，则认为是过期文件，可以被删除
-    // 默认72小时，可以通过在broker配置文件中设置fileReservedTime来更改，单位：小时
-    long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
-    // 两次文件删除间隔，默认100ms；在一次清除过程中，可能需要删除的文件不止一个，该属性指定了两次删除文件的间隔
-    int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-    // 在清除文件过程中，如果该文件被其他线程所占用（引用次数大于0，例如读消息），此时会阻止本次删除操作，
-    // 同时在第一次试图删除该文件时记录当前时间戳，destroyMapedFileIntervalForcibly 表示第一次拒绝删除后能保留的最大时间，默认120s
-    // 在此时间内，删除操作将会被拒绝，同时引用次数减1000，超过该时间后，文件会被强制删除
-    int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-  
-    // 指定删除文件的时间点，可以通过设置deleteWhen来指定在一天的哪个时间点进行删除，默认凌晨4点
-    boolean timeup = this.isTimeToDelete();
-    // 磁盘空间是否充足，如果不足则应该执行删除操作
-    boolean spacefull = this.isSpaceToDelete();
-    // 手动删除
-    boolean manualDelete = this.manualDeleteFileSeveralTimes &gt; 0;
-
-    if (timeup || spacefull || manualDelete) {
-
-        if (manualDelete)
-            this.manualDeleteFileSeveralTimes--;
-
-        boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() &amp;&amp; this.cleanImmediately;
-
-        log.info(&quot;begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}&quot;,
-            fileReservedTime,
-            timeup,
-            spacefull,
-            manualDeleteFileSeveralTimes,
-            cleanAtOnce);
-
-        fileReservedTime *= 60 * 60 * 1000;
-        // 删除文件
-        deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-            destroyMapedFileIntervalForcibly, cleanAtOnce);
-        if (deleteCount &gt; 0) {
-        } else if (spacefull) {
-            log.warn(&quot;disk space will be full soon, but delete file failed.&quot;);
-        }
+    public &lt;T&gt; T test2(T value) {
+        return value;
     }
-}
-// 针对挂起的文件，重新删除
-private void redeleteHangedFile() {
-    int interval = DefaultMessageStore.this.getMessageStoreConfig().getRedeleteHangedFileInterval();
-    long currentTimestamp = System.currentTimeMillis();
-    if ((currentTimestamp - this.lastRedeleteTimestamp) &gt; interval) {
-        this.lastRedeleteTimestamp = currentTimestamp;
-        int destroyMapedFileIntervalForcibly =
-            DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-        if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
-        }
+
+    public static void main(String[] args) {
+        Generic generic = new Generic();
+        generic.test(&quot;hello&quot;);
+        System.out.println(generic.test2(&quot;hello----2&quot;));
     }
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.store.DefaultMessageStore#CleanConsumeQueueService
-// 清除consumerQueue文件
-public void run() {
-    try {
-        this.deleteExpiredFiles();
-    } catch (Throwable e) {
-        DefaultMessageStore.log.warn(this.getServiceName() + &quot; service has exception. &quot;, e);
+<h3 id="泛型上下限">泛型上下限</h3>
+<p>Java泛型一般通过通配符进行类型范围限制，主要有如下三种：</p>
+<ul>
+<li>&lt; ? &gt;：被称作无限定的通配符（Unbounded Wildcards）。</li>
+<li>&lt; ? extends T &gt;：被称作有上限的通配符（Upper Bounded Wildcards），表示参数化的类型可能是所指定的类型，或者是此类型的子类。</li>
+<li>&lt; ? super T &gt;：被称作有下限的通配符（Lower Bounded Wildcards），表示参数化的类型可能是指定的类型，或者是此类型的父类。</li>
+</ul>
+<p>为了获得最大限度的灵活性，要在表示 生产者或者消费者 的输入参数上使用通配符，使用的规则就是：生产者有上限、消费者有下限</p>
+<ul>
+<li>如果参数化类型表示一个 T 的生产者，使用 &lt; ? extends T&gt;;</li>
+<li>如果它表示一个 T 的消费者，就使用 &lt; ? super T&gt;；</li>
+<li>如果既是生产又是消费，那使用通配符就没什么意义了，因为需要的是精确的参数类型。</li>
+</ul>
+<h4 id="无限定通配符">无限定通配符</h4>
+<p>无限定通配符类型使用通配符 ( ? ) 指定，例如List&lt;?&gt;。这称为未知类型列表。在如下两种情况中，无限定通配符是一种有用的方法：</p>
+<ul>
+<li>编写可以使用Object类中提供的功能来实现的方法。</li>
+<li>当代码使用不依赖于类型参数的泛型类中的方法时。例如，List.size或List.clear。事实上，Class&lt;?&gt;之所以如此常用，是因为Class &lt;T&gt;中的大多数方法都不依赖于T。</li>
+</ul>
+<pre><code>// 可以传入任何类型进行打印，例如Integer，String，Long等
+public static void printList(List&lt;?&gt; list) {
+    for (Object elem : list) {
+        System.out.print(elem + &quot; &quot;);
+    }
+    System.out.println();
+}
+
+</code></pre>
+<h4 id="上限通配符">上限通配符</h4>
+<p>上限通配符（Upper Bounded Wildcards）通常使用&lt;? extends T&gt;格式，表示参数化的类型可能是所指定的类型，或者是此类型的子类。</p>
+<pre><code>// 以下求和适用于Number及其子类
+public static double sumOfList(List&lt;? extends Number&gt; list) {
+    double s = 0.0;
+    for (Number n : list) {
+        s += n.doubleValue();
+    }
+    return s;
+}
+
+</code></pre>
+<h4 id="下限通配符">下限通配符</h4>
+<p>下限通配符（Lower Bounded Wildcards）通常使用&lt;? superT&gt;格式，表示参数化的类型可能是指定的类型，或者是此类型的父类。</p>
+<pre><code>// 以下添加元素，适应于Integer及其父类
+public static void addNumbers(List&lt;? super Integer&gt; list) {
+    for (int i = 1; i &lt;= 10; i++) {
+        list.add(i);
     }
 }
 
-private void deleteExpiredFiles() {
-    // 两次文件删除间隔，默认100ms
-    int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
-    // 获取最小偏移量
-    long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
-    // 当前最小偏移量大于上次最小偏移量才进行删除操纵，说明存在需要删除的内容
-    if (minOffset &gt; this.lastPhysicalMinOffset) {
-        // 重新设置lastPhysicalMinOffset 
-        this.lastPhysicalMinOffset = minOffset;
+</code></pre>
+<h4 id="多重限定">多重限定</h4>
+<p>使用 &amp; 符可以指定多个限定条件。在其中，具有多个边界的类型变量是边界中列出的所有类型的子类型。如果其中一个边界是类，则必须首先指定它。</p>
+<pre><code>Class A { /* ... */ }
+interface B { /* ... */ }
+interface C { /* ... */ }
 
-        ConcurrentMap&lt;String, ConcurrentMap&lt;Integer, ConsumeQueue&gt;&gt; tables = DefaultMessageStore.this.consumeQueueTable;
+class D &lt;T extends A &amp; B &amp; C&gt; { /* ... */ }
 
-        for (ConcurrentMap&lt;Integer, ConsumeQueue&gt; maps : tables.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                // 删除minOffset之前的所有ConsumeQueue 文件
-                int deleteCount = logic.deleteExpiredFile(minOffset);
+</code></pre>
+<h2 id="泛型进阶">泛型进阶</h2>
+<h3 id="类型擦除">类型擦除</h3>
+<p>Java泛型为了兼容之前的版本，本质上使用的是一种“伪泛型”策略，即Java在语法上支持泛型，但是在编译阶段会进行所谓的“类型擦除”(Type Erasure)，将所有的泛型表示(尖括号中的内容)都替换为具体的类型(其对应的原生态类型)，就像完全没有泛型一样。</p>
+<p>泛型的类型擦除原则：</p>
+<ul>
+<li>消除类型参数声明，即删除&lt;&gt;及其包围的部分。</li>
+<li>根据类型参数的上下界推断并替换所有的类型参数为原生态类型(原始类型)：如果类型参数是无限制通配符或有下界限定通配符则替换为Object，如果存在上界限定则取限定的边界类型，即extends后的类型。</li>
+<li>为了保证类型安全，必要时插入强制类型转换代码。</li>
+<li>自动产生“桥接方法”以保证擦除类型后的代码仍然具有泛型的“多态性”。</li>
+</ul>
+<p>具体的类型擦除：</p>
+<ul>
+<li>当类定义中的类型参数没有任何限制时，在类型擦除中直接被替换为Object，即形如 <code>&lt;T&gt;</code>和&lt;?&gt;的类型参数都被替换为Object。</li>
+<li>当类定义中的类型参数存在限制（上下界）时，在类型擦除中替换为类型参数的上界或者下界，比如形如 <code>&lt;T extends Number&gt;</code>和&lt;? extends Number&gt;的类型参数被替换为Number，&lt;? super Number&gt;被替换为Object。</li>
+</ul>
+<h4 id="基本类型不能作为泛型类型">基本类型不能作为泛型类型</h4>
+<p>基本类型是不能作为泛型类型的。因为当类型擦除后，ArrayList的原始类型变为Object，但是Object类型不能存储int值，只能引用Integer的值。</p>
+<p>在代码中能够使用list.add(1)是因为Java基础类型的自动装箱拆箱操作，查看字节码会发现，其中使用Integer.valueOf()函数。</p>
+<pre><code>// IDE直接报错 Type argument cannot be of primitive type
+List&lt;int&gt; list1 = new ArrayList&lt;&gt;();
 
-                if (deleteCount &gt; 0 &amp;&amp; deleteLogicsFilesInterval &gt; 0) {
-                    try {
-                        Thread.sleep(deleteLogicsFilesInterval);
-                    } catch (InterruptedException ignored) {
-                    }
-                }
-            }
-        }
-        // 删除minOffset之前的所有索引文件
-        DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230925001.png" alt="" loading="lazy"></figure>
+<h4 id="原始类型">原始类型</h4>
+<p>原始类型指的是擦除泛型后在字节码中的类型变量的真正类型，无论何时定义一个泛型，相应的原始类型都会被自动提供，类型变量擦除，并使用其限定类型（无限定的变量用Object）替换。</p>
+<pre><code>// 无限定原始泛型
+public class Node&lt;T&gt; {
+
+    private T data;
+    private Node&lt;T&gt; next;
+
+    public Node(T data, Node&lt;T&gt; next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public T getData() { return data; }
+    // ...
+}
+// java编译器将会自动替换T为Object，表明该原始类型为Object
+public class Node {
+
+    private Object data;
+    private Node next;
+
+    public Node(Object data, Node next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public Object getData() { return data; }
+    // ...
+}
+
+</code></pre>
+<pre><code>// 上限定原始泛型
+public class Node&lt;T extends Comparable&lt;T&gt;&gt; {
+
+    private T data;
+    private Node&lt;T&gt; next;
+
+    public Node(T data, Node&lt;T&gt; next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public T getData() { return data; }
+    // ...
+}
+// java编译器将会自动替换T为限定边界类型，即Comparable，表明该原始类型为Comparable
+public class Node {
+
+    private Comparable data;
+    private Node next;
+
+    public Node(Comparable data, Node next) {
+        this.data = data;
+        this.next = next;
+    }
+
+    public Comparable getData() { return data; }
+    // ...
+}
+
+</code></pre>
+<h4 id="类型擦除实证">类型擦除实证</h4>
+<pre><code>// 以下代码说明泛型类型已被擦除
+public static void main(String[] args) {
+    List&lt;String&gt; list1 = new ArrayList&lt;&gt;();
+    list1.add(&quot;abc&quot;);
+
+    List&lt;Integer&gt; list2 = new ArrayList&lt;&gt;();
+    list2.add(123);
+
+    // 打印 class java.util.ArrayList
+    System.out.println(list1.getClass());
+    System.out.println(list2.getClass());
+    // 打印true
+    System.out.println(list1.getClass() == list2.getClass());
+}
+
+</code></pre>
+<pre><code>// 利用反射机制可以添加非指定类型参数，说明泛型类型擦除确实存在
+public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    List&lt;Integer&gt; list = new ArrayList&lt;&gt;();
+    // 用add只能添加Integer类型参数，因为list已经限定了泛型类型为Integer
+    list.add(1);
+    // 利用反射可以添加非Integer参数
+    list.getClass().getMethod(&quot;add&quot;, Object.class).invoke(list, &quot;hello&quot;);
+    // 打印元素
+    for (int i = 0; i &lt; list.size(); i++) {
+        System.out.println(list.get(i));
     }
 }
+
+</code></pre>
+<h3 id="类型检查">类型检查</h3>
+<p>Java编译器会先检查代码中的泛型类型，之后再对泛型类型进行类型擦除，最后才开始编译。</p>
+<pre><code>public static void main(String[] args) {
+    List&lt;Integer&gt; list = new ArrayList&lt;&gt;();
+    list.add(1);
+    // IDE 直接报错 add (java.lang.Integer) in List cannot be applied to (java.lang.String)
+    list.add(&quot;weq&quot;);
+}
+
+</code></pre>
+<p>类型检查实际上是针对引用的，谁是一个引用，用这个引用调用泛型方法，就会对这个引用调用的方法进行类型检测，而无关它真正引用的对象。</p>
+<p>就如下例子，类型检查在编译时便会完成，new ArrayList()只是在内存中开辟了一个存储空间，可以存储任何类型对象，而真正涉及类型检查的是它的引用，因为在这个过程中，是使用它的引用list1来调用它的方法，比如说调用add方法，所以list1引用能完成泛型类型的检查。List2 未指定时泛型时，等同于List <code>&lt;E&gt;</code>，擦除后即List <code>&lt;Object&gt;</code>，Object对象可以放入Java中的所有对象类型。</p>
+<pre><code>public static void main(String[] args) {
+    List&lt;Integer&gt; list1 = new ArrayList&lt;&gt;();
+    list1.add(1);
+    // IDE 直接报错 add (java.lang.Integer) in List cannot be applied to (java.lang.String)
+    list1.add(&quot;weq&quot;);
+    // 返回指定泛型类型
+    Integer o1 = list1.get(0);
+
+    // List 未指定时泛型时，等同于List&lt;E&gt;,擦除后即List&lt;Object&gt;
+    List list2 = new ArrayList&lt;&gt;();
+    // 警告 Unchecked call to 'add(E)' as a member of raw type 'java.util.List'
+    list2.add(&quot;hello&quot;);
+    list2.add(123);
+    // 未指定泛型时，返回Object
+    Object o2 = list2.get(0);
+    System.out.println(list2.toString());
+}
+
+</code></pre>
+<h3 id="桥接方法">桥接方法</h3>
+<p>为了解决泛型中因类型擦除导致的多态冲突，JVM提供了额外的桥接方法用以解决该问题。</p>
+<pre><code>public class Generic {
+
+    public static void main(String[] args) {
+        Son son = new Son();
+        son.setValue(new Date());
+        // IDE错误：setValue (java.util.Date) in Son cannot be applied to (java.lang.Object)
+        son.setValue(new Object());
+    }
+}
+
+class Son extends Parent&lt;Date&gt; {
+    @Override
+    public Date getValue() {
+        return super.getValue();
+    }
+
+    @Override
+    public void setValue(Date value) {
+        super.setValue(value);
+    }
+}
+
+class Parent&lt;T&gt; {
+    private T value;
+
+    public T getValue() {
+        return value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
+}
+
+</code></pre>
+<p>在这个子类Son中，已经假定了父类的泛型类型为Parent <code>&lt;Date&gt;</code>，在子类中，@Override表示覆盖了父类的两个方法，这里本意是将父类的泛型类型限定为Date，那么父类里面的两个方法的参数都为Date类型。实际上，类型擦除后，父类的的泛型类型全部变为了原始类型Object。</p>
+<pre><code>class Parent {
+    private Object value;
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
+    }
+}
+
+</code></pre>
+<p>以上述例子对比子类中重写的函数，可以发现两者入参类型完全不一致，一个是Object，一个是Date，如果是在普通类中这应该是重载，而不是重写。</p>
+<p>从如下编译的结果来看，本来只是为了重写setValue和getValue方法的子类，结果却有4个方法。在这其中，有两个方法，是编译器自己生成的桥方法。</p>
+<p>可以看到桥方法的参数类型都是Object，也就是说，子类中真正覆盖父类两个方法的就是这两个看不到的桥方法。而打在程序自定义的setvalue和getValue方法上面的@Oveerride只不过是假象。而桥方法的内部实现，就只是去调用程序重写的那两个方法。</p>
+<p>所以，虚拟机巧妙的使用了桥方法，来解决了类型擦除和多态的冲突。</p>
+<pre><code>class com.philosopherzb.demo.test.Son extends com.philosopherzb.demo.test.Parent&lt;java.util.Date&gt; {
+  com.philosopherzb.demo.test.Son();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method com/philosopherzb/demo/test/Parent.&quot;&lt;init&gt;&quot;:()V
+       4: return
+
+  public java.util.Date getValue();
+    Code:
+       0: aload_0
+       1: invokespecial #2                  // Method com/philosopherzb/demo/test/Parent.getValue:()Ljava/lang/Object;
+       4: checkcast     #3                  // class java/util/Date
+       7: areturn
+
+  public void setValue(java.util.Date);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokespecial #4                  // Method com/philosopherzb/demo/test/Parent.setValue:(Ljava/lang/Object;)V
+       5: return
+  // 编译时由编译器生成的桥方法 
+  public void setValue(java.lang.Object);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: checkcast     #3                  // class java/util/Date
+       5: invokevirtual #5                  // Method setValue:(Ljava/util/Date;)V 去调用我们重写的setValue方法)
+       8: return
+  // 编译时由编译器生成的桥方法 
+  public java.lang.Object getValue();
+    Code:
+       0: aload_0
+       1: invokevirtual #6                  // Method getValue:()Ljava/util/Date; 去调用我们重写的setValue方法)
+       4: areturn
+}
+
 
 </code></pre>
 
@@ -1208,7 +1081,7 @@ private void deleteExpiredFiles() {
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/" title="RocketMQ源码解读之消息存储(下)">https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-xia/</a>
+      <a href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/" title="Java泛型机制详解">https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1217,21 +1090,21 @@ private void deleteExpiredFiles() {
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/"># rocketmq</a>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">RocketMQ源码解读之消息消费(上)</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="RocketMQ源码解读之消息消费(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-xiao-fei-shang/">上一篇</a>
+        <a class="nav-pc-next" title="Centos7基本知识" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/">Centos7基本知识</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="Centos7基本知识" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">RocketMQ源码解读之消息存储(上)</a>
-        <a class="nav-mobile-next" title="RocketMQ源码解读之消息存储(上)" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-cun-chu-shang/">下一篇</a>
+        <a class="nav-pc-next" title="HashMap源码解析" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/">HashMap源码解析</a>
+        <a class="nav-mobile-next" title="HashMap源码解析" href="https://philosopherzb.github.io/post/hashmap-yuan-ma-jie-xi/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
