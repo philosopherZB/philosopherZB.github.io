@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>WSL2 &amp; Docker &amp; Zabbix | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1695695619646">
+<link rel="shortcut icon" href="/favicon.ico?v=1695706043555">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -18138,7 +18138,7 @@ rm (移除档案或目录)
 &lt;li&gt;Constructor：表示类的构造方法&lt;/li&gt;
 &lt;li&gt;Array：该类提供了动态创建数组和访问数组元素的静态方法&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;其中Class类一个实实在在的类，存在于JDK的java.lang包中。而Class类的实例则表示运行时类型信息的对应类。实际上在 Java 中每个类都有一个 Class 对象，每当我们编写并且编译一个新创建的类就会将相关信息写到 .class 文件里。当我们 new 一个新对象或者引用静态成员变量时，JVM 中的类加载器子系统会将对应 Class 对象加载到 JVM 中，然后 JVM 再根据这个类型信息相关的 Class 对象创建我们需要实例对象或者提供静态变量的引用值。我们可以将 Class 类，称为类类型，一个 Class 对象，称为类类型对象。&lt;/p&gt;
+&lt;p&gt;其中Class类是一个实实在在的类，存在于JDK的java.lang包中。而Class类的实例则表示运行时类型信息的对应类。实际上在 Java 中每个类都有一个 Class 对象，每当我们编写并且编译一个新创建的类就会将相关信息写到 .class 文件里。当我们 new 一个新对象或者引用静态成员变量时，JVM 中的类加载器子系统会将对应 Class 对象加载到 JVM 中，然后 JVM 再根据这个类型信息相关的 Class 对象创建我们需要实例对象或者提供静态变量的引用值。我们可以将 Class 类，称为类类型，一个 Class 对象，称为类类型对象。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;public final class Class&amp;lt;T&amp;gt; implements java.io.Serializable,
                               GenericDeclaration,
                               Type,
@@ -18246,7 +18246,7 @@ class User{
 &lt;/tbody&gt;
 &lt;/table&gt;
 &lt;h4 id=&#34;核心类库-constructor&#34;&gt;核心类库-Constructor&lt;/h4&gt;
-&lt;p&gt;Constructor 提供了有关类的构造方法的信息，以及对它的动态访问的能力。&lt;/p&gt;
+&lt;p&gt;Constructor 提供了有关类的构造方法的信息，以及对它的动态访问能力。&lt;/p&gt;
 &lt;p&gt;可以通过 Class 提供的方法，获取 Constructor 对象，具体如下：&lt;/p&gt;
 &lt;table&gt;
 &lt;thead&gt;
