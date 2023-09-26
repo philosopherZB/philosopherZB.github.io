@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>深入Redis之内部数据结构(上) | Philosopher</title>
+<title>Java注解机制详解 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1695695619646">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="深入Redis之内部数据结构(上)" />
-  <meta name="keywords" content="redis" />
+  <meta name="description" content="Java注解机制详解" />
+  <meta name="keywords" content="java" />
 </head>
 
 <body>
@@ -255,19 +255,30 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E5%86%85%E9%83%A8%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84">内部数据结构</a>
+<li><a href="#%E6%B3%A8%E8%A7%A3%E5%9F%BA%E7%A1%80">注解基础</a>
 <ul>
-<li><a href="#%E6%A6%82%E8%A6%81">概要</a></li>
-<li><a href="#%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2">简单动态字符串</a>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E5%86%85%E7%BD%AE%E6%B3%A8%E8%A7%A3">内置注解</a>
 <ul>
-<li><a href="#sds-%E4%BC%98%E5%8A%BF">SDS 优势</a></li>
+<li><a href="#%E5%86%85%E7%BD%AE%E6%B3%A8%E8%A7%A3-override">内置注解-@Override</a></li>
+<li><a href="#%E5%86%85%E7%BD%AE%E6%B3%A8%E8%A7%A3-deprecated">内置注解-@Deprecated</a></li>
+<li><a href="#%E5%86%85%E7%BD%AE%E6%B3%A8%E8%A7%A3-suppresswarnings">内置注解-@SuppressWarnings</a></li>
 </ul>
 </li>
-<li><a href="#%E9%93%BE%E8%A1%A8">链表</a>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3">元注解</a>
 <ul>
-<li><a href="#linkedlist">linkedList</a></li>
-<li><a href="#ziplist">zipList</a></li>
-<li><a href="#quicklist">quickList</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-target">元注解-@Target</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-retention">元注解-@Retention</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-documented">元注解-@Documented</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-inherited">元注解-@Inherited</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-repeatable">元注解-@Repeatable</a></li>
+<li><a href="#%E5%85%83%E6%B3%A8%E8%A7%A3-native">元注解-@Native</a></li>
+</ul>
+</li>
+<li><a href="#%E6%B3%A8%E8%A7%A3%E4%B8%8E%E5%8F%8D%E5%B0%84">注解与反射</a>
+<ul>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3%E6%A0%B7%E4%BE%8B">自定义注解样例</a></li>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3%E4%B8%8Eaop">自定义注解与aop</a></li>
 </ul>
 </li>
 </ul>
@@ -539,8 +550,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/">
-      深入Redis之内部数据结构(上)
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/java-zhu-jie-ji-zhi-xiang-jie/">
+      Java注解机制详解
     </a>
   </h1>
   <div class="post-meta">
@@ -548,7 +559,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-12-03 16:03:13">2022-12-03</span>
+      <span class="publish-time" data-t="2021-05-08 10:00:02">2021-05-08</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -557,8 +568,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/sFC_VyjLh/">
-        <span>redis</span>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
       </a>
       
       
@@ -567,17 +578,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>28<span class="language" data-lan="minute">分钟</span></span>
+      <span>26<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>6759<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>5293<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/" data-flag-title="深入Redis之内部数据结构(上)" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/java-zhu-jie-ji-zhi-xiang-jie/" data-flag-title="Java注解机制详解" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -587,605 +598,920 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Redis内部数据结构上篇。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/desert-65310_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="内部数据结构">内部数据结构</h2>
-<h3 id="概要">概要</h3>
-<p>Redis是一个使用ANSI C编写的开源、支持网络、基于内存、可选持久性的键值对存储数据库。从2015年6月开始，Redis的开发由Redis Labs赞助，而2013年5月至2015年6月期间，其开发由Pivotal赞助。在2013年5月之前，其开发由VMware赞助。根据月度排行网站DB-Engines.com的数据显示，Redis是最流行的键值对存储数据库。</p>
-<p>Redis 和其他很多 key-value 数据库的不同之处在于，Redis 不仅支持简单的字符串键值对，还提供了一系列数据结构类型值，比如列表、哈希、集合和有序集，并在这些数据结构类型上定义了一套强大的 API。</p>
-<p>依靠这些数据结构类型值，Redis 可以很轻易地完成其他只支持字符串键值对的 key-value 数据库很难（或者无法）完成的任务。</p>
-<p>在 Redis 的内部，数据结构类型值由高效的数据结构和算法进行支持，并且在 Redis 自身的构建当中，也大量用到了这些数据结构。以下将详细介绍其中动态字符串、链表、字典、跳跃表等数据结构。</p>
-<h3 id="简单动态字符串">简单动态字符串</h3>
-<p>在 C 语言中，字符串实际上是使用空字符 \0 结尾的一维字符数组。因此，\0 是用于标记字符串的结束。空字符（Null character）又称结束符，缩写 NUL，是一个数值为 0 的控制字符，\0 是转义字符，意思是告诉编译器，这不是字符 0，而是空字符。</p>
-<p>Redis虽然是使用了ANSI C 语言编写的开源项目，但redis中的字符串却并没有直接采用 C 语言中的字符串，而是自己定义了一套抽象类型，名为simple dynamic string, 简称SDS。本质上是对 C 语言中的char进行一层封装。而其之所以使用SDS的原因如下所示：</p>
+<p>本章主要简述Java注解机制。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/fjord-4614096_1280.jpg" alt="" loading="lazy"></figure>
+<h2 id="注解基础">注解基础</h2>
+<h3 id="简介">简介</h3>
+<p>注解是JDK1.5版本开始引入的一个特性，用于对程序代码的说明，可以对包、类、接口、字段、方法参数、局部变量等进行注解。</p>
+<p>它主要的作用有以下四方面：</p>
+<ul>
+<li>生成javadoc文档，通过在代码里面标识元数据生成javadoc文档。</li>
+<li>编译期的检查，通过标识的元数据让编译器在编译期间对代码进行验证。</li>
+<li>编译时动态处理，编译时通过代码中标识的元数据动态处理，比如动态生成代码。</li>
+<li>运行时动态处理，运行时通过代码中标识的元数据动态处理，比如使用反射技术注入实例。</li>
+</ul>
+<p>注解的常见分类有三种：</p>
+<ul>
+<li>Java自带的标准注解：包括 @Override、@Deprecated和@SuppressWarnings，分别代表 方法重写、某个类或方法过时、以及忽略警告，用这些注解标明后编译器就会进行检查。</li>
+<li>元注解，元注解是用于定义注解的注解，包括@Retention、@Target、@Inherited、@Documented 等6种</li>
+</ul>
+<pre><code>@Retention：指定其所修饰的注解的保留策略
+@Document：该注解是一个标记注解，用于指示一个注解将被文档化
+@Target：用来限制注解的使用范围
+@Inherited：该注解使父类的注解能被其子类继承
+@Repeatable：该注解是Java8新增的注解，用于开发重复注解
+类型注解（Type Annotation）：该注解是Java8新增的注解，可以用在任何用到类型的地方
+</code></pre>
+<ul>
+<li>自定义注解，可以根据自己的需求定义注解，并可用元注解对自定义注解进行注解。</li>
+</ul>
+<h3 id="内置注解">内置注解</h3>
+<p>Java 1.5开始自带的标准注解，包括@Override、@Deprecated和@SuppressWarnings：</p>
+<ul>
+<li>@Override：表示当前的方法定义将覆盖父类中的方法</li>
+<li>@Deprecated：表示代码被弃用，如果使用了被@Deprecated注解的代码则编译器将发出警告</li>
+<li>@SuppressWarnings：表示关闭编译器警告信息</li>
+</ul>
+<pre><code>class Son extends Parent&lt;Date&gt; {
+    /**
+     * 重载父类方法
+     *
+     * @return Date
+     */
+    @Override
+    public Date getValue() {
+        return super.getValue();
+    }
+
+    /**
+     * 重载父类方法
+     */
+    @Override
+    public void setValue(Date value) {
+        super.setValue(value);
+    }
+
+    /**
+     * 被弃用的方法
+     */
+    @Deprecated
+    public void oldMethod() {
+    }
+
+    /**
+     * 忽略告警
+     *
+     * @return List
+     */
+    @SuppressWarnings(value = {&quot;unchecked&quot;})
+    public List addItems(String item) {
+        List items = new ArrayList&lt;&gt;();
+        // Unchecked call to 'add(E)' as a member of raw type 'java.util.List'
+        items.add(item);
+        return items;
+    }
+
+}
+
+class Parent&lt;T&gt; {
+    private T value;
+
+    public T getValue() {
+        return value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
+}
+
+</code></pre>
+<h4 id="内置注解-override">内置注解-@Override</h4>
+<p>这个注解可以被用来修饰方法，并且它只在编译时有效，在编译后的class文件中便不再存在。这个注解的作用是告诉编译器被修饰的方法是重写的父类的中的相同签名的方法，编译器会对此做出检查，若发现父类中不存在这个方法或是存在的方法签名不同，则会报错。</p>
+<pre><code>@Target(ElementType.METHOD)
+// RetentionPolicy.SOURCE 表示仅在编译时有效
+@Retention(RetentionPolicy.SOURCE)
+public @interface Override {
+}
+
+</code></pre>
+<h4 id="内置注解-deprecated">内置注解-@Deprecated</h4>
+<p>此注解表示其会被文档化，能够保留到运行时，能够修饰构造方法、属性、局部变量、方法、包、参数、类型。这个注解的作用是告诉编译器被修饰的程序元素已被“废弃”，不再建议用户使用。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value={CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE})
+public @interface Deprecated {
+}
+
+</code></pre>
+<h4 id="内置注解-suppresswarnings">内置注解-@SuppressWarnings</h4>
+<p>这个注解能够修饰的程序元素包括类型、属性、方法、参数、构造器、局部变量，只能存活在源码时，取值为String[]。它的作用是告诉编译器忽略指定的警告信息。</p>
+<pre><code>@Target({TYPE, FIELD, METHOD, PARAMETER, CONSTRUCTOR, LOCAL_VARIABLE})
+@Retention(RetentionPolicy.SOURCE)
+public @interface SuppressWarnings {
+    String[] value();
+}
+
+</code></pre>
 <table>
 <thead>
 <tr>
-<th>C字符串</th>
-<th>SDS</th>
+<th>参数</th>
+<th>作用</th>
+<th>原描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>获取字符串长度的复杂度为 O(N)</td>
-<td>获取字符串长度的复杂度为 O(1)</td>
+<td>all</td>
+<td>抑制所有警告</td>
+<td>to suppress all warnings</td>
 </tr>
 <tr>
-<td>操作字符串函数不安全，可能造成缓冲区溢出</td>
-<td>安全的操作字符串API，避免缓冲区溢出</td>
+<td>boxing</td>
+<td>抑制装箱、拆箱操作时候的警告</td>
+<td>to suppress warnings relative to boxing/unboxing operations</td>
 </tr>
 <tr>
-<td>修改字符串长度 N 次必然需要执行 N 次内存重分配</td>
-<td>修改字符串长度 N 次最多需要执行 N 次内存重分配</td>
+<td>cast</td>
+<td>抑制映射相关的警告</td>
+<td>to suppress warnings relative to cast operations</td>
 </tr>
 <tr>
-<td>只能保存文本数据</td>
-<td>可以保存文本以及图片、音频、视频、压缩文件这样的二进制数据。</td>
+<td>dep-ann</td>
+<td>抑制启用注释的警告</td>
+<td>to suppress warnings relative to deprecated annotation</td>
+</tr>
+<tr>
+<td>deprecation</td>
+<td>抑制过期方法警告</td>
+<td>to suppress warnings relative to deprecation</td>
+</tr>
+<tr>
+<td>fallthrough</td>
+<td>抑制确在switch中缺失breaks的警告</td>
+<td>to suppress warnings relative to missing breaks in switch statements</td>
+</tr>
+<tr>
+<td>finally</td>
+<td>抑制finally模块没有返回的警告</td>
+<td>to suppress warnings relative to finally block that don’t return</td>
+</tr>
+<tr>
+<td>hiding</td>
+<td>抑制与隐藏变数的区域变数相关的警告</td>
+<td>to suppress warnings relative to locals that hide variable（）</td>
+</tr>
+<tr>
+<td>incomplete-switch</td>
+<td>忽略没有完整的switch语句</td>
+<td>to suppress warnings relative to missing entries in a switch statement (enum case)</td>
+</tr>
+<tr>
+<td>nls</td>
+<td>忽略非nls格式的字符</td>
+<td>to suppress warnings relative to non-nls string literals</td>
+</tr>
+<tr>
+<td>null</td>
+<td>忽略对null的操作</td>
+<td>to suppress warnings relative to null analysis</td>
+</tr>
+<tr>
+<td>rawtype</td>
+<td>使用generics时忽略没有指定相应的类型</td>
+<td>to suppress warnings relative to un-specific types when using</td>
+</tr>
+<tr>
+<td>restriction</td>
+<td>抑制与使用不建议或禁止参照相关的警告</td>
+<td>to suppress warnings relative to usage of discouraged or</td>
+</tr>
+<tr>
+<td>serial</td>
+<td>忽略在serializable类中没有声明serialVersionUID变量</td>
+<td>to suppress warnings relative to missing serialVersionUID field for a serializable class</td>
+</tr>
+<tr>
+<td>static-access</td>
+<td>抑制不正确的静态访问方式警告</td>
+<td>to suppress warnings relative to incorrect static access</td>
+</tr>
+<tr>
+<td>synthetic-access</td>
+<td>抑制子类没有按最优方法访问内部类的警告</td>
+<td>to suppress warnings relative to unoptimized access from inner classes</td>
+</tr>
+<tr>
+<td>unchecked</td>
+<td>抑制没有进行类型检查操作的警告</td>
+<td>to suppress warnings relative to unchecked operations</td>
+</tr>
+<tr>
+<td>unqualified-field-access</td>
+<td>抑制没有权限访问的域的警告</td>
+<td>to suppress warnings relative to field access unqualified</td>
+</tr>
+<tr>
+<td>unused</td>
+<td>抑制没被使用过的代码的警告</td>
+<td>to suppress warnings relative to unused code</td>
 </tr>
 </tbody>
 </table>
-<p>SDS作为一种抽象的数据结构，主要由以下两部分构成。注意其中定义了五种结构，主要是为了让不同的字符串使用不同长度的struct，从而节省内存。</p>
-<pre><code>// 文件地址：sds.h
-// 定义char 别名：sds
-typedef char *sds;
-// 实际上有五种结构体，但其实现都一致，所以此处仅以其中一种作为说明。
-struct __attribute__ ((__packed__)) sdshdr64 {
-    // 记录buf数组中已使用的字节数量，计算字符串长度时，复杂度可降为O(1)
-    uint64_t len; /* used */
-    // 分配的buf数组长度，不包括头和空字符结尾，减少内存重分配次数
-    uint64_t alloc; /* excluding the header and null terminator */
-    // 标志位， 最低3位表示struct类型，另外5个位没有使用
-    unsigned char flags; /* 3 lsb of type, 5 unused bits */
-    // 字符数组，用于存储实际的字符串
-    char buf[];
-};
+<h3 id="元注解">元注解</h3>
+<p>内置注解的定义中使用了一些元注解（注解类型进行注解的注解类），在JDK 1.5中提供了4个标准的元注解：@Target，@Retention，@Documented，@Inherited, 在JDK 1.8中提供了两个新的元注解 @Repeatable和@Native。</p>
+<h4 id="元注解-target">元注解-@Target</h4>
+<p>Target注解的作用是：描述注解的使用范围（即：被修饰的注解可以用在什么地方）</p>
+<p>Target注解用来说明那些被它所注解的注解类可修饰的对象范围：注解可以用于修饰 packages、types（类、接口、枚举、注解类）、类成员（方法、构造方法、成员变量、枚举值）、方法参数和本地变量（如循环变量、catch参数），在定义注解类时使用了@Target 能够更加清晰的知道它能够被用来修饰哪些对象，它的取值范围定义在ElementType 枚举中。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Target {
+    /**
+     * Returns an array of the kinds of elements an annotation type
+     * can be applied to.
+     * @return an array of the kinds of elements an annotation type
+     * can be applied to
+     */
+    ElementType[] value();
+}
 
-// 此处定义对应上述结构体中的 flags
-#define SDS_TYPE_5  0
-#define SDS_TYPE_8  1
-#define SDS_TYPE_16 2
-#define SDS_TYPE_32 3
-#define SDS_TYPE_64 4
+public enum ElementType {
+    /** Class, interface (including annotation type), or enum declaration */
+    TYPE,
+
+    /** Field declaration (includes enum constants) */
+    FIELD,
+
+    /** Method declaration */
+    METHOD,
+
+    /** Formal parameter declaration */
+    PARAMETER,
+
+    /** Constructor declaration */
+    CONSTRUCTOR,
+
+    /** Local variable declaration */
+    LOCAL_VARIABLE,
+
+    /** Annotation type declaration */
+    ANNOTATION_TYPE,
+
+    /** Package declaration */
+    PACKAGE,
+
+    /**
+     * Type parameter declaration
+     *
+     * @since 1.8
+     */
+    TYPE_PARAMETER,
+
+    /**
+     * Use of a type
+     *
+     * @since 1.8
+     */
+    TYPE_USE
+}
 
 </code></pre>
-<p>SDS 遵循 C 字符串以空字符结尾的惯例， 保存空字符的 1 字节空间不计算在 SDS 的 len 属性里面，并且为空字符分配额外的 1 字节空间，以及添加空字符到字符串末尾等操作都是由 SDS 函数自动完成的，所以这个空字符对于 SDS 的使用者来说是完全透明的。简单例子如下所示：</p>
-<pre><code>// 以存储redis为例，结构最终形式如下：
-struct sdshdr {
-    len = 5
-    alloc = 8
-    flags = 1
-    buf = &quot;redis\0&quot;  // 可以发现buf的实际长度为 buf + 1 因为多了一个结束符
-};
+<h4 id="元注解-retention">元注解-@Retention</h4>
+<p>Reteniton注解的作用是：描述注解保留的时间范围（即：被描述的注解在它所修饰的类中可以被保留到何时）</p>
+<p>Reteniton注解用来限定那些被它所注解的注解类在注解到其他类上以后，可被保留到何时，一共有三种策略，定义在RetentionPolicy枚举中。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Retention {
+    /**
+     * Returns the retention policy.
+     * @return the retention policy
+     */
+    RetentionPolicy value();
+}
+
+public enum RetentionPolicy {
+    /**
+     * Annotations are to be discarded by the compiler.
+     */
+    SOURCE,
+
+    /**
+     * Annotations are to be recorded in the class file by the compiler
+     * but need not be retained by the VM at run time.  This is the default
+     * behavior.
+     */
+    CLASS,
+
+    /**
+     * Annotations are to be recorded in the class file by the compiler and
+     * retained by the VM at run time, so they may be read reflectively.
+     *
+     * @see java.lang.reflect.AnnotatedElement
+     */
+    RUNTIME
+}
 
 </code></pre>
-<h4 id="sds-优势">SDS 优势</h4>
-<p>传统的C字符串并没有记录字符串长度，而想获取字符串长度时就需要遍历一遍字符串，复杂度为O(N),导致随着字符串长度变长，获取字符串长度的操作复杂度也会增加。</p>
-<p>针对这种情况，redis在SDS结构体中设计了len字段，主要用来存储字符串的长度，因此每次获取length时，只需要查询len字段即可，复杂度为O(1)。</p>
-<p>SDS另一个优势则是在于其对于追加操作的优化，原有的C字符串对于字符串的追加操作容易造成缓冲区溢出或者重分配次数过多等问题。而SDS则是依靠alloc字段来降低了重分配次数以及可能的缓冲区溢出。</p>
-<p>在 C 语言中字符串的长度和底层数组的长度之间存在着关联性（n字符串---&gt;n+1数组，多出的1个用于存储空字符串），每当增长或者缩短一个 C 字符串时，程序都要对保存这个 C 字符串的数组进行一次内存重分配操作：</p>
+<pre><code>// 定义三种类型的注解
+@Retention(RetentionPolicy.SOURCE)
+public @interface SourcePolicy {
+    // 源文件保留策略
+}
+@Retention(RetentionPolicy.CLASS)
+public @interface ClassPolicy  {
+    // 编译器保留策略
+}
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RuntimePolicy {
+    // 运行期保留策略
+}
+
+</code></pre>
+<pre><code>// 使用上述定义的注解
+public class TestRetention {
+    @SourcePolicy
+    public void sourcePolicy() {
+    }
+
+    @ClassPolicy
+    public void classPolicy() {
+    }
+
+    @RuntimePolicy
+    public void runtimePolicy() {
+    }
+}
+
+</code></pre>
+<p>从 TestRetention的字节码内容我们可以得出以下两点结论：</p>
 <ul>
-<li>
-<p>如果程序执行的是增长字符串的操作，比如拼接操作（append），那么在执行这个操作之前，程序需要先通过内存重分配来扩展底层数组的空间大小 —— 如果忘了这一步就会产生缓冲区溢出。</p>
-</li>
-<li>
-<p>如果程序执行的是缩短字符串的操作，比如截断操作（trim），那么在执行这个操作之后，程序需要通过内存重分配来释放字符串不再使用的那部分空间 —— 如果忘了这一步就会产生内存泄漏。</p>
-<p>为了减少重分配次数过多的情形，redis增加了alloc字段（已分配数组长度）来解除字符串长度和底层数组长度之间的关联，通过已分配长度字段alloc，SDS实现了空间预分配及惰性空间释放两种优化策略。</p>
-</li>
-<li>
-<p>空间预分配：在redis追加字符串时，SDS不仅仅只是单纯的附加字符串，而且还为alloc字段增加了额外的空间，这样，当下次追加操作进入时，会判断预留空间是否充足，充足便可以直接进行追加，而无需扩展数组长度，避免了缓冲区溢出的问题。同时通过这种技术，SDS将连续增长N次字符串所需的重分配次数从必定N次降为了最多N次。</p>
-</li>
-<li>
-<p>惰性空间释放：在redis截断字符串时，其并不立即使用内存重分配来回收缩短后多出来的字节，而是把缩短后的长度记录在SDS中的len属性中，剩余空间用于未来扩展字符串用。当然也可以手动指定函数释放空闲空间。</p>
-</li>
+<li>编译器并没有记录下 sourcePolicy() 方法的注解信息</li>
+<li>编译器使用 RuntimeInvisibleAnnotations 去记录 classPolicy()方法的注解信息</li>
+<li>编译器使用 RuntimeVisibleAnnotations 去记录 runtimePolicy()方法的注解信息</li>
 </ul>
-<pre><code>// 文件地址：sds.c
-// 空间预分配核心函数
-// 其中greedy参数控制着是否要分配超出实际所需的空间：即原本只需分配10字节，如果开启了此参数，则会分配20+1字节。
-sds _sdsMakeRoomFor(sds s, size_t addlen, int greedy) {
-    void *sh, *newsh;
-    // 返回可用空间，实际上就是sds中的alloc - len的结果值
-    size_t avail = sdsavail(s);
-    size_t len, newlen, reqlen;
-    char type, oldtype = s[-1] &amp; SDS_TYPE_MASK;
-    int hdrlen;
-    size_t usable;
+<pre><code>// javap -c -verbose target\classes\com\philosopherzb\demo\test\annotation\TestRetention.class
+// 执行上述命令得到如下字节码信息
+{
+  public com.philosopherzb.demo.test.annotation.TestRetention();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+         4: return
+      LineNumberTable:
+        line 7: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
 
-    // 如果剩余空间足够，则不会进行预分配操作
-    if (avail &gt;= addlen) return s;
+  public void sourcePolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 10: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
 
-    len = sdslen(s);
-    // sds的起始位置
-    sh = (char*)s-sdsHdrSize(oldtype);
-    reqlen = newlen = (len+addlen);
-    assert(newlen &gt; len);   /* Catch size_t overflow */
-    // 增加额外空间
-    if (greedy == 1) {
-        // 如果修改后的字符串长度小于SDS_MAX_PREALLOC(1MB)，则分配与原字符串长度一致的额外空间
-        // 例如：修改后的字符串长度为10字节，那么此处会为其分配额外的10字节空间，相当于一共分配了20字节空间
-        // 实际上是21字节，因为还有一个额外的字节用于存储空字符
-        if (newlen &lt; SDS_MAX_PREALLOC)
-            newlen *= 2;
-        else
-            // 否则分配的额外空间 + 1MB +1byte
-            newlen += SDS_MAX_PREALLOC;
-    }
+  public void classPolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 14: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+    RuntimeInvisibleAnnotations:
+      0: #14()
 
-    // 重新获取结构体----》因为原有的可能表达不了增加后的容量 
-    type = sdsReqType(newlen);
-
-    /* Don't use type 5: the user is appending to the string and type 5 is
-     * not able to remember empty space, so sdsMakeRoomFor() must be called
-     * at every appending operation. */
-    if (type == SDS_TYPE_5) type = SDS_TYPE_8;
-    // 获取类型对应的长度 
-    hdrlen = sdsHdrSize(type);
-    assert(hdrlen + newlen + 1 &gt; reqlen);  /* Catch size_t overflow */
-    if (oldtype==type) {
-        // sh为开始地址，在开始地址的基础上为其分配更多的空间。
-        newsh = s_realloc_usable(sh, hdrlen+newlen+1, &amp;usable);
-        if (newsh == NULL) return NULL;
-        // s指向sds的开始位置
-        s = (char*)newsh+hdrlen;
-    } else {
-        /* Since the header size changes, need to move the string forward,
-         * and can't use realloc */
-        // 当类型发生变化时，地址内容不可复用，便需要寻找新的可用空间地址
-        newsh = s_malloc_usable(hdrlen+newlen+1, &amp;usable);
-        if (newsh == NULL) return NULL;
-        // 复制原来的字符串到新的sds上
-        memcpy((char*)newsh+hdrlen, s, len+1);
-        // 释放之前的空间
-        s_free(sh);
-        // s指向sds的开始位置
-        s = (char*)newsh+hdrlen;
-        s[-1] = type;
-        // 设置len长度值
-        sdssetlen(s, len);
-    }
-    usable = usable-hdrlen-1;
-    if (usable &gt; sdsTypeMaxSize(type))
-        usable = sdsTypeMaxSize(type);
-    // 分配alloc的值  
-    sdssetalloc(s, usable);
-    // 返回新的sds
-    return s;
+  public void runtimePolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 18: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+    RuntimeVisibleAnnotations:
+      0: #17()
 }
 
 </code></pre>
-<pre><code>// 文件地址：sds.c
-// 以sdstrim函数简述惰性空间释放
-// 从整个函数逻辑可以看出，其并没有调用任何重分配函数，仅仅只是修改了sds中的len字段值。
-// 由此可见，惰性空间释放，实际上并没有将已分配的空间释放出来。这也是为了方便后续存在追加操作时，一定程度上无需扩容。
-sds sdstrim(sds s, const char *cset) {
-    char *end, *sp, *ep;
-    size_t len;
-
-    sp = s;
-    ep = end = s+sdslen(s)-1;
-    while(sp &lt;= end &amp;&amp; strchr(cset, *sp)) sp++;
-    while(ep &gt; sp &amp;&amp; strchr(cset, *ep)) ep--;
-    len = (ep-sp)+1;
-    if (s != sp) memmove(s, sp, len);
-    // 补齐末尾的空字符
-    s[len] = '\0';
-    // 设置sds中的len字段值
-    sdssetlen(s,len);
-    return s;
-}
-
-// 手动释放空闲空间的核心函数
-sds sdsRemoveFreeSpace(sds s) {
-    void *sh, *newsh;
-    char type, oldtype = s[-1] &amp; SDS_TYPE_MASK;
-    int hdrlen, oldhdrlen = sdsHdrSize(oldtype);
-    // 返回字符串长度
-    size_t len = sdslen(s);
-    // 返回可用空间，实际上就是sds中的alloc - len的结果值
-    size_t avail = sdsavail(s);
-    sh = (char*)s-oldhdrlen;
-
-    // 如果可用空间为0表示没有可释放的空闲空间
-    if (avail == 0) return s;
-
-    /* Check what would be the minimum SDS header that is just good enough to
-     * fit this string. */
-    type = sdsReqType(len);
-    hdrlen = sdsHdrSize(type);
-
-    /* If the type is the same, or at least a large enough type is still
-     * required, we just realloc(), letting the allocator to do the copy
-     * only if really needed. Otherwise if the change is huge, we manually
-     * reallocate the string to use the different header type. */
-    if (oldtype==type || type &gt; SDS_TYPE_8) {
-        // 用的实际上还是原来的sds开始地址
-        newsh = s_realloc(sh, oldhdrlen+len+1);
-        if (newsh == NULL) return NULL;
-        // 类型不变的情况下，s指针也不变
-        s = (char*)newsh+oldhdrlen;
-    } else {
-        // 当类型发生变化时，地址内容不可复用，便需要寻找新的可用空间地址
-        newsh = s_malloc(hdrlen+len+1);
-        if (newsh == NULL) return NULL;
-        // 复制原来的字符串到新的sds上
-        memcpy((char*)newsh+hdrlen, s, len+1);
-        // 释放之前的空间
-        s_free(sh);
-        // s指向sds的开始位置
-        s = (char*)newsh+hdrlen;
-        s[-1] = type;
-        // 设置len值
-        sdssetlen(s, len);
-    }
-    // 设置alloc值
-    sdssetalloc(s, len);
-    // 返回新的sds
-    return s;
+<h4 id="元注解-documented">元注解-@Documented</h4>
+<p>Documented注解的作用如下：使用 javadoc 工具为类生成帮助文档，并确认是否保留注解信息。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Documented {
 }
 
 </code></pre>
-<h3 id="链表">链表</h3>
-<p>链表提供了高效的节点重排能力以及顺序性的节点访问方式，并且可以通过可以快速的增删节点来调整链表的长度。在 C 语言中并没有内置链表这种数据结构，因此redis构建了自己的链表实现。</p>
-<p>Redis中的列表对象在版本3.2之前，其底层数据结构由ziplist和linkedlist实现，但是从3.2版本开始，重新引入了一个 quicklist 的数据结构，列表的底层都由quicklist实现。</p>
-<p>在3.2版本之前，当列表对象中元素的长度比较小或者数量比较少的时候，采用ziplist来存储，当列表对象中元素的长度比较大或者数量比较多的时候，则会转而使用双向列表linkedlist来存储。</p>
-<pre><code>// 文件地址：t_list.c---》版本3.2及之后
-// 可以看出，如果底层数据结构不是quicklist 便会直接抛出异常：Unknown list encoding
-void listTypePush(robj *subject, robj *value, int where) {
-    if (subject-&gt;encoding == OBJ_ENCODING_QUICKLIST) {
-        int pos = (where == LIST_HEAD) ? QUICKLIST_HEAD : QUICKLIST_TAIL;
-        if (value-&gt;encoding == OBJ_ENCODING_INT) {
-            char buf[32];
-            ll2string(buf, 32, (long)value-&gt;ptr);
-            quicklistPush(subject-&gt;ptr, buf, strlen(buf), pos);
-        } else {
-            quicklistPush(subject-&gt;ptr, value-&gt;ptr, sdslen(value-&gt;ptr), pos);
+<h4 id="元注解-inherited">元注解-@Inherited</h4>
+<p>Inherited注解的作用：被它修饰的Annotation将具有继承特性。父类使用了被@Inherited修饰的Annotation，则子类将自动具备该注解。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Inherited {
+}
+
+</code></pre>
+<pre><code>// 定义注解
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface InheritedAnnotation {
+    String[] value();
+}
+
+</code></pre>
+<pre><code>// 测试继承注解
+// 下述代码将打印 @com.philosopherzb.demo.test.annotation.InheritedAnnotation(value=[test InheritedAnnotation--Parent])
+// 由此可以看出虽然Person 类没有显示地被注解@InheritedAnnotation，但是它的父类Parent 被注解，
+// 而且@InheritedAnnotation被@Inherited注解，因此Person 类自动继承注解
+public class Person extends Parent {
+    public static void main(String[] args) {
+        Class clazz = Person.class;
+        Annotation[] annotations = clazz.getAnnotations();
+        for (Annotation annotation : annotations) {
+            System.out.println(annotation.toString());
         }
-    } else {
-        serverPanic(&quot;Unknown list encoding&quot;);
+    }
+}
+
+@InheritedAnnotation(&quot;test InheritedAnnotation--Parent&quot;)
+class Parent {
+}
+
+</code></pre>
+<h4 id="元注解-repeatable">元注解-@Repeatable</h4>
+<p>Repeatable是java8中新出现的注解，Repeatable是可重复使用的意思，允许在同一声明的类型(类，属性，或方法)中，可以多次使用同一个注解。</p>
+<pre><code>@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Repeatable {
+    /**
+     * Indicates the &lt;em&gt;containing annotation type&lt;/em&gt; for the
+     * repeatable annotation type.
+     * @return the containing annotation type
+     */
+    Class&lt;? extends Annotation&gt; value();
+}
+
+</code></pre>
+<pre><code>// java8之前，如果要使用重复注解，需要做如下处理
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface User {
+    String profession();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface Users {
+    User[] value();
+}
+
+public class RepeatAnnotation {
+    @Users({@User(profession = &quot;teacher&quot;), @User(profession = &quot;student&quot;)})
+    public void doSomeThing() {
     }
 }
 
 </code></pre>
-<pre><code>// 文件地址：t_list.c---》版本3.2之前
-// 可以看出，其底层数据结构主要由ziplist和linkedlist实现
-void listTypePush(robj *subject, robj *value, int where) {
-    /* Check if we need to convert the ziplist */
-    listTypeTryConversion(subject,value);
-    if (subject-&gt;encoding == REDIS_ENCODING_ZIPLIST &amp;&amp;
-        ziplistLen(subject-&gt;ptr) &gt;= server.list_max_ziplist_entries)
-            listTypeConvert(subject,REDIS_ENCODING_LINKEDLIST);
+<pre><code>// java8及之后便简单许多，只需要使用@Repeatable表明该注解可以重复使用即可
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Repeatable(Users.class)
+public @interface User {
+    String profession();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface Users {
+    User[] value();
+}
 
-    if (subject-&gt;encoding == REDIS_ENCODING_ZIPLIST) {
-        int pos = (where == REDIS_HEAD) ? ZIPLIST_HEAD : ZIPLIST_TAIL;
-        value = getDecodedObject(value);
-        subject-&gt;ptr = ziplistPush(subject-&gt;ptr,value-&gt;ptr,sdslen(value-&gt;ptr),pos);
-        decrRefCount(value);
-    } else if (subject-&gt;encoding == REDIS_ENCODING_LINKEDLIST) {
-        if (where == REDIS_HEAD) {
-            listAddNodeHead(subject-&gt;ptr,value);
-        } else {
-            listAddNodeTail(subject-&gt;ptr,value);
+public class RepeatAnnotation {
+    @User(profession = &quot;teacher&quot;)
+    @User(profession = &quot;student&quot;)
+    public void doSomeThing() {
+    }
+}
+
+</code></pre>
+<h4 id="元注解-native">元注解-@Native</h4>
+<p>Native是java8中新出现的注解，使用 @Native 注解修饰成员变量，则表示这个变量可以被本地代码引用，常常被代码生成工具使用。@Native 注解不常使用，仅需了解即可。</p>
+<pre><code>@Documented
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Native {
+}
+
+</code></pre>
+<h3 id="注解与反射">注解与反射</h3>
+<p>定义注解后，可以通过反射包java.lang.reflect下的AnnotatedElement接口提供的方法获取注解内容。</p>
+<p>注意：只有注解被定义为RUNTIME后，该注解才能是运行时可见，当class文件被装载时被保存在class文件中的Annotation才会被虚拟机读取。</p>
+<pre><code>// java.lang.annotation.RetentionPolicy
+/**
+ * Annotations are to be recorded in the class file by the compiler and
+ * retained by the VM at run time, so they may be read reflectively.
+ *
+ * @see java.lang.reflect.AnnotatedElement
+ */
+RUNTIME
+
+</code></pre>
+<p>如上所示，可以看到RUNTIME格式的策略支持反射读取内容。其中AnnotatedElement 接口是所有程序元素（Class、Method和Constructor）的父接口，所以程序通过反射获取了某个类的AnnotatedElement对象之后，程序就可以调用该对象的方法来访问Annotation信息。</p>
+<pre><code>public interface AnnotatedElement {
+    /**
+     * 判断该程序元素上是否包含指定类型的注解，存在则返回true，否则返回false。
+     * 注意：此方法会忽略注解对应的注解容器。
+     * Returns true if an annotation for the specified type
+     * is &lt;em&gt;present&lt;/em&gt; on this element, else false.  This method
+     * is designed primarily for convenient access to marker annotations.
+     *
+     * &lt;p&gt;The truth value returned by this method is equivalent to:
+     * {@code getAnnotation(annotationClass) != null}
+     *
+     * &lt;p&gt;The body of the default method is specified to be the code
+     * above.
+     *
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return true if an annotation for the specified annotation
+     *     type is present on this element, else false
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.5
+     */
+    default boolean isAnnotationPresent(Class&lt;? extends Annotation&gt; annotationClass) {
+        return getAnnotation(annotationClass) != null;
+    }
+
+   /**
+     * 返回该程序元素上存在的、指定类型的注解，如果该类型注解不存在，则返回null
+     * Returns this element's annotation for the specified type if
+     * such an annotation is &lt;em&gt;present&lt;/em&gt;, else null.
+     *
+     * @param &lt;T&gt; the type of the annotation to query for and return if present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return this element's annotation for the specified annotation type if
+     *     present on this element, else null
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.5
+     */
+    &lt;T extends Annotation&gt; T getAnnotation(Class&lt;T&gt; annotationClass);
+
+    /**
+     * 返回该程序元素上存在的所有注解，若没有注解，返回长度为0的数组
+     * Returns annotations that are &lt;em&gt;present&lt;/em&gt; on this element.
+     *
+     * If there are no annotations &lt;em&gt;present&lt;/em&gt; on this element, the return
+     * value is an array of length 0.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @return annotations present on this element
+     * @since 1.5
+     */
+    Annotation[] getAnnotations();
+
+    /**
+     * 返回该程序元素上存在的、指定类型的注解数组。没有注解对应类型的注解时，返回长度为0的数组。
+     * 该方法的调用者可以随意修改返回的数组，而不会对其他调用者返回的数组产生任何影响。
+     * getAnnotationsByType方法与 getAnnotation的区别在于，getAnnotationsByType会检测注解对应的重复注解容器。
+     * 若程序元素为类，当前类上找不到注解，且该注解为可继承的，则会去父类上检测对应的注解
+     * Returns annotations that are &lt;em&gt;associated&lt;/em&gt; with this element.
+     *
+     * If there are no annotations &lt;em&gt;associated&lt;/em&gt; with this element, the return
+     * value is an array of length 0.
+     *
+     * The difference between this method and {@link #getAnnotation(Class)}
+     * is that this method detects if its argument is a &lt;em&gt;repeatable
+     * annotation type&lt;/em&gt; (JLS 9.6), and if so, attempts to find one or
+     * more annotations of that type by &quot;looking through&quot; a container
+     * annotation.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @implSpec The default implementation first calls {@link
+     * #getDeclaredAnnotationsByType(Class)} passing {@code
+     * annotationClass} as the argument. If the returned array has
+     * length greater than zero, the array is returned. If the returned
+     * array is zero-length and this {@code AnnotatedElement} is a
+     * class and the argument type is an inheritable annotation type,
+     * and the superclass of this {@code AnnotatedElement} is non-null,
+     * then the returned result is the result of calling {@link
+     * #getAnnotationsByType(Class)} on the superclass with {@code
+     * annotationClass} as the argument. Otherwise, a zero-length
+     * array is returned.
+     *
+     * @param &lt;T&gt; the type of the annotation to query for and return if present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return all this element's annotations for the specified annotation type if
+     *     associated with this element, else an array of length zero
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &lt;T extends Annotation&gt; T[] getAnnotationsByType(Class&lt;T&gt; annotationClass) {
+         /*
+          * Definition of associated: directly or indirectly present OR
+          * neither directly nor indirectly present AND the element is
+          * a Class, the annotation type is inheritable, and the
+          * annotation type is associated with the superclass of the
+          * element.
+          */
+         T[] result = getDeclaredAnnotationsByType(annotationClass);
+
+         if (result.length == 0 &amp;&amp; // Neither directly nor indirectly present
+             this instanceof Class &amp;&amp; // the element is a class
+             AnnotationType.getInstance(annotationClass).isInherited()) { // Inheritable
+             Class&lt;?&gt; superClass = ((Class&lt;?&gt;) this).getSuperclass();
+             if (superClass != null) {
+                 // Determine if the annotation is associated with the
+                 // superclass
+                 result = superClass.getAnnotationsByType(annotationClass);
+             }
+         }
+
+         return result;
+     }
+
+    /**
+     * 返回直接存在于此元素上的所有注解。与此接口中的其他方法不同，该方法将忽略继承的注释。
+     * 如果没有注释直接存在于此元素上，则返回null
+     * Returns this element's annotation for the specified type if
+     * such an annotation is &lt;em&gt;directly present&lt;/em&gt;, else null.
+     *
+     * This method ignores inherited annotations. (Returns null if no
+     * annotations are directly present on this element.)
+     *
+     * @implSpec The default implementation first performs a null check
+     * and then loops over the results of {@link
+     * #getDeclaredAnnotations} returning the first annotation whose
+     * annotation type matches the argument type.
+     *
+     * @param &lt;T&gt; the type of the annotation to query for and return if directly present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return this element's annotation for the specified annotation type if
+     *     directly present on this element, else null
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &lt;T extends Annotation&gt; T getDeclaredAnnotation(Class&lt;T&gt; annotationClass) {
+         Objects.requireNonNull(annotationClass);
+         // Loop over all directly-present annotations looking for a matching one
+         for (Annotation annotation : getDeclaredAnnotations()) {
+             if (annotationClass.equals(annotation.annotationType())) {
+                 // More robust to do a dynamic cast at runtime instead
+                 // of compile-time only.
+                 return annotationClass.cast(annotation);
+             }
+         }
+         return null;
+     }
+
+    /**
+     * 返回直接存在于此元素上的所有注解。与此接口中的其他方法不同，该方法将忽略继承的注释
+     * Returns this element's annotation(s) for the specified type if
+     * such annotations are either &lt;em&gt;directly present&lt;/em&gt; or
+     * &lt;em&gt;indirectly present&lt;/em&gt;. This method ignores inherited
+     * annotations.
+     *
+     * If there are no specified annotations directly or indirectly
+     * present on this element, the return value is an array of length
+     * 0.
+     *
+     * The difference between this method and {@link
+     * #getDeclaredAnnotation(Class)} is that this method detects if its
+     * argument is a &lt;em&gt;repeatable annotation type&lt;/em&gt; (JLS 9.6), and if so,
+     * attempts to find one or more annotations of that type by &quot;looking
+     * through&quot; a container annotation if one is present.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @implSpec The default implementation may call {@link
+     * #getDeclaredAnnotation(Class)} one or more times to find a
+     * directly present annotation and, if the annotation type is
+     * repeatable, to find a container annotation. If annotations of
+     * the annotation type {@code annotationClass} are found to be both
+     * directly and indirectly present, then {@link
+     * #getDeclaredAnnotations()} will get called to determine the
+     * order of the elements in the returned array.
+     *
+     * &lt;p&gt;Alternatively, the default implementation may call {@link
+     * #getDeclaredAnnotations()} a single time and the returned array
+     * examined for both directly and indirectly present
+     * annotations. The results of calling {@link
+     * #getDeclaredAnnotations()} are assumed to be consistent with the
+     * results of calling {@link #getDeclaredAnnotation(Class)}.
+     *
+     * @param &lt;T&gt; the type of the annotation to query for and return
+     * if directly or indirectly present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return all this element's annotations for the specified annotation type if
+     *     directly or indirectly present on this element, else an array of length zero
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &lt;T extends Annotation&gt; T[] getDeclaredAnnotationsByType(Class&lt;T&gt; annotationClass) {
+        Objects.requireNonNull(annotationClass);
+        return AnnotationSupport.
+            getDirectlyAndIndirectlyPresent(Arrays.stream(getDeclaredAnnotations()).
+                                            collect(Collectors.toMap(Annotation::annotationType,
+                                                                     Function.identity(),
+                                                                     ((first,second) -&gt; first),
+                                                                     LinkedHashMap::new)),
+                                            annotationClass);
+    }
+
+    /**
+     * 返回直接存在于此元素上的所有注解及注解对应的重复注解容器。
+     * 与此接口中的其他方法不同，该方法将忽略继承的注解。
+     * 如果没有注释直接存在于此元素上，则返回长度为零的一个数组。
+     * 该方法的调用者可以随意修改返回的数组，而不会对其他调用者返回的数组产生任何影响
+     * Returns annotations that are &lt;em&gt;directly present&lt;/em&gt; on this element.
+     * This method ignores inherited annotations.
+     *
+     * If there are no annotations &lt;em&gt;directly present&lt;/em&gt; on this element,
+     * the return value is an array of length 0.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @return annotations directly present on this element
+     * @since 1.5
+     */
+    Annotation[] getDeclaredAnnotations();
+}
+
+</code></pre>
+<h4 id="自定义注解样例">自定义注解样例</h4>
+<p>自定义注解样例，可以通过反射获取对应的参数值。</p>
+<pre><code>@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface MethodAnnotation {
+    String title() default &quot;&quot;;
+
+    String msg() default &quot;&quot;;
+}
+
+</code></pre>
+<pre><code>public class CustomizeAnnotation {
+    @MethodAnnotation(title = &quot;test1-title&quot;, msg = &quot;test1-msg&quot;)
+    public String test1() {
+        return &quot;test1&quot;;
+    }
+
+    @MethodAnnotation(title = &quot;test2-title&quot;, msg = &quot;test2-msg&quot;)
+    public String test2() {
+        return &quot;test2&quot;;
+    }
+
+    @MethodAnnotation(title = &quot;test3-title&quot;, msg = &quot;test3-msg&quot;)
+    public String test3() {
+        return &quot;test3&quot;;
+    }
+
+    public static void main(String[] args) {
+        Method[] methods = CustomizeAnnotation.class.getMethods();
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(MethodAnnotation.class)) {
+                MethodAnnotation methodAnnotation = method.getAnnotation(MethodAnnotation.class);
+                System.out.println(methodAnnotation.title() + &quot;-------&quot; + methodAnnotation.msg());
+
+                MethodAnnotation methodAnnotation1 = method.getDeclaredAnnotation(MethodAnnotation.class);
+                System.out.println(methodAnnotation1.title() + &quot;=====&quot; + methodAnnotation1.msg());
+            }
         }
-        incrRefCount(value);
-    } else {
-        redisPanic(&quot;Unknown list encoding&quot;);
     }
 }
 
 </code></pre>
-<h4 id="linkedlist">linkedList</h4>
-<p>双向链表linkedList在3.2版本之前作为列表键的底层数据结构之外，还被用于发布订阅、慢查询、监视器等功能中。</p>
-<p>双向链表linkedlist便于在表的两端进行push和pop操作，在插入节点上复杂度很低，但是它的内存开销比较大。首先，它在每个节点上除了要保存数据之外，还要额外保存两个指针；其次，双向链表的各个节点是单独的内存块，地址不连续，节点多了容易产生内存碎片。</p>
-<pre><code>// 文件地址：adlist.h
-typedef struct listNode {
-    // 前驱节点
-    struct listNode *prev;
-    // 后继节点
-    struct listNode *next;
-    // 实际存储的值
-    void *value;
-} listNode;
+<h4 id="自定义注解与aop">自定义注解与aop</h4>
+<p>自定义注解常与切面编程(AOP)一同联合使用，以下Spring AOP切面实现分布式锁注解为例，简单展示利用注解来实现解耦。</p>
+<pre><code>@Target({TYPE, FIELD, METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RepeatScheduleTask {
 
-typedef struct list {
-    // 表头指针
-    listNode *head;
-    // 表尾指针
-    listNode *tail;
-    // 复制函数
-    void *(*dup)(void *ptr);
-    // 释放函数
-    void (*free)(void *ptr);
-    // 对比函数
-    int (*match)(void *ptr, void *key);
-    // 节点数量，即链表长度
-    unsigned long len;
-} list;
+    String lockName() default &quot;&quot;;
 
-</code></pre>
-<p>从上述源码可以看出，listNode 中使用了一个 void 类型的指针保存其内存，说明双向链表对节点所保存的值的类型不做任何限制。</p>
-<p>对于不同类型的值，有时候便需要不同的函数来进行处理，由于链表内部并不知道 value 保存的内容的真实情况， 因此需要用户指定三个函数用于处理这个 value，这三个函数分别是：</p>
-<ul>
-<li>dup：复制一个 value，若没有提供此函数，链表内部在需要复制的时候将会直接复制 value 指针的值</li>
-<li>free：释放一个 value，若没有提供此函数，则不进行 free 操作</li>
-<li>match：比较两个 value 的值，返回非 0 值表示两个 value 相等，若不提供此函数则直接比较两个 value 指针是否相等</li>
-</ul>
-<p>list 结构里面维护了一个表示其节点个数的变量 len，因此 Redis 在查询 list 的长度时可以直接使用这个值，而不用遍历整个列表，这也使得查询长度操作的复杂度为O(1)。</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320014.png" alt="img" loading="lazy"></figure>
-<p>从上述结构图中可以看出，Redis链表结构的主要特性如下:</p>
-<ul>
-<li>双向：链表节点带有前驱、后继指针获取某个节点的前驱、后继节点的时间复杂度为0(1)。</li>
-<li>无环: 链表为非循环链表表头节点的前驱指针和表尾节点的后继指针都指向NULL，对链表的访问以NULL为终点。</li>
-<li>带表头指针和表尾指针：通过list结构中的head和tail指针，获取表头和表尾节点的时间复杂度都为O(1)。</li>
-<li>带链表长度计数器：通过list结构的len属性获取节点数量的时间复杂度为O(1)。</li>
-<li>多态：链表节点使用void*指针保存节点的值，并且可以通过list结构的dup、free、match三个属性为节点值设置类型特定函数，所以链表可以用来保存各种不同类型的值。</li>
-</ul>
-<h4 id="ziplist">zipList</h4>
-<p>压缩列表ziplist 是一个经过特殊编码的双向链表，旨在提高内存效率。它允许在 O(1) 时间内对列表的任一侧进行push和pop操作。不过，由于每个操作都需要重新分配 ziplist 使用的内存，因此实际复杂度与 ziplist 使用的内存量有关。</p>
-<p>ziplist存储在一段连续的内存上，所以存储效率很高。但是，它不利于修改操作，插入和删除操作需要频繁的申请和释放内存。特别是当ziplist长度很长的时候，一次realloc可能会导致大批量的数据拷贝。</p>
-<p>zipList的构成一般如下表所示：</p>
-<table>
-<thead>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>zlbytes</td>
-<td>uint32_t</td>
-<td>用于保存压缩列表的长度（单位为字节），包括 4 字节的 zlbytes 本身。通过值可以快速调整整个压缩列表的大小，而无需遍历整个压缩列表</td>
-</tr>
-<tr>
-<td>ztail</td>
-<td>uint32_t</td>
-<td>用于记录列表中最后一个节点的偏移。通过这个值可以快速的从队列末尾弹出一个节点，而无需遍历整个列表</td>
-</tr>
-<tr>
-<td>zllen</td>
-<td>uint16_t</td>
-<td>记录压缩列表中节点的数量。当节点数量超过或者等于 UINT16_MAX(65535) 时，需要遍历整个列表才能知道节点的数量（一旦列表到达 UINT16_MAX，即使后面将部分节点从列表中删除，使得列表节点数小于 UINT16_MAX 这个字段依然会保持 UINT16_MAX 不变）</td>
-</tr>
-<tr>
-<td>zlend</td>
-<td>uint8_t</td>
-<td>是一个特殊的节点，用于表示压缩列表的末尾。它的值为 255。其他普通的节点不会以 255 开头。因此可以通过检查节点的地一个字节是否等于 255 从而知道是否已经到达列表的末尾</td>
-</tr>
-</tbody>
-</table>
-<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320015.png" alt="" loading="lazy"></figure>
-<pre><code>// 文件地址：ziplist.c
-// 创建ziplist时，便已经指定了各个字段的长度。
-#define ZIPLIST_HEADER_SIZE     (sizeof(uint32_t)*2+sizeof(uint16_t))
-#define ZIPLIST_ENTRY_END(zl)   ((zl)+intrev32ifbe(ZIPLIST_BYTES(zl))-1)
-unsigned char *ziplistNew(void) {
-    unsigned int bytes = ZIPLIST_HEADER_SIZE+ZIPLIST_END_SIZE;
-    unsigned char *zl = zmalloc(bytes);
-    ZIPLIST_BYTES(zl) = intrev32ifbe(bytes);
-    ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(ZIPLIST_HEADER_SIZE);
-    ZIPLIST_LENGTH(zl) = 0;
-    zl[bytes-1] = ZIP_END;
-    return zl;
+    long waitTime();
+
+    long leaseTime() default -1L;
+
+    TimeUnit timeUnit();
+
 }
 
 </code></pre>
-<p>压缩列表中的压缩节点entry可以保存一个字节数组或者一个整数值。每个压缩列表节点都已两个字段开头：</p>
-<ul>
-<li>第一个字段是上一个节点的长度（prevlen），通过这个字段可以从后往前遍历列表。</li>
-<li>第二个字段是该节点的编码方式（encoding）。指示了本节点的节点类型是字节数组类型（String）还是整数类型（Integer）。如果是字节数组类型（String）还包含了字节数组的长度。</li>
-</ul>
-<pre><code>// 通常，压缩节点的结构如下所示。
-&lt;prevlen&gt; &lt;encoding&gt; &lt;entry-data&gt;
-// 对于一些很小的数字，会在 encoding 字段包含了数字本身。在这种情况下不需要 &lt;entry-data&gt; 
-&lt;prevlen&gt; &lt;encoding&gt;
+<pre><code>@Component
+@Aspect
+public class RepeatScheduleTaskAspect {
 
-</code></pre>
-<pre><code>// 因为压缩列表本质只是字节数组，为了方便操作，redis还定义了zlentry结构体
-// 操作时，将每个节点包含信息按照一定规则写入zlentry中。
-typedef struct zlentry {
-    unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
-    unsigned int prevrawlen;     /* Previous entry len. */
-    unsigned int lensize;        /* Bytes used to encode this entry type/len.
-                                    For example strings have a 1, 2 or 5 bytes
-                                    header. Integers always use a single byte.*/
-    unsigned int len;            /* Bytes used to represent the actual entry.
-                                    For strings this is just the string length
-                                    while for integers it is 1, 2, 3, 4, 8 or
-                                    0 (for 4 bit immediate) depending on the
-                                    number range. */
-    unsigned int headersize;     /* prevrawlensize + lensize. */
-    unsigned char encoding;      /* Set to ZIP_STR_* or ZIP_INT_* depending on
-                                    the entry encoding. However for 4 bits
-                                    immediate integers this can assume a range
-                                    of values and must be range-checked. */
-    unsigned char *p;            /* Pointer to the very start of the entry, that
-                                    is, this points to prev-entry-len field. */
-} zlentry;  
+    private static final Logger logger = LoggerFactory.getLogger(RepeatScheduleTaskAspect.class);
 
-</code></pre>
-<p>对于压缩节点中的prevlen字段有着两种编码方式：</p>
-<ul>
-<li>前节点长度小于254时，占用1字节，用来表示前节点长度</li>
-<li>前节点长度大于等于254时，占用5字节，其中第1个字节为特殊值0xFE(254)，后面4字节用来表示实际长度</li>
-</ul>
-<pre><code>// 前节点长度小于254时
-&lt;prevlen from 0 to 253&gt; &lt;encoding&gt; &lt;entry&gt;
-// 前节点长度大于等于254时
-0xFE &lt;4 bytes unsigned little endian prevlen&gt; &lt;encoding&gt; &lt;entry&gt;
+    /**
+     * 防止定时任务重复执行配置的redis key
+     */
+    private static final String PROJECT_REDIS_KEY = &quot;common-util-&quot;;
+    /**
+     * 防止定时任务重复执行缓存时长，小时
+     */
+    private static final Long PROJECT_REDIS_TIMEOUT = 1L;
 
-</code></pre>
-<pre><code>// 文件地址：ziplist.c
-// 返回前一个节点的编码长度
-#define ZIP_DECODE_PREVLENSIZE(ptr, prevlensize) do {
-    if ((ptr)[0] &lt; ZIP_BIG_PREVLEN) {
-        (prevlensize) = 1;                                                 
-    } else {                                                               
-        (prevlensize) = 5;                                                 
-    }                                                                      
-} while(0)
+    @Resource
+    private RedissonUtil redissonUtil;
+    @Resource
+    private RedisTemplate&lt;String, String&gt; redisTemplate;
 
-#define ZIP_DECODE_PREVLEN(ptr, prevlensize, prevlen) do {                 
-    ZIP_DECODE_PREVLENSIZE(ptr, prevlensize);                              
-    if ((prevlensize) == 1) {                                              
-        (prevlen) = (ptr)[0];                                              
-    } else { /* prevlensize == 5 */                                        
-        (prevlen) = ((ptr)[4] &lt;&lt; 24) |                                     
-                    ((ptr)[3] &lt;&lt; 16) |                                     
-                    ((ptr)[2] &lt;&lt;  8) |                                     
-                    ((ptr)[1]);                                            
-    }                                                                      
-} while(0)
 
-</code></pre>
-<p>对于压缩节点encoding字段而言，针对不同数据类型会有不同的表现形式，即entry的编码字段取决于entry的内容。</p>
-<ul>
-<li>当entry是字符串时，编码第一个字节的前 2 位将保存用于存储字符串长度的编码类型，然后是字符串的实际长度。</li>
-<li>当条目是整数时，前 2 位都设置为 1。接下来的 2 位用于指定在此标头之后将存储哪种整数。</li>
-<li>不同类型和编码的概述如下。第一个字节总是足以确定条目的类型。</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>编码</th>
-<th>大小</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>00pppppp</td>
-<td>1 字节</td>
-<td>保存小于等于 63 个字符的字节数组（6 比特）。&quot;pppppp&quot; 表示 6 比特大小的无符号整数长度</td>
-</tr>
-<tr>
-<td>01pppppp</td>
-<td>qqqqqqqq</td>
-<td>2 字节</td>
-</tr>
-<tr>
-<td>10000000</td>
-<td>qqqqqqqq</td>
-<td>rrrrrrrr</td>
-</tr>
-<tr>
-<td>11000000</td>
-<td>1 字节</td>
-<td>保存 2 字节有符号整数（int16_t）的编码</td>
-</tr>
-<tr>
-<td>11010000</td>
-<td>1 字节</td>
-<td>保存 4 字节有符号整数（int32_t）的编码</td>
-</tr>
-<tr>
-<td>11100000</td>
-<td>1 字节</td>
-<td>保存 8 字节有符号整数（int64_t）的编码</td>
-</tr>
-<tr>
-<td>11110000</td>
-<td>1 字节</td>
-<td>保存 3 字节有符号整数（24 位）的编码</td>
-</tr>
-<tr>
-<td>11111110</td>
-<td>1 字节</td>
-<td>保存 1 字节有符号整数（int8_t）的编码</td>
-</tr>
-<tr>
-<td>1111xxxx</td>
-<td>1 字节</td>
-<td>（xxxx 取值为 0001 到 1101）保存 0 到 12 的整数编码，xxxx 为 0001 时表示保存的是 0,依此类推</td>
-</tr>
-<tr>
-<td>11111111</td>
-<td>1 字节</td>
-<td>表示压缩列表的末尾节点</td>
-</tr>
-</tbody>
-</table>
-<p>注意：每个压缩节点会存在prevlen属性，用来记录前置节点的长度，根据前置节点长度还分为两种情况，当长度大于等于254时，占用空间会从1字节扩大到5字节。所谓连锁更新，就是多个长度处于250字节~253字节之间的连续节点，当一个节点更新后，导致下一个节点prevlen由1字节变为5字节，从而导致下下一个节点prevlen值增大，产生连锁反应。因为连锁更新在最坏情况下需要对压缩列表执行N次空间预分配，而每次空间预分配的最坏复杂度为O(n)，所以连锁更新的最坏复杂度为O(n<sup>2)。不过，虽然连锁更新的复杂度高，但出现的几率较低，需要多个特殊长度的节点，所以插入删除命令的平均复杂度均为O(n)，最坏复杂度为O(n</sup>2)。对应的连锁更新函数为：__ziplistCascadeUpdate</p>
-<h4 id="quicklist">quickList</h4>
-<p>前面两种结构各有优缺点，ziplist适合数据量少而linkedlist适合大数据量，那么有没有一种能够兼容这两种数据结构的新型数据结构呢？答案是有的，从redis3.2版本开始，引入了一个quicklist的数据结构，其兼顾了前面两种数据结构的优点，现已成为list对象的底层实现。</p>
-<p>实际上quicklist是ziplist和linkedlist的混合体，它将linkedlist按段切分，每一段都会使用ziplist来紧凑存储，多个ziplist之间使用双向指针进行串联。</p>
-<pre><code>// 文件地址：quicklist.h
-typedef struct quicklistNode {
-    struct quicklistNode *prev; /* 指向上一个节点 */
-    struct quicklistNode *next; /* 指向下一个节点 */
-    unsigned char *entry;  /* 当节点保存的是压缩 ziplist 时，指向 quicklistLZF，否则指向 ziplist */
-    size_t sz;            /* ziplist 的大小（字节为单位） */
-    unsigned int count : 16;     /* ziplist 的项目个数 */
-    unsigned int encoding : 2;   /* RAW==1 or LZF==2 */
-    unsigned int container : 2;  /* PLAIN==1 or PACKED==2 */
-    unsigned int recompress : 1; /* 这个节点是否之前是被压缩的 */
-    unsigned int attempted_compress : 1;  /* 节点太小，不压缩 */
-    unsigned int extra : 10; /* 未使用，保留字段 */
-} quicklistNode;
+    @Pointcut(&quot;@within(com.philosopherzb.commonutil.repeatscheduletasks.annotation.RepeatScheduleTask) || &quot; +
+            &quot;@annotation(com.philosopherzb.commonutil.repeatscheduletasks.annotation.RepeatScheduleTask)&quot;)
+    public void pointCut() {
 
-// 当 quicklistNode 指向的 ziplist 被压缩的情况下，上述的 entry成员会指向如下的 quicklistLZF 结构
-typedef struct quicklistLZF {
-    unsigned int sz; /* LZF 压缩后的ziplist大小*/
-    char compressed[]; /* 是个柔性数组（flexible array member），存放压缩后的ziplist字节数组。*/
-} quicklistLZF;
-
-typedef struct quicklist {
-    quicklistNode *head;  /* 头指针 */
-    quicklistNode *tail;  /* 尾指针 */
-    unsigned long count;        /* 所有ziplist数据项的个数总和。 */
-    unsigned long len;          /* quicklistNodes总数 */
-    signed int fill : QL_FILL_BITS;       /* 16bit，ziplist大小设置，存放list-max-ziplist-size参数的值。 */
-    unsigned int compress : QL_COMP_BITS; /*  16bit，节点压缩深度设置，存放list-compress-depth参数的值;0=off */
-    unsigned int bookmark_count: QL_BM_BITS;
-    quicklistBookmark bookmarks[];
-} quicklist;
-
-</code></pre>
-<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320016.png" alt="img" loading="lazy"></figure>
-<p>注意：</p>
-<ul>
-<li>quicklist 不会对过小的 ziplist 进行压缩，这个值为 MIN_COMPRESS_BYTES，目前是 48</li>
-<li>quicklist 在对 ziplist 进行压缩后，会对比压缩后的长度和未压缩的长度，若压缩后的长度 - 未压缩的长度 &lt; 8（MIN_COMPRESS_IMPROVE）（lzf-&gt;sz + MIN_COMPRESS_IMPROVE &gt;= node-&gt;sz），则使用未压缩的数据</li>
-<li>quicklist 的头节点和尾节点在任何时候都不会被压缩，因此可以保证将数据插入列表的头或者尾是高效的。</li>
-<li>插入一个数据到压缩的节点时，需要先对节点的 ziplist 整个进行解压，插入后再次进行压缩。</li>
-<li>对中间某个已满的节点进行插入操作会导致此节点（假设此节点为 node）的 ziplist 在插入点进行分裂，此时这个 ziplist 会变成两个 ziplist（新建一个 quicklistNode 保存多出来的 ziplist，假设此节点为 newnode），然后将数据插入 node 指向的 ziplist 的末尾，然后对 node 进行 _quicklistMergeNodes 操作。</li>
-</ul>
-<pre><code>// 文件地址：quicklist.c
-// 压缩时，不过对小于48字节的数据进行压缩，同时会开辟新的空间压缩ziplist数据，并释放原来的node空间，最后指向压缩后的数据并修改其他属性值
-// 解压操作与压缩操作基本一致
-/* Minimum listpack size in bytes for attempting compression. */
-#define MIN_COMPRESS_BYTES 48
-/* Compress the listpack in 'node' and update encoding details.
- * Returns 1 if listpack compressed successfully.
- * Returns 0 if compression failed or if listpack too small to compress. */
-REDIS_STATIC int __quicklistCompressNode(quicklistNode *node) {
-#ifdef REDIS_TEST
-    node-&gt;attempted_compress = 1;
-#endif
-
-    /* validate that the node is neither
-     * tail nor head (it has prev and next)*/
-    assert(node-&gt;prev &amp;&amp; node-&gt;next);
-
-    node-&gt;recompress = 0;
-    /* 小于MIN_COMPRESS_BYTES=48的数据不会被压缩 */
-    if (node-&gt;sz &lt; MIN_COMPRESS_BYTES)
-        return 0;
-
-    quicklistLZF *lzf = zmalloc(sizeof(*lzf) + node-&gt;sz);
-
-    /* Cancel if compression fails or doesn't compress small enough */
-    if (((lzf-&gt;sz = lzf_compress(node-&gt;entry, node-&gt;sz, lzf-&gt;compressed,
-                                 node-&gt;sz)) == 0) ||
-        lzf-&gt;sz + MIN_COMPRESS_IMPROVE &gt;= node-&gt;sz) {
-        /* lzf_compress aborts/rejects compression if value not compressible. */
-        zfree(lzf);
-        return 0;
     }
-    lzf = zrealloc(lzf, sizeof(*lzf) + lzf-&gt;sz);
-    zfree(node-&gt;entry);
-    node-&gt;entry = (unsigned char *)lzf;
-    node-&gt;encoding = QUICKLIST_NODE_ENCODING_LZF;
-    return 1;
+
+    @Around(&quot;pointCut()&quot;)
+    public Object around(ProceedingJoinPoint pjp) {
+        logger.info(&quot;RepeatScheduleTaskAspect.around begin execute&quot;);
+        try {
+            Signature signature = pjp.getSignature();
+            MethodSignature methodSignature = (MethodSignature) signature;
+            RepeatScheduleTask repeatScheduleTask = methodSignature.getMethod().getAnnotation(RepeatScheduleTask.class);
+            String lockName = StringUtils.isNotEmpty(repeatScheduleTask.lockName()) ? repeatScheduleTask.lockName() : RedissonUtil.DEFAULT_LOCK_NAME;
+            long waitTime = repeatScheduleTask.waitTime();
+            long leaseTime = repeatScheduleTask.leaseTime();
+            TimeUnit timeUnit = repeatScheduleTask.timeUnit();
+            logger.info(&quot;repeatScheduleTask lockName:{}, waitTime:{}, leaseTime:{}, timeUnit:{}&quot;, lockName, waitTime, leaseTime, timeUnit);
+            // 单机redisson
+            RLock lock = redissonUtil.redissonSingle().getLock(lockName);
+            try {
+                // 尝试加锁，最多等待waitTime，如果等待超时将返回系统繁忙，上锁以后如果没有解锁，leaseTime之后将会自动解锁
+                boolean isLock = lock.tryLock(waitTime, leaseTime, timeUnit);
+                if (isLock) {
+                    logger.info(&quot;ScheduleService.task ----redisson lock Success&quot;);
+                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    String executeIp = redisTemplate.opsForValue().get(PROJECT_REDIS_KEY + lockName);
+                    if (executeIp == null) {
+                        redisTemplate.opsForValue().set(PROJECT_REDIS_KEY + lockName, localIp, PROJECT_REDIS_TIMEOUT, TimeUnit.HOURS);
+                        logger.info(&quot;ScheduleService.scheduleTask ----execute task, host localIp:{}&quot;, localIp);
+                        return pjp.proceed();
+                    }
+                    if (executeIp.equals(localIp)) {
+                        logger.info(&quot;ScheduleService.scheduleTask ----execute task, host executeIp:{}&quot;, executeIp);
+                        return pjp.proceed();
+                    } else {
+                        logger.info(&quot;ScheduleService.task ----other task executing , current ip:{}, execute task ip:{}&quot;, localIp, executeIp);
+                    }
+                } else {
+                    logger.info(&quot;ScheduleService.task ----redisson lock fail&quot;);
+                }
+            } catch (InterruptedException e) {
+                logger.error(&quot;ScheduleService.task ----redisson lock exception,e={}&quot;, e);
+            } finally {
+                // 判断当前线程是否获取到锁，是则进行解锁
+                if (lock.isHeldByCurrentThread() &amp;&amp; lock.isLocked()) {
+                    lock.unlock();
+                }
+            }
+        } catch (Throwable throwable) {
+            logger.error(&quot;ScheduleService.task occur exception, e:{}&quot;, throwable);
+        }
+        return null;
+    }
+}
+
+</code></pre>
+<pre><code>@Service
+public class RepeatScheduleService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RepeatScheduleService.class);
+
+    @RepeatScheduleTask(waitTime = 10, leaseTime = 30, timeUnit = TimeUnit.SECONDS)
+    public void insertSecret() {
+        logger.info(&quot;ScheduleService.insertSecret begin&quot;);
+    }
 }
 
 </code></pre>
@@ -1201,7 +1527,7 @@ REDIS_STATIC int __quicklistCompressNode(quicklistNode *node) {
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/" title="深入Redis之内部数据结构(上)">https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-shang/</a>
+      <a href="https://philosopherzb.github.io/post/java-zhu-jie-ji-zhi-xiang-jie/" title="Java注解机制详解">https://philosopherzb.github.io/post/java-zhu-jie-ji-zhi-xiang-jie/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1210,21 +1536,21 @@ REDIS_STATIC int __quicklistCompressNode(quicklistNode *node) {
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/sFC_VyjLh/"># redis</a>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="深入Redis之内部数据结构(下)" href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-xia/">深入Redis之内部数据结构(下)</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="深入Redis之内部数据结构(下)" href="https://philosopherzb.github.io/post/shen-ru-redis-zhi-nei-bu-shu-ju-jie-gou-xia/">上一篇</a>
+        <a class="nav-pc-next" title="Java反射机制详解" href="https://philosopherzb.github.io/post/java-fan-she-ji-zhi-xiang-jie/">Java反射机制详解</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="Java反射机制详解" href="https://philosopherzb.github.io/post/java-fan-she-ji-zhi-xiang-jie/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="RocketMQ源码解读之主从机制" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-zhu-cong-ji-zhi/">RocketMQ源码解读之主从机制</a>
-        <a class="nav-mobile-next" title="RocketMQ源码解读之主从机制" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-zhu-cong-ji-zhi/">下一篇</a>
+        <a class="nav-pc-next" title="Java泛型机制详解" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/">Java泛型机制详解</a>
+        <a class="nav-mobile-next" title="Java泛型机制详解" href="https://philosopherzb.github.io/post/java-fan-xing-ji-zhi-xiang-jie/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>

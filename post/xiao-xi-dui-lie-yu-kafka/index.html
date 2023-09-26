@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>消息队列与kafka | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1695620160592">
+<link rel="shortcut icon" href="/favicon.ico?v=1695695619646">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">54</span>
+        <span class="site-item-stat-count">56</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -18310,6 +18310,1642 @@ rm (移除档案或目录)
 
 [root@localhost tmp]# rm -i bashrc* &amp;lt;==通过通配符『*』的帮忙，将/tmp底下开头为bashrc的档名通通删除。通配符『*』代表的是 0 到无穷多个任意字符。&lt;/code&gt;&lt;/pre&gt;
 ">Centos7基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-fan-she-ji-zhi-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java反射机制。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/river-4245261_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;反射基础&#34;&gt;反射基础&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;JAVA反射机制是在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意一个方法和属性；这种动态获取的信息以及动态调用对象的方法的功能称为java语言的反射机制。这也是 Java 语言在运行时的一种自观能力，能够了让其解自身的情况并为下一步的动作做准备。&lt;/p&gt;
+&lt;p&gt;Java 提供反射机制，依赖于 Class 类和 java.lang.reflect 类库。其主要的类如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Class：表示类或者接口&lt;/li&gt;
+&lt;li&gt;Field：表示类中的成员变量&lt;/li&gt;
+&lt;li&gt;Method：表示类中的方法&lt;/li&gt;
+&lt;li&gt;Constructor：表示类的构造方法&lt;/li&gt;
+&lt;li&gt;Array：该类提供了动态创建数组和访问数组元素的静态方法&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中Class类一个实实在在的类，存在于JDK的java.lang包中。而Class类的实例则表示运行时类型信息的对应类。实际上在 Java 中每个类都有一个 Class 对象，每当我们编写并且编译一个新创建的类就会将相关信息写到 .class 文件里。当我们 new 一个新对象或者引用静态成员变量时，JVM 中的类加载器子系统会将对应 Class 对象加载到 JVM 中，然后 JVM 再根据这个类型信息相关的 Class 对象创建我们需要实例对象或者提供静态变量的引用值。我们可以将 Class 类，称为类类型，一个 Class 对象，称为类类型对象。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public final class Class&amp;lt;T&amp;gt; implements java.io.Serializable,
+                              GenericDeclaration,
+                              Type,
+                              AnnotatedElement {
+    private static final int ANNOTATION= 0x00002000;
+    private static final int ENUM      = 0x00004000;
+    private static final int SYNTHETIC = 0x00001000;
+
+    private static native void registerNatives();
+    static {
+        registerNatives();
+    }
+
+    /*
+     * Private constructor. Only the Java Virtual Machine creates Class objects.
+     * This constructor is not used and prevents the default constructor being
+     * generated.
+     */
+    private Class(ClassLoader loader) {
+        // Initialize final field for classLoader.  The initialization value of non-null
+        // prevents future JIT optimizations from assuming this final field is null.
+        classLoader = loader;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Class类具备如下特性：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Class类也是类的一种，与class关键字是不一样的&lt;/li&gt;
+&lt;li&gt;手动编写的类被编译后会产生一个Class对象，其表示的是创建的类的类型信息，而且这个Class对象保存在同名.class的文件中(字节码文件)&lt;/li&gt;
+&lt;li&gt;每个通过关键字class标识的类，在内存中有且只有一个与之对应的Class对象来描述其类型信息，无论创建多少个实例对象，其依据的都是用一个Class对象&lt;/li&gt;
+&lt;li&gt;Class类只存私有构造函数，因此对应Class对象只能有JVM创建和加载&lt;/li&gt;
+&lt;li&gt;Class类的对象作用是运行时提供或获得某个对象的类型信息，这点对于反射技术很重要&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;核心类库&#34;&gt;核心类库&lt;/h3&gt;
+&lt;h4 id=&#34;核心类库-class&#34;&gt;核心类库-Class&lt;/h4&gt;
+&lt;p&gt;在类加载的时候，jvm便会创建一个class对象。class对象是反射中最常用的，获取class对象的方式的主要有三种&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;根据类名：类名.class&lt;/li&gt;
+&lt;li&gt;根据对象：对象.getClass()&lt;/li&gt;
+&lt;li&gt;根据全限定类名：Class.forName(全限定类名)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public class TestReflection {
+    public static void main(String[] args) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        // 获取Class对象的三种方式
+        System.out.println(&amp;quot;根据类名: &amp;quot; + User.class);
+        System.out.println(&amp;quot;根据对象: &amp;quot; + new User().getClass());
+        System.out.println(&amp;quot;根据全限定类名: &amp;quot; + Class.forName(&amp;quot;com.philosopherzb.demo.test.reflect.User&amp;quot;));
+        // 常用的方法
+        Class userClass = User.class;
+        System.out.println(&amp;quot;获取全限定类名: &amp;quot; + userClass.getName());
+        System.out.println(&amp;quot;获取类名: &amp;quot; + userClass.getSimpleName());
+        System.out.println(&amp;quot;实例化: &amp;quot; + userClass.newInstance());
+    }
+}
+class User{
+    private String name;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;方法名&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;forName()&lt;/td&gt;
+&lt;td&gt;返回指定全限定名的类对象&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getName()&lt;/td&gt;
+&lt;td&gt;取全限定的类名(包括包名)，即类的完整名字。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getSimpleName()&lt;/td&gt;
+&lt;td&gt;获取类名(不包括包名)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;isInterface()&lt;/td&gt;
+&lt;td&gt;判断Class对象是否是表示一个接口&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getInterfaces()&lt;/td&gt;
+&lt;td&gt;返回Class对象数组，表示Class对象所引用的类所实现的所有接口。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;newInstance()&lt;/td&gt;
+&lt;td&gt;返回一个Oject对象，是实现“虚拟构造器”的一种途径。使用该方法创建的类，必须带有无参的构造器。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getFields()&lt;/td&gt;
+&lt;td&gt;获得某个类的所有的公共（public）的字段，包括继承自父类的所有公共字段。 类似的还有getMethods和getConstructors。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredFields()&lt;/td&gt;
+&lt;td&gt;获得某个类的自己声明的字段，即包括public、private和proteced，默认但是不包括父类声明的任何字段。类似的还有getDeclaredMethods和getDeclaredConstructors。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;newInstance()&lt;/td&gt;
+&lt;td&gt;返回一个Oject对象，是实现“虚拟构造器”的一种途径。使用该方法创建的类，必须带有无参的构造器。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h4 id=&#34;核心类库-constructor&#34;&gt;核心类库-Constructor&lt;/h4&gt;
+&lt;p&gt;Constructor 提供了有关类的构造方法的信息，以及对它的动态访问的能力。&lt;/p&gt;
+&lt;p&gt;可以通过 Class 提供的方法，获取 Constructor 对象，具体如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;方法名&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;forName()&lt;/td&gt;
+&lt;td&gt;返回指定全限定名的类对象&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getConstructor(Class&amp;lt;?&amp;gt;... parameterTypes)&lt;/td&gt;
+&lt;td&gt;返回指定参数类型、具有public访问权限的构造函数对象&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getConstructors()&lt;/td&gt;
+&lt;td&gt;返回所有具有public访问权限的构造函数的Constructor对象数组&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredConstructor(Class&amp;lt;?&amp;gt;... parameterTypes)&lt;/td&gt;
+&lt;td&gt;返回指定参数类型、所有声明的（包括private）构造函数对象&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredConstructors()&lt;/td&gt;
+&lt;td&gt;返回所有声明的（包括private）构造函数对象&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;newInstance()&lt;/td&gt;
+&lt;td&gt;调用无参构造器创建此 Class 对象所表示的类的一个新实例。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre&gt;&lt;code&gt;public class TestReflection {
+    public static void main(String[] args) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+        // forName
+        Class userClass = Class.forName(&amp;quot;com.philosopherzb.demo.test.reflect.User&amp;quot;);
+        // newInstance
+        User user001 = (User) userClass.newInstance();
+        user001.setName(&amp;quot;test001&amp;quot;);
+        System.out.println(user001.getName());
+
+        System.out.println(&amp;quot;======================&amp;quot;);
+
+        // getConstructor
+        Constructor constructor = userClass.getConstructor(String.class);
+        // newInstance
+        User user002 = (User) constructor.newInstance(&amp;quot;test002&amp;quot;);
+        System.out.println(user002.getName());
+    }
+}
+
+class User {
+    private String name;
+
+    public User() {
+    }
+
+    public User(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;核心类库-field&#34;&gt;核心类库-Field&lt;/h4&gt;
+&lt;p&gt;Field 提供了有关类或接口的单个属性的信息，以及对它的动态访问的能力。&lt;/p&gt;
+&lt;p&gt;可以通过 Class 提供的方法，获取 Field 对象，具体如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;方法名&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredField(String name)&lt;/td&gt;
+&lt;td&gt;获取指定name名称的(包含private修饰的)字段，不包括继承的字段&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredFields()&lt;/td&gt;
+&lt;td&gt;获取Class对象所表示的类或接口的所有(包含private修饰的)字段,不包括继承的字段&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getField(String name)&lt;/td&gt;
+&lt;td&gt;获取指定name名称、具有public修饰的字段，包含继承字段&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getFields()&lt;/td&gt;
+&lt;td&gt;获取修饰符为public的字段，包含继承字段&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre&gt;&lt;code&gt;public class TestReflection {
+    public static void main(String[] args) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchFieldException {
+        // forName
+        Class userClass = Class.forName(&amp;quot;com.philosopherzb.demo.test.reflect.User&amp;quot;);
+        // newInstance
+        User user = (User) userClass.newInstance();
+        // getField获取指定字段名称的Field类,注意字段修饰符必须为public而且存在该字段,
+        Field field = userClass.getField(&amp;quot;msg&amp;quot;);
+        field.set(user, &amp;quot;Test001&amp;quot;);
+        System.out.println(user.getMsg());
+
+        System.out.println(&amp;quot;======================&amp;quot;);
+
+        // getDeclaredField 获取指定字段名称的Field类,可以是任意修饰符的自动,注意不包含父类的字段
+        Field field2 = userClass.getDeclaredField(&amp;quot;name&amp;quot;);
+        // 开启访问权限
+        field2.setAccessible(Boolean.TRUE);
+        field2.set(user, &amp;quot;Test002&amp;quot;);
+        System.out.println(field2.get(user));
+        System.out.println(user.getName());
+    }
+}
+
+class User {
+    public String msg;
+    private String name;
+
+    public User() {
+    }
+
+    public User(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;核心类库-method&#34;&gt;核心类库-Method&lt;/h4&gt;
+&lt;p&gt;Method 提供了有关类或接口的单个方法的信息，以及对它的动态访问的能力。&lt;/p&gt;
+&lt;p&gt;可以通过 Class 提供的方法，获取 Field 对象，具体如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;方法名&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredMethod(String name, Class&amp;lt;?&amp;gt;... parameterTypes)&lt;/td&gt;
+&lt;td&gt;返回一个指定参数的Method对象，该对象反映此 Class 对象所表示的类或接口的指定已声明方法。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getDeclaredMethods()&lt;/td&gt;
+&lt;td&gt;返回 Method 对象的一个数组，这些对象反映此 Class 对象表示的类或接口声明的所有方法，包括公共、保护、默认（包）访问和私有方法，但不包括继承的方法。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getMethod(String name, Class&amp;lt;?&amp;gt;... parameterTypes)&lt;/td&gt;
+&lt;td&gt;返回一个 Method 对象，它反映此 Class 对象所表示的类或接口的指定公共成员方法。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;getMethods()&lt;/td&gt;
+&lt;td&gt;返回一个包含某些 Method 对象的数组，这些对象反映此 Class 对象所表示的类或接口（包括那些由该类或接口声明的以及从超类和超接口继承的那些的类或接口）的公共 member 方法。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre&gt;&lt;code&gt;public class TestReflection {
+    public static void main(String[] args) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+        // forName
+        Class userClass = Class.forName(&amp;quot;com.philosopherzb.demo.test.reflect.User&amp;quot;);
+        // newInstance
+        User user = (User) userClass.newInstance();
+        // getMethod 获取指定字段名称的Method类,注意字段修饰符必须为public而且存在该字段,
+        Method method = userClass.getMethod(&amp;quot;printInfo&amp;quot;, String.class);
+        method.invoke(user, &amp;quot;test001&amp;quot;);
+
+        System.out.println(&amp;quot;======================&amp;quot;);
+
+        // getDeclaredMethod 获取指定字段名称的Method类,可以是任意修饰符的自动,注意不包含父类的字段
+        Method method2 = userClass.getDeclaredMethod(&amp;quot;printMsg&amp;quot;, String.class);
+        // 开启访问权限
+        method2.setAccessible(Boolean.TRUE);
+        System.out.println(method2.invoke(user, &amp;quot;test002&amp;quot;));
+    }
+}
+
+class User {
+    public String msg;
+    private String name;
+
+    public void printInfo(String content) {
+        System.out.println(&amp;quot;User: &amp;quot; + content);
+    }
+
+    private String printMsg(String content) {
+        System.out.println(&amp;quot;User: &amp;quot; + content);
+        return &amp;quot;User: &amp;quot; + content;
+    }
+
+    public User() {
+    }
+
+    public User(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;核心类库-array&#34;&gt;核心类库-Array&lt;/h4&gt;
+&lt;p&gt;Array在 Java 中数组也是一种类，Array 提供了动态创建数组和访问数组元素的静态方法。&lt;/p&gt;
+&lt;p&gt;通过 get(Object array, int index) 方法，传入数组对象和下标索引，可以获取到该位置的值。&lt;/p&gt;
+&lt;p&gt;通过 newInstance(Class&amp;lt;?&amp;gt; componentType, int length) 方法，传入数组类型和长度，创建数组。如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 下面创建的两个数组等价
+int x[] = new int[10];
+int y[] = (int[]) Array.newInstance(int.class, 10);
+// 输出 true
+System.out.println(x.length == y.length);
+
+// 下面创建的两个数组等价
+int x[][] = new int[10][10];
+int y[][] = (int[][]) Array.newInstance(int.class, 10, 10);
+// 输出 true
+System.out.println(x.length == y.length);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;反射执行流程&#34;&gt;反射执行流程&lt;/h3&gt;
+&lt;h4 id=&#34;获取类对象&#34;&gt;获取类对象&lt;/h4&gt;
+&lt;p&gt;获取类对象Class主要是通过forName函数，当然直接使用Object.class或者Object.getClass()同样可以获取类对象，需要注意的是，类加载的本质最终还是由jvm回调 ClassLoader 来操作的。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@CallerSensitive
+public static Class&amp;lt;?&amp;gt; forName(String className)
+            throws ClassNotFoundException {
+    // 使用native函数获取调用类信息
+    Class&amp;lt;?&amp;gt; caller = Reflection.getCallerClass();
+    // 将调用类信息传入getClassLoader函数，进而获取类加载器
+    return forName0(className, true, ClassLoader.getClassLoader(caller), caller);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;protected Class&amp;lt;?&amp;gt; loadClass(String name, boolean resolve)
+    throws ClassNotFoundException
+{
+    // 锁住加载类代码 
+    synchronized (getClassLoadingLock(name)) {
+        // 先检查类是否已加载，已加载的无需重复加载
+        Class&amp;lt;?&amp;gt; c = findLoadedClass(name);
+        if (c == null) {
+            long t0 = System.nanoTime();
+            try {
+                // 此处为双亲委派机制--》向上寻找父类加载器
+                if (parent != null) {
+                    c = parent.loadClass(name, false);
+                } else {
+                    c = findBootstrapClassOrNull(name);
+                }
+            } catch (ClassNotFoundException e) {
+                // ClassNotFoundException thrown if class not found
+                // from the non-null parent class loader
+            }
+            // 父类没有加载到指定类是，再自己进行加载
+            if (c == null) {
+                // If still not found, then invoke findClass in order
+                // to find the class.
+                long t1 = System.nanoTime();
+                c = findClass(name);
+
+                // this is the defining class loader; record the stats
+                sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                sun.misc.PerfCounter.getFindClasses().increment();
+            }
+        }
+        if (resolve) {
+            resolveClass(c);
+        }
+        return c;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;获取类实例&#34;&gt;获取类实例&lt;/h4&gt;
+&lt;p&gt;在获取class对象后，可以通过使用newInstance()获取对应的类实例，这一点与通过new操作生成一个新对象很类似。这个函数大的主要步骤如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当安全管理器不为空时，检查成员访问权限，不通过时抛出SecurityException&lt;/li&gt;
+&lt;li&gt;获取类的无参构造器，并将其缓存至cachedConstructor&lt;/li&gt;
+&lt;li&gt;开始真正调用上述获取的无参构造器，进行类实例化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;@CallerSensitive
+public T newInstance()
+    throws InstantiationException, IllegalAccessException
+{
+    // 当安全管理器不为空时，检查成员访问权限，不通过时抛出SecurityException
+    if (System.getSecurityManager() != null) {
+        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), false);
+    }
+
+    // NOTE: the following code may not be strictly correct under
+    // the current Java memory model.
+
+    // 查找类的无参构造器
+    if (cachedConstructor == null) {
+        // Class这个类是不允许实例化的
+        if (this == Class.class) {
+            throw new IllegalAccessException(
+                &amp;quot;Can not call newInstance() on the Class for java.lang.Class&amp;quot;
+            );
+        }
+        try {
+            // 得到无参构造器
+            Class&amp;lt;?&amp;gt;[] empty = {};
+            final Constructor&amp;lt;T&amp;gt; c = getConstructor0(empty, Member.DECLARED);
+            // Disable accessibility checks on the constructor
+            // since we have to do the security check here anyway
+            // (the stack depth is wrong for the Constructor&#39;s
+            // security check to work)
+            java.security.AccessController.doPrivileged(
+                new java.security.PrivilegedAction&amp;lt;Void&amp;gt;() {
+                    public Void run() {
+                            c.setAccessible(true);
+                            return null;
+                        }
+                    });
+            // 缓存无参构造器器至 cachedConstructor 
+            cachedConstructor = c;
+        } catch (NoSuchMethodException e) {
+            throw (InstantiationException)
+                new InstantiationException(getName()).initCause(e);
+        }
+    }
+    Constructor&amp;lt;T&amp;gt; tmpConstructor = cachedConstructor;
+    // Security check (same as in java.lang.reflect.Constructor)
+    int modifiers = tmpConstructor.getModifiers();
+    if (!Reflection.quickCheckMemberAccess(this, modifiers)) {
+        Class&amp;lt;?&amp;gt; caller = Reflection.getCallerClass();
+        if (newInstanceCallerCache != caller) {
+            Reflection.ensureMemberAccess(caller, this, null, modifiers);
+            newInstanceCallerCache = caller;
+        }
+    }
+    // Run constructor
+    try {
+        // 真正调用无参构造器返回类实例
+        return tmpConstructor.newInstance((Object[])null);
+    } catch (InvocationTargetException e) {
+        Unsafe.getUnsafe().throwException(e.getTargetException());
+        // Not reached
+        return null;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 获取构造器
+private Constructor&amp;lt;T&amp;gt; getConstructor0(Class&amp;lt;?&amp;gt;[] parameterTypes,
+                                    int which) throws NoSuchMethodException
+{
+    // 得到所有构造器 
+    Constructor&amp;lt;T&amp;gt;[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
+    for (Constructor&amp;lt;T&amp;gt; constructor : constructors) {
+        // 进行参数类型比对，得到需要的构造器
+        if (arrayContentsEq(parameterTypes,
+                            constructor.getParameterTypes())) {
+            // 匹配时，copy一份构造器数据返回                
+            return getReflectionFactory().copyConstructor(constructor);
+        }
+    }
+    // 否则抛出异常 NoSuchMethodException
+    throw new NoSuchMethodException(getName() + &amp;quot;.&amp;lt;init&amp;gt;&amp;quot; + argumentTypesToString(parameterTypes));
+}
+
+// 获取所有构造器
+private Constructor&amp;lt;T&amp;gt;[] privateGetDeclaredConstructors(boolean publicOnly) {
+    checkInitted();
+    Constructor&amp;lt;T&amp;gt;[] res;
+    // 调用 reflectionData(), 获取保存的信息，使用软引用保存，从而使内存不够可以回收
+    ReflectionData&amp;lt;T&amp;gt; rd = reflectionData();
+    // 如果缓存中存在对应构造器信息，直接返回
+    if (rd != null) {
+        res = publicOnly ? rd.publicConstructors : rd.declaredConstructors;
+        if (res != null) return res;
+    }
+    // No cached value available; request value from VM
+    if (isInterface()) {
+        @SuppressWarnings(&amp;quot;unchecked&amp;quot;)
+        Constructor&amp;lt;T&amp;gt;[] temporaryRes = (Constructor&amp;lt;T&amp;gt;[]) new Constructor&amp;lt;?&amp;gt;[0];
+        res = temporaryRes;
+    } else {
+        // 使用native方法从jvm获取构造器
+        res = getDeclaredConstructors0(publicOnly);
+    }
+    if (rd != null) {
+        // 最后，将从jvm中读取的内容，存入缓存
+        if (publicOnly) {
+            rd.publicConstructors = res;
+        } else {
+            rd.declaredConstructors = res;
+        }
+    }
+    return res;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// Lazily create and cache ReflectionData
+private ReflectionData&amp;lt;T&amp;gt; reflectionData() {
+    SoftReference&amp;lt;ReflectionData&amp;lt;T&amp;gt;&amp;gt; reflectionData = this.reflectionData;
+    int classRedefinedCount = this.classRedefinedCount;
+    ReflectionData&amp;lt;T&amp;gt; rd;
+    if (useCaches &amp;amp;&amp;amp;
+        reflectionData != null &amp;amp;&amp;amp;
+        (rd = reflectionData.get()) != null &amp;amp;&amp;amp;
+        rd.redefinedCount == classRedefinedCount) {
+        return rd;
+    }
+    // else no SoftReference or cleared SoftReference or stale ReflectionData
+    // -&amp;gt; create and replace new instance
+    return newReflectionData(reflectionData, classRedefinedCount);
+}
+
+// reflectionData()中通过如下函数获取新反射信息
+private ReflectionData&amp;lt;T&amp;gt; newReflectionData(SoftReference&amp;lt;ReflectionData&amp;lt;T&amp;gt;&amp;gt; oldReflectionData,
+                                            int classRedefinedCount) {
+    if (!useCaches) return null;
+
+    // 使用cas保证更新的线程安全性，所以反射是保证线程安全的
+    while (true) {
+        ReflectionData&amp;lt;T&amp;gt; rd = new ReflectionData&amp;lt;&amp;gt;(classRedefinedCount);
+        // try to CAS it...
+        // 先使用CAS更新，如果更新成功，则立即返回
+        if (Atomic.casReflectionData(this, oldReflectionData, new SoftReference&amp;lt;&amp;gt;(rd))) {
+            return rd;
+        }
+        // else retry
+        // 否则检查当前已被其他线程更新的情况，如果和自己想要更新的状态一致，则也算是成功了
+        oldReflectionData = this.reflectionData;
+        classRedefinedCount = this.classRedefinedCount;
+        if (oldReflectionData != null &amp;amp;&amp;amp;
+            (rd = oldReflectionData.get()) != null &amp;amp;&amp;amp;
+            rd.redefinedCount == classRedefinedCount) {
+            return rd;
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;获取方法&#34;&gt;获取方法&lt;/h4&gt;
+&lt;p&gt;经过上述两步后，已经获取到了类实例，接下来可以通过getMethod(),getDeclaredMethod()等获取类中的方法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@CallerSensitive
+public Method getDeclaredMethod(String name, Class&amp;lt;?&amp;gt;... parameterTypes)
+    throws NoSuchMethodException, SecurityException {
+    // 检查权限  
+    checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+    // 先通过privateGetDeclaredMethods()函数查找所有方法，然后再调用searchMethods()过滤出指定的方法。
+    Method method = searchMethods(privateGetDeclaredMethods(false), name, parameterTypes);
+    if (method == null) {
+        throw new NoSuchMethodException(getName() + &amp;quot;.&amp;quot; + name + argumentTypesToString(parameterTypes));
+    }
+    return method;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// Returns an array of &amp;quot;root&amp;quot; methods. These Method objects must NOT
+// be propagated to the outside world, but must instead be copied
+// via ReflectionFactory.copyMethod.
+private Method[] privateGetDeclaredMethods(boolean publicOnly) {
+    checkInitted();
+    Method[] res;
+    // 调用 reflectionData(), 获取保存的信息，使用软引用保存，从而使内存不够可以回收
+    ReflectionData&amp;lt;T&amp;gt; rd = reflectionData();
+    // 如果缓存中存在对应方法信息，直接返回
+    if (rd != null) {
+        res = publicOnly ? rd.declaredPublicMethods : rd.declaredMethods;
+        if (res != null) return res;
+    }
+    // No cached value available; request value from VM
+    // 从vm中获取方法，并存储至缓存中
+    res = Reflection.filterMethods(this, getDeclaredMethods0(publicOnly));
+    if (rd != null) {
+        if (publicOnly) {
+            rd.declaredPublicMethods = res;
+        } else {
+            rd.declaredMethods = res;
+        }
+    }
+    return res;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private static Method searchMethods(Method[] methods,
+                                    String name,
+                                    Class&amp;lt;?&amp;gt;[] parameterTypes)
+{
+    Method res = null;
+    String internedName = name.intern();
+    for (int i = 0; i &amp;lt; methods.length; i++) {
+        Method m = methods[i];
+        // 根据方法名以及类型参数获取指定方法
+        if (m.getName() == internedName
+            &amp;amp;&amp;amp; arrayContentsEq(parameterTypes, m.getParameterTypes())
+            &amp;amp;&amp;amp; (res == null
+                || res.getReturnType().isAssignableFrom(m.getReturnType())))
+            res = m;
+    }
+    // copy一份数据返回
+    return (res == null ? res : getReflectionFactory().copyMethod(res));
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;调用方法&#34;&gt;调用方法&lt;/h4&gt;
+&lt;p&gt;获取方法成功后，可以通过invoke()调用方法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@CallerSensitive
+public Object invoke(Object obj, Object... args)
+    throws IllegalAccessException, IllegalArgumentException,
+       InvocationTargetException
+{
+    // 校验权限 
+    if (!override) {
+        if (!Reflection.quickCheckMemberAccess(clazz, modifiers)) {
+            Class&amp;lt;?&amp;gt; caller = Reflection.getCallerClass();
+            checkAccess(caller, clazz, obj, modifiers);
+        }
+    }
+    // 获取MethodAccessor ，由MethodAccessor 调用具体的函数
+    MethodAccessor ma = methodAccessor;             // read volatile
+    if (ma == null) {
+        ma = acquireMethodAccessor();
+    }
+    // MethodAccessor 是一个接口，此处实际调用的是MethodAccessorImpl（DelegatingMethodAccessorImpl 继承了该抽象类）
+    // 最终转向NativeMethodAccessorImpl.invoke()执行调用逻辑
+    return ma.invoke(obj, args);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// sun.reflect.NativeMethodAccessorImpl
+public Object invoke(Object var1, Object[] var2) throws IllegalArgumentException, InvocationTargetException {
+    if (++this.numInvocations &amp;gt; ReflectionFactory.inflationThreshold() &amp;amp;&amp;amp; !ReflectUtil.isVMAnonymousClass(this.method.getDeclaringClass())) {
+        MethodAccessorImpl var3 = (MethodAccessorImpl)(new MethodAccessorGenerator()).generateMethod(this.method.getDeclaringClass(), this.method.getName(), this.method.getParameterTypes(), this.method.getReturnType(), this.method.getExceptionTypes(), this.method.getModifiers());
+        this.parent.setDelegate(var3);
+    }
+    // invoke0 是个 native 方法，由jvm进行调用业务方法。从而完成反射调用功能。
+    return invoke0(this.method, var1, var2);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;流程总结&#34;&gt;流程总结&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;反射类实例及反射方法的获取，都是先得到所有构造器列表或函数列表，然后通过匹配过滤出符合条件的信息，这个查找过程会随类方法的多少而变化；&lt;/li&gt;
+&lt;li&gt;每个类都会有一个与之对应的Class实例，从而每个类都可以获取method反射方法，并作用到其他实例身上；&lt;/li&gt;
+&lt;li&gt;反射中有考虑线程安全，可以放心使用；&lt;/li&gt;
+&lt;li&gt;反射使用软引用relectionData缓存class信息，避免每次重新从jvm获取带来的开销；&lt;/li&gt;
+&lt;li&gt;反射调用多次生成新代理Accessor, 而通过字节码生存的则考虑了卸载功能，所以会使用独立的类加载器；&lt;/li&gt;
+&lt;li&gt;当找到需要的方法，都会copy一份出来，而不是使用原来的实例，从而保证数据隔离；&lt;/li&gt;
+&lt;li&gt;调度反射方法，最终是由jvm执行invoke0()执行；&lt;/li&gt;
+&lt;/ul&gt;
+">Java反射机制详解</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/java-zhu-jie-ji-zhi-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述Java注解机制。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/fjord-4614096_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;注解基础&#34;&gt;注解基础&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;注解是JDK1.5版本开始引入的一个特性，用于对程序代码的说明，可以对包、类、接口、字段、方法参数、局部变量等进行注解。&lt;/p&gt;
+&lt;p&gt;它主要的作用有以下四方面：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;生成javadoc文档，通过在代码里面标识元数据生成javadoc文档。&lt;/li&gt;
+&lt;li&gt;编译期的检查，通过标识的元数据让编译器在编译期间对代码进行验证。&lt;/li&gt;
+&lt;li&gt;编译时动态处理，编译时通过代码中标识的元数据动态处理，比如动态生成代码。&lt;/li&gt;
+&lt;li&gt;运行时动态处理，运行时通过代码中标识的元数据动态处理，比如使用反射技术注入实例。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注解的常见分类有三种：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Java自带的标准注解：包括 @Override、@Deprecated和@SuppressWarnings，分别代表 方法重写、某个类或方法过时、以及忽略警告，用这些注解标明后编译器就会进行检查。&lt;/li&gt;
+&lt;li&gt;元注解，元注解是用于定义注解的注解，包括@Retention、@Target、@Inherited、@Documented 等6种&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;@Retention：指定其所修饰的注解的保留策略
+@Document：该注解是一个标记注解，用于指示一个注解将被文档化
+@Target：用来限制注解的使用范围
+@Inherited：该注解使父类的注解能被其子类继承
+@Repeatable：该注解是Java8新增的注解，用于开发重复注解
+类型注解（Type Annotation）：该注解是Java8新增的注解，可以用在任何用到类型的地方
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;自定义注解，可以根据自己的需求定义注解，并可用元注解对自定义注解进行注解。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;内置注解&#34;&gt;内置注解&lt;/h3&gt;
+&lt;p&gt;Java 1.5开始自带的标准注解，包括@Override、@Deprecated和@SuppressWarnings：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;@Override：表示当前的方法定义将覆盖父类中的方法&lt;/li&gt;
+&lt;li&gt;@Deprecated：表示代码被弃用，如果使用了被@Deprecated注解的代码则编译器将发出警告&lt;/li&gt;
+&lt;li&gt;@SuppressWarnings：表示关闭编译器警告信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;class Son extends Parent&amp;lt;Date&amp;gt; {
+    /**
+     * 重载父类方法
+     *
+     * @return Date
+     */
+    @Override
+    public Date getValue() {
+        return super.getValue();
+    }
+
+    /**
+     * 重载父类方法
+     */
+    @Override
+    public void setValue(Date value) {
+        super.setValue(value);
+    }
+
+    /**
+     * 被弃用的方法
+     */
+    @Deprecated
+    public void oldMethod() {
+    }
+
+    /**
+     * 忽略告警
+     *
+     * @return List
+     */
+    @SuppressWarnings(value = {&amp;quot;unchecked&amp;quot;})
+    public List addItems(String item) {
+        List items = new ArrayList&amp;lt;&amp;gt;();
+        // Unchecked call to &#39;add(E)&#39; as a member of raw type &#39;java.util.List&#39;
+        items.add(item);
+        return items;
+    }
+
+}
+
+class Parent&amp;lt;T&amp;gt; {
+    private T value;
+
+    public T getValue() {
+        return value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;内置注解-override&#34;&gt;内置注解-@Override&lt;/h4&gt;
+&lt;p&gt;这个注解可以被用来修饰方法，并且它只在编译时有效，在编译后的class文件中便不再存在。这个注解的作用是告诉编译器被修饰的方法是重写的父类的中的相同签名的方法，编译器会对此做出检查，若发现父类中不存在这个方法或是存在的方法签名不同，则会报错。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Target(ElementType.METHOD)
+// RetentionPolicy.SOURCE 表示仅在编译时有效
+@Retention(RetentionPolicy.SOURCE)
+public @interface Override {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;内置注解-deprecated&#34;&gt;内置注解-@Deprecated&lt;/h4&gt;
+&lt;p&gt;此注解表示其会被文档化，能够保留到运行时，能够修饰构造方法、属性、局部变量、方法、包、参数、类型。这个注解的作用是告诉编译器被修饰的程序元素已被“废弃”，不再建议用户使用。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value={CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE})
+public @interface Deprecated {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;内置注解-suppresswarnings&#34;&gt;内置注解-@SuppressWarnings&lt;/h4&gt;
+&lt;p&gt;这个注解能够修饰的程序元素包括类型、属性、方法、参数、构造器、局部变量，只能存活在源码时，取值为String[]。它的作用是告诉编译器忽略指定的警告信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Target({TYPE, FIELD, METHOD, PARAMETER, CONSTRUCTOR, LOCAL_VARIABLE})
+@Retention(RetentionPolicy.SOURCE)
+public @interface SuppressWarnings {
+    String[] value();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;参数&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;原描述&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;all&lt;/td&gt;
+&lt;td&gt;抑制所有警告&lt;/td&gt;
+&lt;td&gt;to suppress all warnings&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;boxing&lt;/td&gt;
+&lt;td&gt;抑制装箱、拆箱操作时候的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to boxing/unboxing operations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;cast&lt;/td&gt;
+&lt;td&gt;抑制映射相关的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to cast operations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;dep-ann&lt;/td&gt;
+&lt;td&gt;抑制启用注释的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to deprecated annotation&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;deprecation&lt;/td&gt;
+&lt;td&gt;抑制过期方法警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to deprecation&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;fallthrough&lt;/td&gt;
+&lt;td&gt;抑制确在switch中缺失breaks的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to missing breaks in switch statements&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;finally&lt;/td&gt;
+&lt;td&gt;抑制finally模块没有返回的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to finally block that don’t return&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;hiding&lt;/td&gt;
+&lt;td&gt;抑制与隐藏变数的区域变数相关的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to locals that hide variable（）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;incomplete-switch&lt;/td&gt;
+&lt;td&gt;忽略没有完整的switch语句&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to missing entries in a switch statement (enum case)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;nls&lt;/td&gt;
+&lt;td&gt;忽略非nls格式的字符&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to non-nls string literals&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;null&lt;/td&gt;
+&lt;td&gt;忽略对null的操作&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to null analysis&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;rawtype&lt;/td&gt;
+&lt;td&gt;使用generics时忽略没有指定相应的类型&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to un-specific types when using&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;restriction&lt;/td&gt;
+&lt;td&gt;抑制与使用不建议或禁止参照相关的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to usage of discouraged or&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;serial&lt;/td&gt;
+&lt;td&gt;忽略在serializable类中没有声明serialVersionUID变量&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to missing serialVersionUID field for a serializable class&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;static-access&lt;/td&gt;
+&lt;td&gt;抑制不正确的静态访问方式警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to incorrect static access&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;synthetic-access&lt;/td&gt;
+&lt;td&gt;抑制子类没有按最优方法访问内部类的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to unoptimized access from inner classes&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;unchecked&lt;/td&gt;
+&lt;td&gt;抑制没有进行类型检查操作的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to unchecked operations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;unqualified-field-access&lt;/td&gt;
+&lt;td&gt;抑制没有权限访问的域的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to field access unqualified&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;unused&lt;/td&gt;
+&lt;td&gt;抑制没被使用过的代码的警告&lt;/td&gt;
+&lt;td&gt;to suppress warnings relative to unused code&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;元注解&#34;&gt;元注解&lt;/h3&gt;
+&lt;p&gt;内置注解的定义中使用了一些元注解（注解类型进行注解的注解类），在JDK 1.5中提供了4个标准的元注解：@Target，@Retention，@Documented，@Inherited, 在JDK 1.8中提供了两个新的元注解 @Repeatable和@Native。&lt;/p&gt;
+&lt;h4 id=&#34;元注解-target&#34;&gt;元注解-@Target&lt;/h4&gt;
+&lt;p&gt;Target注解的作用是：描述注解的使用范围（即：被修饰的注解可以用在什么地方）&lt;/p&gt;
+&lt;p&gt;Target注解用来说明那些被它所注解的注解类可修饰的对象范围：注解可以用于修饰 packages、types（类、接口、枚举、注解类）、类成员（方法、构造方法、成员变量、枚举值）、方法参数和本地变量（如循环变量、catch参数），在定义注解类时使用了@Target 能够更加清晰的知道它能够被用来修饰哪些对象，它的取值范围定义在ElementType 枚举中。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Target {
+    /**
+     * Returns an array of the kinds of elements an annotation type
+     * can be applied to.
+     * @return an array of the kinds of elements an annotation type
+     * can be applied to
+     */
+    ElementType[] value();
+}
+
+public enum ElementType {
+    /** Class, interface (including annotation type), or enum declaration */
+    TYPE,
+
+    /** Field declaration (includes enum constants) */
+    FIELD,
+
+    /** Method declaration */
+    METHOD,
+
+    /** Formal parameter declaration */
+    PARAMETER,
+
+    /** Constructor declaration */
+    CONSTRUCTOR,
+
+    /** Local variable declaration */
+    LOCAL_VARIABLE,
+
+    /** Annotation type declaration */
+    ANNOTATION_TYPE,
+
+    /** Package declaration */
+    PACKAGE,
+
+    /**
+     * Type parameter declaration
+     *
+     * @since 1.8
+     */
+    TYPE_PARAMETER,
+
+    /**
+     * Use of a type
+     *
+     * @since 1.8
+     */
+    TYPE_USE
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;元注解-retention&#34;&gt;元注解-@Retention&lt;/h4&gt;
+&lt;p&gt;Reteniton注解的作用是：描述注解保留的时间范围（即：被描述的注解在它所修饰的类中可以被保留到何时）&lt;/p&gt;
+&lt;p&gt;Reteniton注解用来限定那些被它所注解的注解类在注解到其他类上以后，可被保留到何时，一共有三种策略，定义在RetentionPolicy枚举中。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Retention {
+    /**
+     * Returns the retention policy.
+     * @return the retention policy
+     */
+    RetentionPolicy value();
+}
+
+public enum RetentionPolicy {
+    /**
+     * Annotations are to be discarded by the compiler.
+     */
+    SOURCE,
+
+    /**
+     * Annotations are to be recorded in the class file by the compiler
+     * but need not be retained by the VM at run time.  This is the default
+     * behavior.
+     */
+    CLASS,
+
+    /**
+     * Annotations are to be recorded in the class file by the compiler and
+     * retained by the VM at run time, so they may be read reflectively.
+     *
+     * @see java.lang.reflect.AnnotatedElement
+     */
+    RUNTIME
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 定义三种类型的注解
+@Retention(RetentionPolicy.SOURCE)
+public @interface SourcePolicy {
+    // 源文件保留策略
+}
+@Retention(RetentionPolicy.CLASS)
+public @interface ClassPolicy  {
+    // 编译器保留策略
+}
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RuntimePolicy {
+    // 运行期保留策略
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 使用上述定义的注解
+public class TestRetention {
+    @SourcePolicy
+    public void sourcePolicy() {
+    }
+
+    @ClassPolicy
+    public void classPolicy() {
+    }
+
+    @RuntimePolicy
+    public void runtimePolicy() {
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;从 TestRetention的字节码内容我们可以得出以下两点结论：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;编译器并没有记录下 sourcePolicy() 方法的注解信息&lt;/li&gt;
+&lt;li&gt;编译器使用 RuntimeInvisibleAnnotations 去记录 classPolicy()方法的注解信息&lt;/li&gt;
+&lt;li&gt;编译器使用 RuntimeVisibleAnnotations 去记录 runtimePolicy()方法的注解信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// javap -c -verbose target\classes\com\philosopherzb\demo\test\annotation\TestRetention.class
+// 执行上述命令得到如下字节码信息
+{
+  public com.philosopherzb.demo.test.annotation.TestRetention();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object.&amp;quot;&amp;lt;init&amp;gt;&amp;quot;:()V
+         4: return
+      LineNumberTable:
+        line 7: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+
+  public void sourcePolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 10: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+
+  public void classPolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 14: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+    RuntimeInvisibleAnnotations:
+      0: #14()
+
+  public void runtimePolicy();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=0, locals=1, args_size=1
+         0: return
+      LineNumberTable:
+        line 18: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       1     0  this   Lcom/philosopherzb/demo/test/annotation/TestRetention;
+    RuntimeVisibleAnnotations:
+      0: #17()
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;元注解-documented&#34;&gt;元注解-@Documented&lt;/h4&gt;
+&lt;p&gt;Documented注解的作用如下：使用 javadoc 工具为类生成帮助文档，并确认是否保留注解信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Documented {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;元注解-inherited&#34;&gt;元注解-@Inherited&lt;/h4&gt;
+&lt;p&gt;Inherited注解的作用：被它修饰的Annotation将具有继承特性。父类使用了被@Inherited修饰的Annotation，则子类将自动具备该注解。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Inherited {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 定义注解
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface InheritedAnnotation {
+    String[] value();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 测试继承注解
+// 下述代码将打印 @com.philosopherzb.demo.test.annotation.InheritedAnnotation(value=[test InheritedAnnotation--Parent])
+// 由此可以看出虽然Person 类没有显示地被注解@InheritedAnnotation，但是它的父类Parent 被注解，
+// 而且@InheritedAnnotation被@Inherited注解，因此Person 类自动继承注解
+public class Person extends Parent {
+    public static void main(String[] args) {
+        Class clazz = Person.class;
+        Annotation[] annotations = clazz.getAnnotations();
+        for (Annotation annotation : annotations) {
+            System.out.println(annotation.toString());
+        }
+    }
+}
+
+@InheritedAnnotation(&amp;quot;test InheritedAnnotation--Parent&amp;quot;)
+class Parent {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;元注解-repeatable&#34;&gt;元注解-@Repeatable&lt;/h4&gt;
+&lt;p&gt;Repeatable是java8中新出现的注解，Repeatable是可重复使用的意思，允许在同一声明的类型(类，属性，或方法)中，可以多次使用同一个注解。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.ANNOTATION_TYPE)
+public @interface Repeatable {
+    /**
+     * Indicates the &amp;lt;em&amp;gt;containing annotation type&amp;lt;/em&amp;gt; for the
+     * repeatable annotation type.
+     * @return the containing annotation type
+     */
+    Class&amp;lt;? extends Annotation&amp;gt; value();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// java8之前，如果要使用重复注解，需要做如下处理
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface User {
+    String profession();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface Users {
+    User[] value();
+}
+
+public class RepeatAnnotation {
+    @Users({@User(profession = &amp;quot;teacher&amp;quot;), @User(profession = &amp;quot;student&amp;quot;)})
+    public void doSomeThing() {
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// java8及之后便简单许多，只需要使用@Repeatable表明该注解可以重复使用即可
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Repeatable(Users.class)
+public @interface User {
+    String profession();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface Users {
+    User[] value();
+}
+
+public class RepeatAnnotation {
+    @User(profession = &amp;quot;teacher&amp;quot;)
+    @User(profession = &amp;quot;student&amp;quot;)
+    public void doSomeThing() {
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;元注解-native&#34;&gt;元注解-@Native&lt;/h4&gt;
+&lt;p&gt;Native是java8中新出现的注解，使用 @Native 注解修饰成员变量，则表示这个变量可以被本地代码引用，常常被代码生成工具使用。@Native 注解不常使用，仅需了解即可。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Documented
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Native {
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;注解与反射&#34;&gt;注解与反射&lt;/h3&gt;
+&lt;p&gt;定义注解后，可以通过反射包java.lang.reflect下的AnnotatedElement接口提供的方法获取注解内容。&lt;/p&gt;
+&lt;p&gt;注意：只有注解被定义为RUNTIME后，该注解才能是运行时可见，当class文件被装载时被保存在class文件中的Annotation才会被虚拟机读取。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// java.lang.annotation.RetentionPolicy
+/**
+ * Annotations are to be recorded in the class file by the compiler and
+ * retained by the VM at run time, so they may be read reflectively.
+ *
+ * @see java.lang.reflect.AnnotatedElement
+ */
+RUNTIME
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如上所示，可以看到RUNTIME格式的策略支持反射读取内容。其中AnnotatedElement 接口是所有程序元素（Class、Method和Constructor）的父接口，所以程序通过反射获取了某个类的AnnotatedElement对象之后，程序就可以调用该对象的方法来访问Annotation信息。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public interface AnnotatedElement {
+    /**
+     * 判断该程序元素上是否包含指定类型的注解，存在则返回true，否则返回false。
+     * 注意：此方法会忽略注解对应的注解容器。
+     * Returns true if an annotation for the specified type
+     * is &amp;lt;em&amp;gt;present&amp;lt;/em&amp;gt; on this element, else false.  This method
+     * is designed primarily for convenient access to marker annotations.
+     *
+     * &amp;lt;p&amp;gt;The truth value returned by this method is equivalent to:
+     * {@code getAnnotation(annotationClass) != null}
+     *
+     * &amp;lt;p&amp;gt;The body of the default method is specified to be the code
+     * above.
+     *
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return true if an annotation for the specified annotation
+     *     type is present on this element, else false
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.5
+     */
+    default boolean isAnnotationPresent(Class&amp;lt;? extends Annotation&amp;gt; annotationClass) {
+        return getAnnotation(annotationClass) != null;
+    }
+
+   /**
+     * 返回该程序元素上存在的、指定类型的注解，如果该类型注解不存在，则返回null
+     * Returns this element&#39;s annotation for the specified type if
+     * such an annotation is &amp;lt;em&amp;gt;present&amp;lt;/em&amp;gt;, else null.
+     *
+     * @param &amp;lt;T&amp;gt; the type of the annotation to query for and return if present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return this element&#39;s annotation for the specified annotation type if
+     *     present on this element, else null
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.5
+     */
+    &amp;lt;T extends Annotation&amp;gt; T getAnnotation(Class&amp;lt;T&amp;gt; annotationClass);
+
+    /**
+     * 返回该程序元素上存在的所有注解，若没有注解，返回长度为0的数组
+     * Returns annotations that are &amp;lt;em&amp;gt;present&amp;lt;/em&amp;gt; on this element.
+     *
+     * If there are no annotations &amp;lt;em&amp;gt;present&amp;lt;/em&amp;gt; on this element, the return
+     * value is an array of length 0.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @return annotations present on this element
+     * @since 1.5
+     */
+    Annotation[] getAnnotations();
+
+    /**
+     * 返回该程序元素上存在的、指定类型的注解数组。没有注解对应类型的注解时，返回长度为0的数组。
+     * 该方法的调用者可以随意修改返回的数组，而不会对其他调用者返回的数组产生任何影响。
+     * getAnnotationsByType方法与 getAnnotation的区别在于，getAnnotationsByType会检测注解对应的重复注解容器。
+     * 若程序元素为类，当前类上找不到注解，且该注解为可继承的，则会去父类上检测对应的注解
+     * Returns annotations that are &amp;lt;em&amp;gt;associated&amp;lt;/em&amp;gt; with this element.
+     *
+     * If there are no annotations &amp;lt;em&amp;gt;associated&amp;lt;/em&amp;gt; with this element, the return
+     * value is an array of length 0.
+     *
+     * The difference between this method and {@link #getAnnotation(Class)}
+     * is that this method detects if its argument is a &amp;lt;em&amp;gt;repeatable
+     * annotation type&amp;lt;/em&amp;gt; (JLS 9.6), and if so, attempts to find one or
+     * more annotations of that type by &amp;quot;looking through&amp;quot; a container
+     * annotation.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @implSpec The default implementation first calls {@link
+     * #getDeclaredAnnotationsByType(Class)} passing {@code
+     * annotationClass} as the argument. If the returned array has
+     * length greater than zero, the array is returned. If the returned
+     * array is zero-length and this {@code AnnotatedElement} is a
+     * class and the argument type is an inheritable annotation type,
+     * and the superclass of this {@code AnnotatedElement} is non-null,
+     * then the returned result is the result of calling {@link
+     * #getAnnotationsByType(Class)} on the superclass with {@code
+     * annotationClass} as the argument. Otherwise, a zero-length
+     * array is returned.
+     *
+     * @param &amp;lt;T&amp;gt; the type of the annotation to query for and return if present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return all this element&#39;s annotations for the specified annotation type if
+     *     associated with this element, else an array of length zero
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &amp;lt;T extends Annotation&amp;gt; T[] getAnnotationsByType(Class&amp;lt;T&amp;gt; annotationClass) {
+         /*
+          * Definition of associated: directly or indirectly present OR
+          * neither directly nor indirectly present AND the element is
+          * a Class, the annotation type is inheritable, and the
+          * annotation type is associated with the superclass of the
+          * element.
+          */
+         T[] result = getDeclaredAnnotationsByType(annotationClass);
+
+         if (result.length == 0 &amp;amp;&amp;amp; // Neither directly nor indirectly present
+             this instanceof Class &amp;amp;&amp;amp; // the element is a class
+             AnnotationType.getInstance(annotationClass).isInherited()) { // Inheritable
+             Class&amp;lt;?&amp;gt; superClass = ((Class&amp;lt;?&amp;gt;) this).getSuperclass();
+             if (superClass != null) {
+                 // Determine if the annotation is associated with the
+                 // superclass
+                 result = superClass.getAnnotationsByType(annotationClass);
+             }
+         }
+
+         return result;
+     }
+
+    /**
+     * 返回直接存在于此元素上的所有注解。与此接口中的其他方法不同，该方法将忽略继承的注释。
+     * 如果没有注释直接存在于此元素上，则返回null
+     * Returns this element&#39;s annotation for the specified type if
+     * such an annotation is &amp;lt;em&amp;gt;directly present&amp;lt;/em&amp;gt;, else null.
+     *
+     * This method ignores inherited annotations. (Returns null if no
+     * annotations are directly present on this element.)
+     *
+     * @implSpec The default implementation first performs a null check
+     * and then loops over the results of {@link
+     * #getDeclaredAnnotations} returning the first annotation whose
+     * annotation type matches the argument type.
+     *
+     * @param &amp;lt;T&amp;gt; the type of the annotation to query for and return if directly present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return this element&#39;s annotation for the specified annotation type if
+     *     directly present on this element, else null
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &amp;lt;T extends Annotation&amp;gt; T getDeclaredAnnotation(Class&amp;lt;T&amp;gt; annotationClass) {
+         Objects.requireNonNull(annotationClass);
+         // Loop over all directly-present annotations looking for a matching one
+         for (Annotation annotation : getDeclaredAnnotations()) {
+             if (annotationClass.equals(annotation.annotationType())) {
+                 // More robust to do a dynamic cast at runtime instead
+                 // of compile-time only.
+                 return annotationClass.cast(annotation);
+             }
+         }
+         return null;
+     }
+
+    /**
+     * 返回直接存在于此元素上的所有注解。与此接口中的其他方法不同，该方法将忽略继承的注释
+     * Returns this element&#39;s annotation(s) for the specified type if
+     * such annotations are either &amp;lt;em&amp;gt;directly present&amp;lt;/em&amp;gt; or
+     * &amp;lt;em&amp;gt;indirectly present&amp;lt;/em&amp;gt;. This method ignores inherited
+     * annotations.
+     *
+     * If there are no specified annotations directly or indirectly
+     * present on this element, the return value is an array of length
+     * 0.
+     *
+     * The difference between this method and {@link
+     * #getDeclaredAnnotation(Class)} is that this method detects if its
+     * argument is a &amp;lt;em&amp;gt;repeatable annotation type&amp;lt;/em&amp;gt; (JLS 9.6), and if so,
+     * attempts to find one or more annotations of that type by &amp;quot;looking
+     * through&amp;quot; a container annotation if one is present.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @implSpec The default implementation may call {@link
+     * #getDeclaredAnnotation(Class)} one or more times to find a
+     * directly present annotation and, if the annotation type is
+     * repeatable, to find a container annotation. If annotations of
+     * the annotation type {@code annotationClass} are found to be both
+     * directly and indirectly present, then {@link
+     * #getDeclaredAnnotations()} will get called to determine the
+     * order of the elements in the returned array.
+     *
+     * &amp;lt;p&amp;gt;Alternatively, the default implementation may call {@link
+     * #getDeclaredAnnotations()} a single time and the returned array
+     * examined for both directly and indirectly present
+     * annotations. The results of calling {@link
+     * #getDeclaredAnnotations()} are assumed to be consistent with the
+     * results of calling {@link #getDeclaredAnnotation(Class)}.
+     *
+     * @param &amp;lt;T&amp;gt; the type of the annotation to query for and return
+     * if directly or indirectly present
+     * @param annotationClass the Class object corresponding to the
+     *        annotation type
+     * @return all this element&#39;s annotations for the specified annotation type if
+     *     directly or indirectly present on this element, else an array of length zero
+     * @throws NullPointerException if the given annotation class is null
+     * @since 1.8
+     */
+    default &amp;lt;T extends Annotation&amp;gt; T[] getDeclaredAnnotationsByType(Class&amp;lt;T&amp;gt; annotationClass) {
+        Objects.requireNonNull(annotationClass);
+        return AnnotationSupport.
+            getDirectlyAndIndirectlyPresent(Arrays.stream(getDeclaredAnnotations()).
+                                            collect(Collectors.toMap(Annotation::annotationType,
+                                                                     Function.identity(),
+                                                                     ((first,second) -&amp;gt; first),
+                                                                     LinkedHashMap::new)),
+                                            annotationClass);
+    }
+
+    /**
+     * 返回直接存在于此元素上的所有注解及注解对应的重复注解容器。
+     * 与此接口中的其他方法不同，该方法将忽略继承的注解。
+     * 如果没有注释直接存在于此元素上，则返回长度为零的一个数组。
+     * 该方法的调用者可以随意修改返回的数组，而不会对其他调用者返回的数组产生任何影响
+     * Returns annotations that are &amp;lt;em&amp;gt;directly present&amp;lt;/em&amp;gt; on this element.
+     * This method ignores inherited annotations.
+     *
+     * If there are no annotations &amp;lt;em&amp;gt;directly present&amp;lt;/em&amp;gt; on this element,
+     * the return value is an array of length 0.
+     *
+     * The caller of this method is free to modify the returned array; it will
+     * have no effect on the arrays returned to other callers.
+     *
+     * @return annotations directly present on this element
+     * @since 1.5
+     */
+    Annotation[] getDeclaredAnnotations();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;自定义注解样例&#34;&gt;自定义注解样例&lt;/h4&gt;
+&lt;p&gt;自定义注解样例，可以通过反射获取对应的参数值。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface MethodAnnotation {
+    String title() default &amp;quot;&amp;quot;;
+
+    String msg() default &amp;quot;&amp;quot;;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;public class CustomizeAnnotation {
+    @MethodAnnotation(title = &amp;quot;test1-title&amp;quot;, msg = &amp;quot;test1-msg&amp;quot;)
+    public String test1() {
+        return &amp;quot;test1&amp;quot;;
+    }
+
+    @MethodAnnotation(title = &amp;quot;test2-title&amp;quot;, msg = &amp;quot;test2-msg&amp;quot;)
+    public String test2() {
+        return &amp;quot;test2&amp;quot;;
+    }
+
+    @MethodAnnotation(title = &amp;quot;test3-title&amp;quot;, msg = &amp;quot;test3-msg&amp;quot;)
+    public String test3() {
+        return &amp;quot;test3&amp;quot;;
+    }
+
+    public static void main(String[] args) {
+        Method[] methods = CustomizeAnnotation.class.getMethods();
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(MethodAnnotation.class)) {
+                MethodAnnotation methodAnnotation = method.getAnnotation(MethodAnnotation.class);
+                System.out.println(methodAnnotation.title() + &amp;quot;-------&amp;quot; + methodAnnotation.msg());
+
+                MethodAnnotation methodAnnotation1 = method.getDeclaredAnnotation(MethodAnnotation.class);
+                System.out.println(methodAnnotation1.title() + &amp;quot;=====&amp;quot; + methodAnnotation1.msg());
+            }
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;自定义注解与aop&#34;&gt;自定义注解与aop&lt;/h4&gt;
+&lt;p&gt;自定义注解常与切面编程(AOP)一同联合使用，以下Spring AOP切面实现分布式锁注解为例，简单展示利用注解来实现解耦。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Target({TYPE, FIELD, METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RepeatScheduleTask {
+
+    String lockName() default &amp;quot;&amp;quot;;
+
+    long waitTime();
+
+    long leaseTime() default -1L;
+
+    TimeUnit timeUnit();
+
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+@Aspect
+public class RepeatScheduleTaskAspect {
+
+    private static final Logger logger = LoggerFactory.getLogger(RepeatScheduleTaskAspect.class);
+
+    /**
+     * 防止定时任务重复执行配置的redis key
+     */
+    private static final String PROJECT_REDIS_KEY = &amp;quot;common-util-&amp;quot;;
+    /**
+     * 防止定时任务重复执行缓存时长，小时
+     */
+    private static final Long PROJECT_REDIS_TIMEOUT = 1L;
+
+    @Resource
+    private RedissonUtil redissonUtil;
+    @Resource
+    private RedisTemplate&amp;lt;String, String&amp;gt; redisTemplate;
+
+
+    @Pointcut(&amp;quot;@within(com.philosopherzb.commonutil.repeatscheduletasks.annotation.RepeatScheduleTask) || &amp;quot; +
+            &amp;quot;@annotation(com.philosopherzb.commonutil.repeatscheduletasks.annotation.RepeatScheduleTask)&amp;quot;)
+    public void pointCut() {
+
+    }
+
+    @Around(&amp;quot;pointCut()&amp;quot;)
+    public Object around(ProceedingJoinPoint pjp) {
+        logger.info(&amp;quot;RepeatScheduleTaskAspect.around begin execute&amp;quot;);
+        try {
+            Signature signature = pjp.getSignature();
+            MethodSignature methodSignature = (MethodSignature) signature;
+            RepeatScheduleTask repeatScheduleTask = methodSignature.getMethod().getAnnotation(RepeatScheduleTask.class);
+            String lockName = StringUtils.isNotEmpty(repeatScheduleTask.lockName()) ? repeatScheduleTask.lockName() : RedissonUtil.DEFAULT_LOCK_NAME;
+            long waitTime = repeatScheduleTask.waitTime();
+            long leaseTime = repeatScheduleTask.leaseTime();
+            TimeUnit timeUnit = repeatScheduleTask.timeUnit();
+            logger.info(&amp;quot;repeatScheduleTask lockName:{}, waitTime:{}, leaseTime:{}, timeUnit:{}&amp;quot;, lockName, waitTime, leaseTime, timeUnit);
+            // 单机redisson
+            RLock lock = redissonUtil.redissonSingle().getLock(lockName);
+            try {
+                // 尝试加锁，最多等待waitTime，如果等待超时将返回系统繁忙，上锁以后如果没有解锁，leaseTime之后将会自动解锁
+                boolean isLock = lock.tryLock(waitTime, leaseTime, timeUnit);
+                if (isLock) {
+                    logger.info(&amp;quot;ScheduleService.task ----redisson lock Success&amp;quot;);
+                    String localIp = InetAddress.getLocalHost().getHostAddress();
+                    String executeIp = redisTemplate.opsForValue().get(PROJECT_REDIS_KEY + lockName);
+                    if (executeIp == null) {
+                        redisTemplate.opsForValue().set(PROJECT_REDIS_KEY + lockName, localIp, PROJECT_REDIS_TIMEOUT, TimeUnit.HOURS);
+                        logger.info(&amp;quot;ScheduleService.scheduleTask ----execute task, host localIp:{}&amp;quot;, localIp);
+                        return pjp.proceed();
+                    }
+                    if (executeIp.equals(localIp)) {
+                        logger.info(&amp;quot;ScheduleService.scheduleTask ----execute task, host executeIp:{}&amp;quot;, executeIp);
+                        return pjp.proceed();
+                    } else {
+                        logger.info(&amp;quot;ScheduleService.task ----other task executing , current ip:{}, execute task ip:{}&amp;quot;, localIp, executeIp);
+                    }
+                } else {
+                    logger.info(&amp;quot;ScheduleService.task ----redisson lock fail&amp;quot;);
+                }
+            } catch (InterruptedException e) {
+                logger.error(&amp;quot;ScheduleService.task ----redisson lock exception,e={}&amp;quot;, e);
+            } finally {
+                // 判断当前线程是否获取到锁，是则进行解锁
+                if (lock.isHeldByCurrentThread() &amp;amp;&amp;amp; lock.isLocked()) {
+                    lock.unlock();
+                }
+            }
+        } catch (Throwable throwable) {
+            logger.error(&amp;quot;ScheduleService.task occur exception, e:{}&amp;quot;, throwable);
+        }
+        return null;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;@Service
+public class RepeatScheduleService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RepeatScheduleService.class);
+
+    @RepeatScheduleTask(waitTime = 10, leaseTime = 30, timeUnit = TimeUnit.SECONDS)
+    public void insertSecret() {
+        logger.info(&amp;quot;ScheduleService.insertSecret begin&amp;quot;);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">Java注解机制详解</a>
       </div>
       
       <div class="item">
