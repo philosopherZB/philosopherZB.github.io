@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>RocketMQ安装与简介 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1695706043555">
+<link rel="shortcut icon" href="/favicon.ico?v=1696748840996">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">56</span>
+        <span class="site-item-stat-count">57</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -18333,6 +18333,197 @@ rm (移除档案或目录)
 
 [root@localhost tmp]# rm -i bashrc* &amp;lt;==通过通配符『*』的帮忙，将/tmp底下开头为bashrc的档名通通删除。通配符『*』代表的是 0 到无穷多个任意字符。&lt;/code&gt;&lt;/pre&gt;
 ">Centos7基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/bing-fa-bian-cheng-gai-lan/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述并发编程。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/fisherman-504098_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;并发历史&#34;&gt;并发历史&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;在过去单CPU时代，单任务在一个时间点只能执行单一程序。之后发展到多任务阶段，计算机能在同一时间点并行执行多任务或多进程。虽然并不是真正意义上的“同一时间点”，而是多个任务或进程共享一个CPU，并交由操作系统来完成多任务间对CPU的运行切换，以使得每个任务都有机会获得一定的时间片运行。&lt;/p&gt;
+&lt;p&gt;随着多任务对软件开发者带来的新挑战，程序不再能假设独占所有的CPU时间、所有的内存和其他计算机资源。一个好的程序榜样是在其不再使用这些资源时对其进行释放，以使得其他程序能有机会使用这些资源。&lt;/p&gt;
+&lt;p&gt;再后来发展到多线程技术，使得在一个程序内部能拥有多个线程并行执行。一个线程的执行可以被认为是一个CPU在执行该程序。当一个程序运行在多线程下，就好像有多个CPU在同时执行该程序。&lt;/p&gt;
+&lt;p&gt;多线程比多任务更加有挑战。多线程是在同一个程序内部并行执行，因此会对相同的内存空间进行并发读写操作。这可能是在单线程程序中从来不会遇到的问题。其中的一些错误也未必会在单CPU机器上出现，因为两个线程从来不会得到真正的并行执行。然而，更现代的计算机伴随着多核CPU的出现，也就意味着不同的线程能被不同的CPU核得到真正意义的并行执行。&lt;/p&gt;
+&lt;h3 id=&#34;操作系统四大特性&#34;&gt;操作系统四大特性&lt;/h3&gt;
+&lt;p&gt;操作系统是一个并发系统，并发性是操作系统非常重要的特征，操作系统具有同时处理和调度多个程序的能力，比如多个 I/O 设备同时在输入输出；设备 I/O 和 CPU 计算同时进行；内存中同时有多个系统和用户程序被启动交替、穿插地执行。操作系统在协调和分配进程的同时，操作系统也会为不同进程分配不同的资源。&lt;/p&gt;
+&lt;p&gt;程序多线程运行的实现主要依赖于操作系统四大特性之一的并发特性。&lt;/p&gt;
+&lt;h4 id=&#34;并发concurrence&#34;&gt;并发(Concurrence)&lt;/h4&gt;
+&lt;p&gt;并发性是指两个或多个事件在同一时间间隔内发生；&lt;/p&gt;
+&lt;p&gt;并行指的是同一时刻，多个命令同时执行；&lt;/p&gt;
+&lt;p&gt;在多道程序环境下，并发性是指在一段时间内，宏观上有多个程序在同时运行；在现在多核CPU的情况下，这些并发执行的程序就可以由多个CPU分别运行，以达到并行的效果。&lt;/p&gt;
+&lt;p&gt;单核CPU的操作系统可以存在并发执行的线程（轮转时间片），但做不到真正的并行执行。&lt;/p&gt;
+&lt;h4 id=&#34;共享sharing&#34;&gt;共享(Sharing)&lt;/h4&gt;
+&lt;p&gt;共享指的是操作系统资源可以提供给内存中多个并发执行的进程或者线程共同使用。&lt;/p&gt;
+&lt;p&gt;由于资源性质的不同，导致进程对资源共享的方式也不同，主要的两种资源共享方式有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;互斥共享：它大概的意思就是某个时间段内，这个资源只允许一个进程（线程）访问。这个很好理解，比如我们常常见到的打印机，就是一种互斥共享方式。设想如果多个进程（线程）能够同时访问，那么打印机打印出来的内容必定会造成混淆。在Java中，有一种锁叫互斥锁，即Synchronized，这种锁实现的就是一种互持共享方式。而互持共享使用的这种资源，在操作系统中一般被称为临界资源或者独占资源，计算机中大多数物理设备都属于临界资源。&lt;/li&gt;
+&lt;li&gt;同时共享：同时共享即允许一段时间内，多个进程（线程）”同时”访问该资源，这里的同时指的是在宏观上，微观上可能是交替的对资源进行访问。Java中的共享锁即ReentrantReadrWriteLock中的读锁就是这样的实现方式。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;虚拟virtual&#34;&gt;虚拟(Virtual)&lt;/h4&gt;
+&lt;p&gt;在操作系统中，通过某种方式将一个物理实体映射为若干个逻辑上的对应物，这种方式就是虚拟技术。在操作系统中用了多种虚拟技术，分别实现了虚拟处理机（CPU），虚拟内存，虚拟外部设备，虚拟信道等。&lt;/p&gt;
+&lt;p&gt;主要有两种虚拟技术：（时间）时分复用技术和（空间）空分复用技术。&lt;/p&gt;
+&lt;p&gt;虚拟处理机就使用到了时分复用技术，虽然只有一个CPU，但是多个进程能在同一个处理器上并发执行，每个进程轮流占用处理器，每次只执行一小个时间片并快速切换。（这种每个进程执行一个时间片的算法叫_时间片轮转算法_）&lt;/p&gt;
+&lt;p&gt;虚拟内存使用了空分复用技术，实际的物理内存可能很小（可能2M左右），但是它可以允许可以比它大得多的用户程序。它将物理内存抽象为地址空间，每个进程都有各自的地址空间（进程私有，如程序计数器PC，栈等）。地址空间的页被映射到物理内存，地址空间的页（或者段）并不需要全部在物理内存中，当使用到一个没有在物理内存的页时，执行页面置换算法，将该页置换到内存中，被成为换页。&lt;/p&gt;
+&lt;h4 id=&#34;异步asynchronism&#34;&gt;异步(Asynchronism)&lt;/h4&gt;
+&lt;p&gt;异步指进程不是一次性执行完毕，而是走走停停，以不可知的速度向前推进。&lt;/p&gt;
+&lt;p&gt;进程是以人们不可预知的速度向前推进，此即进程的异步性。尽管如此，但只要运行环境相同，作业（程序）经多次运行，都会获得完全相同的结果。因此，异步运行方式是允许的，是操作系统的一个重要特征。&lt;/p&gt;
+&lt;h2 id=&#34;线程安全&#34;&gt;线程安全&lt;/h2&gt;
+&lt;h3 id=&#34;线程安全-2&#34;&gt;线程安全&lt;/h3&gt;
+&lt;p&gt;线程安全：当多个线程访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要进行额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果，那这个对象就是线程安全的。&lt;/p&gt;
+&lt;p&gt;进程是资源（CPU、内存等）分配的基本单位，它是程序执行时的一个实例。程序运行时系统就会创建一个进程，并为它分配资源，然后把该进程放入进程就绪队列，进程调度器选中它的时候就会为它分配CPU时间，程序开始真正运行。就比如说，我们开发的一个单体项目，运行它，就会产生一个进程。&lt;/p&gt;
+&lt;p&gt;线程是程序执行时的最小单位，它是进程的一个执行流，是CPU调度和分派的基本单位，一个进程可以由很多个线程组成，线程间共享进程的所有资源，每个线程有自己的堆栈和局部变量。线程由CPU独立调度执行，在多CPU环境下就允许多个线程同时运行。同样多线程也可以实现并发操作，每个请求分配一个线程来处理。在这里强调一点就是：计算机中的线程和应用程序中的线程不是同一个概念。&lt;/p&gt;
+&lt;p&gt;简而言之：进程是资源分配的最小单位，线程是程序执行的最小单位。&lt;/p&gt;
+&lt;p&gt;在 Java 中，要实现线程安全性，必须要正确的使用线程和锁，但是这些只是满足线程安全的一种方式，要编写正确无误的线程安全的代码，其核心就是对状态访问操作进行管理。最重要的就是最 共享(Shared)的 和 可变(Mutable)的状态。只有共享和可变的变量才会出现问题，私有变量不会出现问题（私有变量相当于线程独有）。&lt;/p&gt;
+&lt;p&gt;对象的状态可以理解为存储在实例变量或者静态变量中的数据，共享意味着某个变量可以被多个线程同时访问、可变意味着变量在生命周期内会发生变化。一个变量是否是线程安全的，取决于它是否被多个线程访问。要使变量能够被安全访问，必须通过同步机制来对变量进行修饰。&lt;/p&gt;
+&lt;p&gt;如果不采用同步机制的话，那么就要避免多线程对共享变量的访问，主要有下面两种方式&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;不要在多线程之间共享变量&lt;/li&gt;
+&lt;li&gt;将共享变量置为不可变的&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;竞态条件&#34;&gt;竞态条件&lt;/h3&gt;
+&lt;p&gt;当多个线程同时访问同一个资源，并且其中的一个或者多个线程对这个资源进行了写操作，才会产生竞态条件。导致竞态条件发生的代码区称作临界区。多个线程同时读同一个资源不会产生竞态条件。&lt;/p&gt;
+&lt;h3 id=&#34;三大要素&#34;&gt;三大要素&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;原子性（Synchronized, Lock）：一个或某几个操作只能在一个线程执行完之后，另一个线程才能开始执行该操作，也就是说这些操作是不可分割的，线程不能在这些操作上交替执行。&lt;/li&gt;
+&lt;li&gt;可见性(Volatile，Synchronized,Lock)：一个线程对共享变量的修改,另一个线程能够立刻看到。&lt;/li&gt;
+&lt;li&gt;有序性(Volatile，Synchronized, Lock)：程序执行的顺序按照代码的先后顺序执行。（处理器可能会对指令进行重排）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;违背三大要素的使用多线程，将会有可能造成不安全的现象，以下代码演示了 500 个线程同时对 num 执行自增操作，操作结束之后它的值有可能小于 500：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class TestThread {
+
+    public static void main(String[] args) throws InterruptedException {
+        TestThreadProperties testThreadProperties = new TestThreadProperties();
+        final int threadSize = 500;
+        final CountDownLatch countDownLatch = new CountDownLatch(threadSize);
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        for (int i = 0; i &amp;lt; threadSize; i++) {
+            executorService.execute(() -&amp;gt; {
+                testThreadProperties.add();
+                countDownLatch.countDown();
+            });
+        }
+        countDownLatch.await();
+        executorService.shutdown();
+        System.out.println(testThreadProperties.get());
+    }
+
+}
+
+class TestThreadProperties {
+    private Integer num = 0;
+
+    public void add() {
+        num++;
+    }
+
+    public int get() {
+        return num;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&#34;可见性问题&#34;&gt;可见性问题&lt;/h4&gt;
+&lt;p&gt;CPU增加缓存，用以均衡与内存之间的速度差异，这一优化带来了速度提升的同时，也对线程间通信造成了不可见问题。如今多核时代，两个线程可能是在不同CPU上运行，它们使用不同缓存，彼此不可见，将可能造成数据不一致问题。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;2&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20231008001.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;pre&gt;&lt;code&gt;// threadA 执行代码
+int i = 0;
+i = 2;
+
+// threadB 执行代码
+int j = i;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;假若执行线程A的是CPU1，执行线程B的是CPU2。由上面的分析可知，当线程A执行i =2这句时，会先把i的初始值加载到CPU1的高速缓存中，然后赋值为2，那么在CPU1的高速缓存当中i的值变为2了，却没有立即写入到主存当中。此时线程B执行 j = i，它会先去主存读取i的值并加载到CPU2的缓存当中，注意此时内存当中i的值还是0，那么就会使得j的值为0，而不是2。&lt;/p&gt;
+&lt;p&gt;一个线程对共享变量的修改,另一个线程无法立刻看到，这就是可见性问题。&lt;/p&gt;
+&lt;h4 id=&#34;原子性问题&#34;&gt;原子性问题&lt;/h4&gt;
+&lt;p&gt;操作系统增加了进程、线程，以时分复用技术轮转使用CPU，进而均衡CPU和I/O设备的速度差异。但如此优化也给线程间数据操作带来了不一致结果。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;3&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20231008002.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;pre&gt;&lt;code&gt;// threadA 执行代码
+int i = 0;
+i += 1;
+
+// threadB 执行代码
+i += 1;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;注意：i += 1需要三条 CPU 指令&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;将变量 i 从内存读取到 CPU寄存器；&lt;/li&gt;
+&lt;li&gt;在CPU寄存器中执行 i + 1 操作；&lt;/li&gt;
+&lt;li&gt;将最后的结果i写入内存（缓存机制导致可能写入的是 CPU 缓存而不是内存）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;由于CPU分时复用（线程切换）的存在，线程A执行了第一条指令后，就切换到线程B执行，假如线程B执行了这三条指令后，再切换会线程A执行后续两条指令，将造成最后写到内存中的i值是2而不是3。&lt;/p&gt;
+&lt;h4 id=&#34;有序性问题&#34;&gt;有序性问题&lt;/h4&gt;
+&lt;p&gt;编译程序优化指令执行次序，提高程序执行效率与速度，与此同时也破坏了程序指令执行的有序性。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;int i = 1;
+boolean flag = false;
+// 语句1
+i = 1;
+// 语句2
+flag = true;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如上所示，定义了一个int型变量以及一个boolean类型变量，然后分别对两个变量进行赋值操作。从代码顺序上看，语句1是在语句2前面的，但是实际执行过程中，语句1不一定会先于语句2执行，因为在此处可能会发生指令重排序（Instruction Reorder）。&lt;/p&gt;
+&lt;p&gt;在执行程序时为了提高性能，编译器和处理器常常会对指令做重排序。重排序分三种类型：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;编译器优化的重排序。编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序。&lt;/li&gt;
+&lt;li&gt;指令级并行的重排序。现代处理器采用了指令级并行技术（Instruction-Level Parallelism， ILP）来将多条指令重叠执行。如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序。&lt;/li&gt;
+&lt;li&gt;内存系统的重排序。由于处理器使用缓存和读 / 写缓冲区，这使得加载和存储操作看上去可能是在乱序执行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;从 java 源代码到最终实际执行的指令序列，会分别经历下面三种重排序：&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;4&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20231008003.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;上述的 1 属于编译器重排序，2 和 3 属于处理器重排序。这些重排序都可能会导致多线程程序出现内存可见性问题。对于编译器，JMM 的编译器重排序规则会禁止特定类型的编译器重排序（不是所有的编译器重排序都要禁止）。对于处理器重排序，JMM 的处理器重排序规则会要求 java 编译器在生成指令序列时，插入特定类型的内存屏障（memory barriers，intel 称之为 memory fence）指令，通过内存屏障指令来禁止特定类型的处理器重排序（不是所有的处理器重排序都要禁止）。&lt;/p&gt;
+&lt;h3 id=&#34;happens-before&#34;&gt;Happens-before&lt;/h3&gt;
+&lt;p&gt;Java内存模型与线程规范中文版：&lt;a href=&#34;http://ifeve.com/wp-content/uploads/2014/03/JSR133%E4%B8%AD%E6%96%87%E7%89%881.pdf&#34;&gt;点此进入文档详情&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Java内存模型与线程规范中文版：&lt;a href=&#34;http://www.cs.umd.edu/~pugh/java/memoryModel/CommunityReview.pdf&#34;&gt;点此进入文档详情&lt;/a&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;单一线程原则（Single Thread rule）：在一个线程内，在程序前面的操作先行发生于后面的操作。&lt;/li&gt;
+&lt;li&gt;管程锁定规则（Monitor Lock Rule）：一个 unlock 操作先行发生于后面对同一个锁的 lock 操作。&lt;/li&gt;
+&lt;li&gt;volatile 变量规则（Volatile Variable Rule）：对一个 volatile 变量的写操作先行发生于后面对这个变量的读操作。&lt;/li&gt;
+&lt;li&gt;线程启动规则（Thread Start Rule）：Thread 对象的 start() 方法调用先行发生于此线程的每一个动作。&lt;/li&gt;
+&lt;li&gt;线程加入规则（Thread Join Rule）：Thread 对象的结束先行发生于 join() 方法返回。&lt;/li&gt;
+&lt;li&gt;线程中断规则（Thread Interruption Rule）：对线程 interrupt() 方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过 interrupted() 方法检测到是否有中断发生。&lt;/li&gt;
+&lt;li&gt;对象终结规则（Finalizer Rule）：一个对象的初始化完成(构造函数执行结束)先行发生于它的 finalize() 方法的开始。&lt;/li&gt;
+&lt;li&gt;传递性（Transitivity）：如果操作 A 先行发生于操作 B，操作 B 先行发生于操作 C，那么操作 A 先行发生于操作 C。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;共享数据类型&#34;&gt;共享数据类型&lt;/h3&gt;
+&lt;p&gt;一个共享数据在被多个线程安全调用时就是线程安全的，并不是说该共享数据一定就是线程不安全。&lt;/p&gt;
+&lt;p&gt;依此可以将共享数据按照安全程度的强弱顺序分成以下五类: 不可变、绝对线程安全、相对线程安全、线程兼容和线程对立。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;不可变：不可变(Immutable)的对象一定是线程安全的，不需要再采取任何的线程安全保障措施。只要一个不可变的对象被正确地构建出来，永远也不会看到它在多个线程之中处于不一致的状态。不可变类型：final关键字修饰的基本数据类型；String；枚举类型；Number 部分子类，如 Long 和 Double 等数值包装类型，BigInteger 和 BigDecimal 等大数据类型。但同为 Number 的原子类 AtomicInteger 和 AtomicLong 则是可变的。&lt;/li&gt;
+&lt;li&gt;绝对线程安全：不管运行时环境如何，调用者都不需要任何额外的同步措施。&lt;/li&gt;
+&lt;li&gt;相对线程安全：相对线程安全需要保证对这个对象单独的操作是线程安全的，在调用的时候不需要做额外的保障措施。但是对于一些特定顺序的连续调用，就可能需要在调用端使用额外的同步手段来保证调用的正确性。例如java中的Vector、HashTable等集合。&lt;/li&gt;
+&lt;li&gt;线程兼容：线程兼容是指对象本身并不是线程安全的，但是可以通过在调用端正确地使用同步手段来保证对象在并发环境中可以安全地使用，我们平常说一个类不是线程安全的，绝大多数时候指的是这一种情况。Java API 中大部分的类都是属于线程兼容的，如与前面的 Vector 和 HashTable 相对应的集合类 ArrayList 和 HashMap 等。&lt;/li&gt;
+&lt;li&gt;线程对立：线程对立是指无论调用端是否采取了同步措施，都无法在多线程环境中并发使用的代码。由于 Java 语言天生就具备多线程特性，线程对立这种排斥多线程的代码是很少出现的，而且通常都是有害的，应当尽量避免。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;并发编程模型&#34;&gt;并发编程模型&lt;/h2&gt;
+&lt;h3 id=&#34;简介-2&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;并发系统可以采用多种并发编程模型来实现。并发模型指定了系统中的线程如何通过协作来完成分配给它们的作业。不同的并发模型采用不同的方式拆分作业，同时线程间的协作和交互方式也不相同&lt;/p&gt;
+&lt;h3 id=&#34;并行模型&#34;&gt;并行模型&lt;/h3&gt;
+&lt;p&gt;在并行工作者模型中，任务将会被分配给不同的工作者。每个工作者完成整个任务。工作者们并行运作在不同的线程上，甚至可能在不同的 CPU 上。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;5&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20231008004.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;并行模型使用非常简单，并且利于理解，但与之相对的1，它也存在不可忽视的缺点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;共享数据复杂：并行模型中一旦出现共享数据，将会使情况变得复杂起来。线程需要以某种方式存取共享数据，以确保某个线程的修改能够对其他线程可见（数据修改需要同步到主存中，不仅仅将数据保存在执行这个线程的CPU的缓存中）。线程需要避免竟态，死锁以及很多其他共享状态的并发性问题。此外，在等待访问共享数据结构时，线程之间的互相等待将会丢失部分并行性。许多并发数据结构是阻塞的，意味着在任何一个时间只有一个或者很少的线程能够访问。这样会导致在这些共享数据结构上出现竞争状态。在执行需要访问共享数据结构部分的代码时，高竞争基本上会导致执行时出现一定程度的串行化。&lt;/li&gt;
+&lt;li&gt;线程无状态：共享状态能够被系统中得其他线程修改。所以工作者在每次需要的时候必须重读状态，以确保每次都能访问到最新的副本，不管共享状态是保存在内存中的还是在外部数据库中。工作者无法在内部保存这个状态（但是每次需要的时候可以重读）称为无状态的。每次都重读需要的数据，将会导致速度变慢，特别是状态保存在外部数据库中的时候。&lt;/li&gt;
+&lt;li&gt;任务执行无序：并行模式中任务的执行顺序是不确定的，无法保证哪个作业最先或者最后被执行。作业 A 可能在作业 B 之前就被分配工作者了，但是作业 B 反而有可能在作业A之前执行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;事件驱动模型&#34;&gt;事件驱动模型&lt;/h3&gt;
+&lt;p&gt;事件驱动模型轰允许多个线程按照一定的顺序分开执行，有点像是流水线一般。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;6&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20231008005.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;p&gt;相比于并行模型而言，事件驱动模型编写更加复杂且维护困难，但同时它也具备如下优点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;线程有状态：当工作者知道了没有其他线程可以修改它们的数据，工作者可以变成有状态的。对于有状态，这里是指它们可以在内存中保存它们需要操作的数据，只需在最后将更改写回到外部存储系统。因此，有状态的工作者通常比无状态的工作者具有更高的性能。&lt;/li&gt;
+&lt;li&gt;任务执行有序：事件驱动模型在某种程度上是有可能保证任务执行顺序的。作业的有序性使得它更容易地推出系统在某个特定时间点的状态。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;函数式并行functional-parallelism&#34;&gt;函数式并行（Functional Parallelism）&lt;/h3&gt;
+&lt;p&gt;函数式并行的基本思想是采用函数调用实现程序。函数可以看作是”代理人（agents）“或者”actor“，函数之间可以像流水线模型（AKA 反应器或者事件驱动系统）那样互相发送消息。某个函数调用另一个函数，这个过程类似于消息发送。&lt;/p&gt;
+&lt;p&gt;函数都是通过拷贝来传递参数的，所以除了接收函数外没有实体可以操作数据。这对于避免共享数据的竞态来说是很有必要的。同样也使得函数的执行类似于原子操作。每个函数调用的执行独立于任何其他函数的调用。&lt;/p&gt;
+&lt;p&gt;一旦每个函数调用都可以独立的执行，它们就可以分散在不同的 CPU 上执行了。这也就意味着能够在多处理器上并行的执行使用函数式实现的算法。&lt;/p&gt;
+&lt;p&gt;}&lt;/p&gt;
+">并发编程概览</a>
       </div>
       
       <div class="item">
