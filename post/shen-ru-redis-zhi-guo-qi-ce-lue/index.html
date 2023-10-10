@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>深入Redis之过期策略 | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1696817454188">
+<link rel="shortcut icon" href="/favicon.ico?v=1696902917093">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">58</span>
+        <span class="site-item-stat-count">59</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -18254,6 +18254,381 @@ rm (移除档案或目录)
 
 [root@localhost tmp]# rm -i bashrc* &amp;lt;==通过通配符『*』的帮忙，将/tmp底下开头为bashrc的档名通通删除。通配符『*』代表的是 0 到无穷多个任意字符。&lt;/code&gt;&lt;/pre&gt;
 ">Centos7基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/threadlocal-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述ThreadLocal关键字。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-477832_1280192.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;threadlocal详解&#34;&gt;ThreadLocal详解&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;ThreadLocal又叫做线程局部变量，全称thread local variable，提供了线程本地的实例。它与普通变量的区别在于，每个使用该变量的线程都会初始化一个完全独立的实例副本。即 ThreadLocal 适用于每个线程需要自己独立的实例且该实例需要在多个方法中被使用，也即变量在线程间隔离而在方法或类间共享的场景。&lt;/p&gt;
+&lt;p&gt;ThreadLocal 变量通常被private static修饰。当一个线程结束时，它所使用的所有 ThreadLocal 相对的实例副本都可被回收。此处需要注意，如果是线程池引用，需要手动在finally块中使用remove函数进行移除操作，否则可能会造成内存泄漏。&lt;/p&gt;
+&lt;p&gt;ThreadLocal具备如下特性：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ThreadLocal 并不解决线程间共享数据的问题&lt;/li&gt;
+&lt;li&gt;ThreadLocal 通过隐式的在不同线程内创建独立实例副本避免了实例线程安全的问题&lt;/li&gt;
+&lt;li&gt;每个线程持有一个 Map 并维护了 ThreadLocal 对象与具体实例的映射，该 Map 由于只被持有它的线程访问，故不存在线程安全以及锁的问题&lt;/li&gt;
+&lt;li&gt;ThreadLocalMap 的 Entry 对 ThreadLocal 的引用为弱引用，避免了 ThreadLocal 对象无法被回收的问题&lt;/li&gt;
+&lt;li&gt;ThreadLocalMap 的 set 方法通过调用 replaceStaleEntry 方法回收键为 null 的 Entry 对象的值（即为具体实例）以及 Entry 对象本身从而防止内存泄漏&lt;/li&gt;
+&lt;li&gt;ThreadLocal 适用于变量在线程间隔离且在方法间共享的场景&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public class TestThreadLocal {
+    private static final ThreadLocal&amp;lt;PersonPojo&amp;gt; THREAD_LOCAL = ThreadLocal.withInitial(PersonPojo::new);
+
+    public static void main(String[] args) {
+        // Thread-A
+        new Thread(&amp;quot;Thread A&amp;quot;) {
+            @Override
+            public void run() {
+                PersonPojo personPojo = new PersonPojo();
+                personPojo.setId(&amp;quot;id001&amp;quot;);
+                THREAD_LOCAL.set(personPojo);
+                System.out.println(Thread.currentThread() + &amp;quot; &amp;quot; + THREAD_LOCAL.get());
+            }
+        }.start();
+
+        // Thread-main
+        try {
+            TimeUnit.SECONDS.sleep(1);
+            PersonPojo personPojo = new PersonPojo();
+            personPojo.setId(&amp;quot;id002&amp;quot;);
+            THREAD_LOCAL.set(personPojo);
+            System.out.println(Thread.currentThread() + &amp;quot; &amp;quot; + THREAD_LOCAL.get());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;hash算法与冲突&#34;&gt;Hash算法与冲突&lt;/h3&gt;
+&lt;p&gt;ThreadLocal底层使用ThreadLocalMap结构。ThreadLocalMap有自己的独立实现，其底层使用的数组结构。其中k放入的是ThreadLocal&amp;lt;?&amp;gt; k ，继承自WeakReference，是一个弱引用，而v则放入实际的存储对象。&lt;/p&gt;
+&lt;p&gt;每个线程在往ThreadLocal里放值的时候，都会往自己的ThreadLocalMap里存，读也是以ThreadLocal作为引用，在自己的map里找对应的key，从而实现了线程隔离。&lt;/p&gt;
+&lt;p&gt;在ThreadLocalMap读取存入过程中，寻找对应的数组下标hash算法如下&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;int i = firstKey.threadLocalHashCode &amp;amp; (INITIAL_CAPACITY - 1);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;完整调用流程如下，可以发现，hashcode采用的是增量斐波那契数列，以方便让对应的散列值分配的均匀。&lt;/p&gt;
+&lt;p&gt;在这个过程中，纵然hash足够均匀了，依旧可能发生hash冲突，ThreadLocalMap并没有链表与红黑树结构，无法使用拉链法来解决该问题，对此ThreadLocalMap采用的方案是向后一直寻找Entry 为 null 的槽位，随后将当前元素放入此槽位中。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public class ThreadLocal&amp;lt;T&amp;gt; {
+    private final int threadLocalHashCode = nextHashCode();
+
+    private static AtomicInteger nextHashCode = new AtomicInteger();
+
+    // 斐波那契数 也叫 黄金分割数。hash增量为 这个数字，带来的好处就是 hash 分布非常均匀。
+    private static final int HASH_INCREMENT = 0x61c88647;
+  
+     // 增量获取下一个hashcode
+    private static int nextHashCode() {
+        return nextHashCode.getAndAdd(HASH_INCREMENT);
+    }
+  
+    static class ThreadLocalMap {
+        ThreadLocalMap(ThreadLocal&amp;lt;?&amp;gt; firstKey, Object firstValue) {
+            table = new Entry[INITIAL_CAPACITY];
+            int i = firstKey.threadLocalHashCode &amp;amp; (INITIAL_CAPACITY - 1);
+            table[i] = new Entry(firstKey, firstValue);
+            size = 1;
+            setThreshold(INITIAL_CAPACITY);
+        }
+    }  
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;set函数&#34;&gt;set函数&lt;/h3&gt;
+&lt;p&gt;ThreadLocal中的set函数主要是添加或更新数据，主要分为以下几种情形：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过hash计算后的槽位对应的Entry数据为空时，直接将value插入该槽位即可。&lt;/li&gt;
+&lt;li&gt;槽位数据不为空，key值与当前ThreadLocal通过hash计算获取的key值一致时，直接进行更新操作。&lt;/li&gt;
+&lt;li&gt;槽位数据不为空，往后遍历过程中，在找到Entry为null的槽位之前，没有遇到key过期的Entry，那么便继续遍历散列数组，线性往后查找，如果找到Entry为null的槽位，则将数据放入该槽位中，或者往后遍历过程中，遇到了key 值相等的数据，直接更新即可。&lt;/li&gt;
+&lt;li&gt;槽位数据不为空，往后遍历过程中，在找到Entry为null的槽位之前，遇到key过期的Entry，此时将先执行replaceStaleEntry函数进行替换过期键操作，随后继续往后遍历，遇到了key 值相等的数据，将更新，如果找到Entry为null的槽位，则将数据放入该槽位中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public void set(T value) {
+    Thread t = Thread.currentThread();
+    ThreadLocalMap map = getMap(t);
+    // map存在时，直接调用对应的set函数
+    if (map != null)
+        map.set(this, value);
+    // 不存在时，创建一个 ThreadLocalMap 
+    else
+        createMap(t, value); 
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;set函数中for循环的包含了核心处理逻辑，大体流程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;遍历当前key值对应的桶中Entry数据为空，这说明散列数组这里没有数据冲突，跳出for循环，直接set数据到对应的桶中&lt;/li&gt;
+&lt;li&gt;如果key值对应的桶中Entry数据不为空：如果k = key，说明当前set操作是一个替换操作，做替换逻辑，直接返回；如果key = null，说明当前桶位置的Entry是过期数据，执行replaceStaleEntry()方法(核心方法)，然后返&lt;/li&gt;
+&lt;li&gt;for循环执行完毕，继续往下执行说明向后迭代的过程中遇到了entry为null的情况：在Entry为null的桶中创建一个新的Entry对象；执行++size操作&lt;/li&gt;
+&lt;li&gt;调用cleanSomeSlots()做一次启发式清理工作，清理散列数组中Entry的key过期的数据：如果清理工作完成后，未清理到任何数据，且size超过了阈值(数组长度的 2/3)，进行rehash()操作；rehash()中会先进行一轮探测式清理，清理过期key，清理完成后如果size &amp;gt;= threshold - threshold / 4，就会执行真正的扩容逻辑。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;private void set(ThreadLocal&amp;lt;?&amp;gt; key, Object value) {
+
+    // We don&#39;t use a fast path as with get() because it is at
+    // least as common to use set() to create new entries as
+    // it is to replace existing ones, in which case, a fast
+    // path would fail more often than not.
+
+    // 通过key来计算在散列表中的对应位置，然后以当前key对应的桶的位置向后查找，找到可以使用的桶，此时有如下几种情况
+    // 1、k = key 说明是替换操作，可以使用
+   // 2、碰到一个过期的桶，执行替换逻辑，占用过期桶
+   // 3、查找过程中，碰到桶中Entry=null的情况，直接使用
+    Entry[] tab = table;
+    int len = tab.length;
+    int i = key.threadLocalHashCode &amp;amp; (len-1);
+
+    for (Entry e = tab[i];
+         e != null;
+         e = tab[i = nextIndex(i, len)]) {
+        ThreadLocal&amp;lt;?&amp;gt; k = e.get();
+
+        if (k == key) {
+            e.value = value;
+            return;
+        }
+
+        if (k == null) {
+            // 替换过期键
+            replaceStaleEntry(key, value, i);
+            return;
+        }
+    }
+    // 新增一个entry 
+    tab[i] = new Entry(key, value);
+    int sz = ++size;
+    // threshold = len * 2 / 3;
+    if (!cleanSomeSlots(i, sz) &amp;amp;&amp;amp; sz &amp;gt;= threshold)
+        rehash();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private void replaceStaleEntry(ThreadLocal&amp;lt;?&amp;gt; key, Object value,
+                               int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
+    Entry e;
+  
+    // slotToExpunge表示开始探测式清理过期数据的开始下标，默认从当前的staleSlot开始。
+    // 以当前的staleSlot开始，向前迭代查找，找到没有过期的数据，for循环一直碰到Entry为null才会结束。
+    // 如果向前找到了过期数据，更新探测清理过期数据的开始下标为 i，即slotToExpunge=i
+    int slotToExpunge = staleSlot;
+    for (int i = prevIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = prevIndex(i, len))
+        if (e.get() == null)
+            slotToExpunge = i;
+
+    // 从staleSlot向后查找，也是碰到Entry为null的桶结束
+    for (int i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal&amp;lt;?&amp;gt; k = e.get();
+
+        // 替换新数据并且交换当前staleSlot位置
+        if (k == key) {
+            e.value = value;
+
+            tab[i] = tab[staleSlot];
+            tab[staleSlot] = e;
+
+            // Start expunge at preceding stale entry if it exists
+            // slotToExpunge == staleSlot表明向前查找过期数据时并未找到过期的Entry数据，接着向后查找过程中也未发现过期数据，
+            // 修改开始探测式清理过期数据的下标为当前循环的 index，即slotToExpunge = i
+            if (slotToExpunge == staleSlot)
+                slotToExpunge = i;
+            // 过期数据清理--先置空entry，随后清理该槽位
+            cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+            return;
+        }
+
+        // k == null说明当前遍历的Entry是一个过期数据，
+        // slotToExpunge == staleSlot说明，一开始的向前查找数据并未找到过期的Entry。
+        // 如果条件成立，则更新slotToExpunge 为当前位置，这个前提是前驱节点扫描时未发现过期数据。
+        if (k == null &amp;amp;&amp;amp; slotToExpunge == staleSlot)
+            slotToExpunge = i;
+    }
+
+    // 如果未找到key，将新entry放入该槽位
+    tab[staleSlot].value = null;
+    tab[staleSlot] = new Entry(key, value);
+
+    // 如果还有处在运行中的旧数据，执行清除逻辑
+    if (slotToExpunge != staleSlot)
+        cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;expungeStaleEntry函数清理过程：遍历散列数组，从开始位置向后探测清理过期数据，将过期数据的Entry设置为null，沿途中碰到未过期的数据则将此数据rehash后重新在table数组中定位，如果定位的位置已经有了数据，则会将未过期的数据放到最靠近此位置的Entry=null的桶中，使rehash后的Entry数据距离正确的桶的位置更近一些。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private int expungeStaleEntry(int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
+
+    // expunge entry at staleSlot
+    tab[staleSlot].value = null;
+    tab[staleSlot] = null;
+    size--;
+
+    // Rehash until we encounter null
+    // rehash 让重定位后的桶位置更靠近或者等于i= key.hashCode &amp;amp; (tab.len - 1)，如此优化可以提高散列表查询效率
+    Entry e;
+    int i;
+    for (i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal&amp;lt;?&amp;gt; k = e.get();
+        // k == null 直接清理该槽位数据
+        if (k == null) {
+            e.value = null;
+            tab[i] = null;
+            size--;
+        } else {
+            // 如果key没有过期，重新计算当前key的下标位置是不是当前槽位下标位置，如果不是，那么说明产生了hash冲突
+            // 此时以新计算出来正确的槽位位置往后迭代，找到最近一个可以存放entry的位置
+            int h = k.threadLocalHashCode &amp;amp; (len - 1);
+            if (h != i) {
+                tab[i] = null;
+
+                // Unlike Knuth 6.4 Algorithm R, we must scan until
+                // null because multiple entries could have been stale.
+                while (tab[h] != null)
+                    h = nextIndex(h, len);
+                tab[h] = e;
+            }
+        }
+    }
+    return i;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;扩容：ThreadLocalMap.set函数在执行完启发式清理工作后，未清理到任何数据，且当前散列数组中Entry的数量已经达到了列表的扩容阈值(len*2/3)，就开始执行rehash()逻辑。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * The next size value at which to resize.
+ */
+private int threshold; // Default to 0
+
+/**
+ * Set the resize threshold to maintain at worst a 2/3 load factor.
+ */
+private void setThreshold(int len) {
+    threshold = len * 2 / 3;
+}  
+
+if (!cleanSomeSlots(i, sz) &amp;amp;&amp;amp; sz &amp;gt;= threshold)
+    rehash();
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;rehash函数首先会清除所有过期的实体数据，随后再判断size &amp;gt;= threshold * 3/4 来决定是否扩容。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private void rehash() {
+    expungeStaleEntries();
+
+    // Use lower threshold for doubling to avoid hysteresis
+    if (size &amp;gt;= threshold - threshold / 4)
+        resize();
+}
+
+/**
+ * Expunge all stale entries in the table.
+ * 遍历列表清除所有过期数据
+ */
+private void expungeStaleEntries() {
+    Entry[] tab = table;
+    int len = tab.length;
+    for (int j = 0; j &amp;lt; len; j++) {
+        Entry e = tab[j];
+        if (e != null &amp;amp;&amp;amp; e.get() == null)
+            expungeStaleEntry(j);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;扩容后的tab的大小为oldLen * 2，然后遍历老的散列表，重新计算hash位置，然后放到新的tab数组中，如果出现hash冲突则往后寻找最近的entry为null的槽位，遍历完成之后，oldTab中所有的entry数据都已经放入到新的tab中了，重新设置tab下次扩容的阈值。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Double the capacity of the table.
+ */
+private void resize() {
+    Entry[] oldTab = table;
+    int oldLen = oldTab.length;
+    // 扩容后的新table大小为原来的两倍
+    int newLen = oldLen * 2;
+    Entry[] newTab = new Entry[newLen];
+    int count = 0;
+    // 遍历旧table并计算数据的hash值，随后放入新table中
+    for (int j = 0; j &amp;lt; oldLen; ++j) {
+        Entry e = oldTab[j];
+        if (e != null) {
+            ThreadLocal&amp;lt;?&amp;gt; k = e.get();
+            if (k == null) {
+                e.value = null; // Help the GC
+            } else {
+                int h = k.threadLocalHashCode &amp;amp; (newLen - 1);
+                while (newTab[h] != null)
+                    h = nextIndex(h, newLen);
+                newTab[h] = e;
+                count++;
+            }
+        }
+    }
+    // 设置下次扩容的阈值
+    setThreshold(newLen);
+    size = count;
+    table = newTab;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;get函数&#34;&gt;get函数&lt;/h3&gt;
+&lt;p&gt;相较于ThreadLocal中的set函数，get函数要简单很多，主要是添加或更新数据，主要分为以下几种情形：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过查找key值计算出散列表中slot位置，然后该slot位置中的Entry.key和查找的key一致，则直接返回。&lt;/li&gt;
+&lt;li&gt;槽位数据不为空且key不一致，继续往后遍历过程中，如果遇到Entry.key和查找的key一致，返回该槽位值；如果遇到key==null，进行一次过期键清理操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;public T get() {
+    Thread t = Thread.currentThread();
+    ThreadLocalMap map = getMap(t);
+    if (map != null) {
+        ThreadLocalMap.Entry e = map.getEntry(this);
+        if (e != null) {
+            @SuppressWarnings(&amp;quot;unchecked&amp;quot;)
+            T result = (T)e.value;
+            return result;
+        }
+    }
+    return setInitialValue();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private Entry getEntry(ThreadLocal&amp;lt;?&amp;gt; key) {
+    int i = key.threadLocalHashCode &amp;amp; (table.length - 1);
+    Entry e = table[i];
+    // 当前槽位符合查询条件，直接返回
+    if (e != null &amp;amp;&amp;amp; e.get() == key)
+        return e;
+    // 向后遍历查询符合条件的槽位值  
+    else
+        return getEntryAfterMiss(key, i, e);
+}
+
+private Entry getEntryAfterMiss(ThreadLocal&amp;lt;?&amp;gt; key, int i, Entry e) {
+    Entry[] tab = table;
+    int len = tab.length;
+    // 循环查询
+    while (e != null) {
+        ThreadLocal&amp;lt;?&amp;gt; k = e.get();
+        if (k == key)
+            return e;
+        // k==null时，清除该位置的数据  
+        if (k == null)
+            expungeStaleEntry(i);
+        else
+            i = nextIndex(i, len);
+        e = tab[i];
+    }
+    return null;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">ThreadLocal详解</a>
       </div>
       
       <div class="item">

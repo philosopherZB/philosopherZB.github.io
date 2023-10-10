@@ -8,7 +8,7 @@
 <meta name="keywords" content="Philosopher blog">
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
-<title>RocketMQ源码解读之NameServer | Philosopher</title>
+<title>ThreadLocal详解 | Philosopher</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1696902917093">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -41,8 +41,8 @@
 
 
 
-  <meta name="description" content="RocketMQ源码解读之NameServer" />
-  <meta name="keywords" content="rocketmq" />
+  <meta name="description" content="ThreadLocal详解" />
+  <meta name="keywords" content="java" />
 </head>
 
 <body>
@@ -255,18 +255,12 @@
 <li>
 <ul>
 <li><a href="#%E5%89%8D%E8%A8%80">前言</a></li>
-<li><a href="#%E8%B7%AF%E7%94%B1%E4%B8%AD%E5%BF%83">路由中心</a>
+<li><a href="#threadlocal%E8%AF%A6%E8%A7%A3">ThreadLocal详解</a>
 <ul>
 <li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
-<li><a href="#%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B">启动流程</a></li>
-<li><a href="#%E8%B7%AF%E7%94%B1%E6%B3%A8%E5%86%8C">路由注册</a>
-<ul>
-<li><a href="#broker%E5%8F%91%E9%80%81%E5%BF%83%E8%B7%B3%E5%8C%85">Broker发送心跳包</a></li>
-<li><a href="#nameserver-%E5%A4%84%E7%90%86%E5%BF%83%E8%B7%B3%E5%8C%85">NameServer 处理心跳包</a></li>
-</ul>
-</li>
-<li><a href="#%E8%B7%AF%E7%94%B1%E5%88%A0%E9%99%A4">路由删除</a></li>
-<li><a href="#%E8%B7%AF%E7%94%B1%E5%8F%91%E7%8E%B0">路由发现</a></li>
+<li><a href="#hash%E7%AE%97%E6%B3%95%E4%B8%8E%E5%86%B2%E7%AA%81">Hash算法与冲突</a></li>
+<li><a href="#set%E5%87%BD%E6%95%B0">set函数</a></li>
+<li><a href="#get%E5%87%BD%E6%95%B0">get函数</a></li>
 </ul>
 </li>
 </ul>
@@ -536,8 +530,8 @@
           <div class="section bg-color post post-page">
             <section class="post-header">
   <h1 class="post-title">
-    <a class="post-title-link" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/">
-      RocketMQ源码解读之NameServer
+    <a class="post-title-link" href="https://philosopherzb.github.io/post/threadlocal-xiang-jie/">
+      ThreadLocal详解
     </a>
   </h1>
   <div class="post-meta">
@@ -545,7 +539,7 @@
     <span class="meta-item pc-show">
       <i class="fa fa-calendar-o"></i>
       <span class="language" data-lan="publish">发布于</span>
-      <span class="publish-time" data-t="2022-09-24 11:07:19">2022-09-24</span>
+      <span class="publish-time" data-t="2021-06-05 09:54:41">2021-06-05</span>
       <span class="post-meta-divider pc-show">|</span>
     </span>
     
@@ -554,8 +548,8 @@
       <span class="pc-show language" data-lan="category-in">分类于</span>
       
       
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/">
-        <span>rocketmq</span>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/">
+        <span>java</span>
       </a>
       
       
@@ -564,17 +558,17 @@
     
     <span class="meta-item">
       <i class="fa fa-clock-o"></i>
-      <span>17<span class="language" data-lan="minute">分钟</span></span>
+      <span>14<span class="language" data-lan="minute">分钟</span></span>
     </span>
     <span class="meta-item">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-file-word-o"></i>
-      <span>3350<span class="pc-show language" data-lan="words">字数</span></span>
+      <span>3215<span class="pc-show language" data-lan="words">字数</span></span>
     </span>
     
     
     
-    <span id="/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/" data-flag-title="RocketMQ源码解读之NameServer" class="meta-item pc-show leancloud_visitors">
+    <span id="/post/threadlocal-xiang-jie/" data-flag-title="ThreadLocal详解" class="meta-item pc-show leancloud_visitors">
       <span class="post-meta-divider">|</span>
       <i class="fa fa-eye"></i>
       <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
@@ -584,531 +578,372 @@
 </section>
             <div class="post-body next-md-body" id="post_body">
               <h2 id="前言">前言</h2>
-<p>本章主要简述Rocketmq源码之NameService。</p>
-<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sea-6331772_1280.jpg" alt="" loading="lazy"></figure>
-<h2 id="路由中心">路由中心</h2>
+<p>本章主要简述ThreadLocal关键字。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-477832_1280192.jpg" alt="" loading="lazy"></figure>
+<h2 id="threadlocal详解">ThreadLocal详解</h2>
 <h3 id="简介">简介</h3>
-<p>Broker启动时向所有的NameServer发送注册请求，并与所有的NameServer保持长连接，定时发送心跳包。心跳包中包含当前Broker信息(IP+端口等)以及存储所有Topic信息。注册成功后，NameServer集群中就有Topic跟Broker的映射关系。</p>
-<p>Producer启动时会先跟NameServer集群中的其中一台建立长连接，并从NameServer中获取当前发送的Topic存在哪些Broker上，之后便会与该broker建立长链接并发送消息。</p>
-<p>NameServer可以通过部署多台NameServer服务器来实现高可用，且每台服务器之间并不会进行通信，也就是说某些时候NameServer服务器之间的数据会不一致，但这不会对消息的发送造成任何影响。如下图所示：</p>
-<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/clipboard20230320006.png" alt="img" loading="lazy"></figure>
-<h3 id="启动流程">启动流程</h3>
-<p>通过脚本启动NameServer时，实际上是调用了org.apache.rocketmq.namesr.NamesrvStartup进行启动操作。</p>
-<p>启动时首先会加载配置信息，将指定的配置文件或命令中的选项值填充至NamesrvConfig及NettyServerConfig。参数来源方式主要有两种：</p>
-<ol>
-<li>-c configFile 通过-c命令指定配置文件的路径。</li>
-<li>在启动命令时使用 &quot;--属性名 属性值&quot;，例如：--listenPort 9876</li>
-</ol>
-<pre><code>// 文件地址: org.apache.rocketmq.common.namesrv.NamesrvConfig
-// NamesrvConfig 属性信息
-// rocketmq主目录，可通过-Drocketmq.home.dir=path或通过设置环境变量ROCKETMQ_HOME来配置rocketmq的主目录
-private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-// NameServer存储KV配置属性的持久化文件
-private String kvConfigPath = System.getProperty(&quot;user.home&quot;) + File.separator + &quot;namesrv&quot; + File.separator + &quot;kvConfig.json&quot;;
-// nameServer默认的配置文件路径，不生效。如果要指定配置文件，可以通过 -c 参数来指定
-private String configStorePath = System.getProperty(&quot;user.home&quot;) + File.separator + &quot;namesrv&quot; + File.separator + &quot;namesrv.properties&quot;;
-private String productEnvName = &quot;center&quot;;
-private boolean clusterTest = false;
-// 默认关闭顺序消息
-private boolean orderMessageEnable = false;
+<p>ThreadLocal又叫做线程局部变量，全称thread local variable，提供了线程本地的实例。它与普通变量的区别在于，每个使用该变量的线程都会初始化一个完全独立的实例副本。即 ThreadLocal 适用于每个线程需要自己独立的实例且该实例需要在多个方法中被使用，也即变量在线程间隔离而在方法或类间共享的场景。</p>
+<p>ThreadLocal 变量通常被private static修饰。当一个线程结束时，它所使用的所有 ThreadLocal 相对的实例副本都可被回收。此处需要注意，如果是线程池引用，需要手动在finally块中使用remove函数进行移除操作，否则可能会造成内存泄漏。</p>
+<p>ThreadLocal具备如下特性：</p>
+<ul>
+<li>ThreadLocal 并不解决线程间共享数据的问题</li>
+<li>ThreadLocal 通过隐式的在不同线程内创建独立实例副本避免了实例线程安全的问题</li>
+<li>每个线程持有一个 Map 并维护了 ThreadLocal 对象与具体实例的映射，该 Map 由于只被持有它的线程访问，故不存在线程安全以及锁的问题</li>
+<li>ThreadLocalMap 的 Entry 对 ThreadLocal 的引用为弱引用，避免了 ThreadLocal 对象无法被回收的问题</li>
+<li>ThreadLocalMap 的 set 方法通过调用 replaceStaleEntry 方法回收键为 null 的 Entry 对象的值（即为具体实例）以及 Entry 对象本身从而防止内存泄漏</li>
+<li>ThreadLocal 适用于变量在线程间隔离且在方法间共享的场景</li>
+</ul>
+<pre><code>public class TestThreadLocal {
+    private static final ThreadLocal&lt;PersonPojo&gt; THREAD_LOCAL = ThreadLocal.withInitial(PersonPojo::new);
 
-</code></pre>
-<pre><code>// 文件地址: org.apache.rocketmq.remoting.netty.NettyServerConfig
-// NettyServerConfig 属性信息
-// NameServer监听端口，默认为9876，此处的值将会被覆盖
-private int listenPort = 8888;
-// netty 业务线程池线程数，用于处理具体的逻辑业务
-private int serverWorkerThreads = 8;
-// Netty public 任务线程池线程数，Netty网络设计会根据业务类型创建不同的线程池。例如发送消息，消费消息，心跳检测等。
-private int serverCallbackExecutorThreads = 0;
-// IO线程池线程数。主要用于解析请求，并转发值具体的业务线程执行具体的逻辑。
-private int serverSelectorThreads = 3;
-// send oneWay 消息请求并发度（broker端参数）
-private int serverOnewaySemaphoreValue = 256;
-// 异步消息发送的最大并发度（broker端参数）
-private int serverAsyncSemaphoreValue = 64;
-// 网络连接最大空闲时间，默认120s，如果超过此时间，连接将关闭。
-private int serverChannelMaxIdleTimeSeconds = 120;
+    public static void main(String[] args) {
+        // Thread-A
+        new Thread(&quot;Thread A&quot;) {
+            @Override
+            public void run() {
+                PersonPojo personPojo = new PersonPojo();
+                personPojo.setId(&quot;id001&quot;);
+                THREAD_LOCAL.set(personPojo);
+                System.out.println(Thread.currentThread() + &quot; &quot; + THREAD_LOCAL.get());
+            }
+        }.start();
 
-// socket发送缓冲区大小
-private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
-// socket接受缓冲区大小
-private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
-// 写缓冲区高水位值
-private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
-// 写缓冲区低水位值
-private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
-// socket 日志
-private int serverSocketBacklog = NettySystemConfig.socketBacklog;
-// 是否开启byteBuffer缓存，默认开启
-private boolean serverPooledByteBufAllocatorEnable = true;
-// 是否启用epoll io模型，默认关闭
-private boolean useEpollNativeSelector = false;
-
-</code></pre>
-<p>通过启动属性创建NamesrvController并实例化，该类为NameServer的核心控制器。在初始化该控制器时，会开启两个定时任务。</p>
-<ol>
-<li>scanNotActiveBroker：延迟5秒启动，每隔10秒扫描一次broker，将其中不活跃的移除。</li>
-<li>printAllPeriodically：延迟1分钟启动，每隔10分钟打印一次KV配置信息。</li>
-</ol>
-<pre><code>// 文件地址: org.apache.rocketmq.namesrv.NamesrvController
-public boolean initialize() {
-
-    this.kvConfigManager.load();
-    this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-    this.remotingExecutor =
-        Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl(&quot;RemotingExecutorThread_&quot;));
-    this.registerProcessor();
-
-    // 定时移除不活跃的broker（2分钟内未收到心跳包，则该broker将被移除）
-    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-            NamesrvController.this.routeInfoManager.scanNotActiveBroker();
-        }
-    }, 5, 10, TimeUnit.SECONDS);
-
-    // 定时打印KV配置信息
-    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-            NamesrvController.this.kvConfigManager.printAllPeriodically();
-        }
-    }, 1, 10, TimeUnit.MINUTES);
-    ......
-    return true;
-}
-
-</code></pre>
-<h3 id="路由注册">路由注册</h3>
-<p>NameServer主要作用便是给发送者及消费者提供关于Topic的路由信息。</p>
-<p>rocketmq的路由注册主要通过Broker与NameServer的心跳机制来实现的。Broker启动时会向集群中所有的NameServer发送心跳包，之后每隔30秒会再次发送。</p>
-<p>NameServer收到Broker心跳包时会更新brokerLiveTable中的BrokerLiveInfo信息。与此同时，NameServer每隔10秒会去扫描brokerLiveTable，如果两分钟内未收到心跳包，那么该Broker将会被移除，且socket也将被关闭。</p>
-<p>核心类：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-// Topic消息队列路由信息，消息发送时会根据路由表进行负载均衡。
-private final HashMap&lt;String/* topic */, List&lt;QueueData&gt;&gt; topicQueueTable;
-// Broker基础信息，例如：brokerName，clusterName，主备broker地址等
-private final HashMap&lt;String/* brokerName */, BrokerData&gt; brokerAddrTable;
-// Broker集群信息，存储集群中所有Broker名称
-private final HashMap&lt;String/* clusterName */, Set&lt;String/* brokerName */&gt;&gt; clusterAddrTable;
-// Broker状态信息，NameServer每次收到心跳包时会替换该信息
-private final HashMap&lt;String/* brokerAddr */, BrokerLiveInfo&gt; brokerLiveTable;
-// Broker上的filterServer列表，主要用于类模式消息过滤。
-private final HashMap&lt;String/* brokerAddr */, List&lt;String&gt;/* Filter Server */&gt; filterServerTable;
-
-// 容器初始化大小
-public RouteInfoManager() {
-    this.topicQueueTable = new HashMap&lt;String, List&lt;QueueData&gt;&gt;(1024);
-    this.brokerAddrTable = new HashMap&lt;String, BrokerData&gt;(128);
-    this.clusterAddrTable = new HashMap&lt;String, Set&lt;String&gt;&gt;(32);
-    this.brokerLiveTable = new HashMap&lt;String, BrokerLiveInfo&gt;(256);
-    this.filterServerTable = new HashMap&lt;String, List&lt;String&gt;&gt;(256);
-}
-
-</code></pre>
-<h4 id="broker发送心跳包">Broker发送心跳包</h4>
-<p>Broker封装对应的请求头及请求体信息，并发送注册请求至NameServer。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.broker.BrokerController#start
-this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-    @Override
-    public void run() {
+        // Thread-main
         try {
-            BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-        } catch (Throwable e) {
-            log.error(&quot;registerBrokerAll Exception&quot;, e);
-        }
-    }
-}, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.broker.out.BrokerOuterAPI#registerBrokerAll
-public List&lt;RegisterBrokerResult&gt; registerBrokerAll(
-    final String clusterName,
-    final String brokerAddr,
-    final String brokerName,
-    final long brokerId,
-    final String haServerAddr,
-    final TopicConfigSerializeWrapper topicConfigWrapper,
-    final List&lt;String&gt; filterServerList,
-    final boolean oneway,
-    final int timeoutMills,
-    final boolean compressed) {
-
-    final List&lt;RegisterBrokerResult&gt; registerBrokerResultList = new CopyOnWriteArrayList&lt;&gt;();
-    List&lt;String&gt; nameServerAddressList = this.remotingClient.getNameServerAddressList();
-    if (nameServerAddressList != null &amp;&amp; nameServerAddressList.size() &gt; 0) {
-
-        // 设置请求头信息
-        final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
-        requestHeader.setBrokerAddr(brokerAddr);
-        // brokerId：0表示master，大于0表示slave
-        requestHeader.setBrokerId(brokerId);
-        requestHeader.setBrokerName(brokerName);
-        requestHeader.setClusterName(clusterName);
-        // master地址
-        requestHeader.setHaServerAddr(haServerAddr);
-        requestHeader.setCompressed(compressed);
-
-        // 设置请求体
-        RegisterBrokerBody requestBody = new RegisterBrokerBody();
-        // 主题配置信息
-        requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
-        // 消息过滤服务列表
-        requestBody.setFilterServerList(filterServerList);
-        final byte[] body = requestBody.encode(compressed);
-        final int bodyCrc32 = UtilAll.crc32(body);
-        requestHeader.setBodyCrc32(bodyCrc32);
-        final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
-        // 遍历NameServer列表，逐个发送心跳请求。
-        for (final String namesrvAddr : nameServerAddressList) {
-            brokerOuterExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
-                        if (result != null) {
-                            registerBrokerResultList.add(result);
-                        }
-
-                        log.info(&quot;register broker[{}]to name server {} OK&quot;, brokerId, namesrvAddr);
-                    } catch (Exception e) {
-                        log.warn(&quot;registerBroker Exception, {}&quot;, namesrvAddr, e);
-                    } finally {
-                        countDownLatch.countDown();
-                    }
-                }
-            });
-        }
-
-        try {
-            countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
+            TimeUnit.SECONDS.sleep(1);
+            PersonPojo personPojo = new PersonPojo();
+            personPojo.setId(&quot;id002&quot;);
+            THREAD_LOCAL.set(personPojo);
+            System.out.println(Thread.currentThread() + &quot; &quot; + THREAD_LOCAL.get());
         } catch (InterruptedException e) {
-        }
-    }
-
-    return registerBrokerResultList;
-}
-
-</code></pre>
-<h4 id="nameserver-处理心跳包">NameServer 处理心跳包</h4>
-<p>org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor接受网络请求，并根据类型路由请求。如果请求类型为REGISTER_BROKER，则表示为注册请求，最终将路由至RouteInfoManager#registerBroker进行处理。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor#processRequest
-// 接受类型为REGISTER_BROKER的请求，并路由至RouteInfoManager#registerBroker进行处理
-case RequestCode.REGISTER_BROKER:
-    Version brokerVersion = MQVersion.value2Version(request.getVersion());
-    if (brokerVersion.ordinal() &gt;= MQVersion.Version.V3_0_11.ordinal()) {
-        return this.registerBrokerWithFilterServer(ctx, request);
-    } else {
-        return this.registerBroker(ctx, request);
-    }
-
-</code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public RegisterBrokerResult registerBroker(
-    final String clusterName,
-    final String brokerAddr,
-    final String brokerName,
-    final long brokerId,
-    final String haServerAddr,
-    final TopicConfigSerializeWrapper topicConfigWrapper,
-    final List&lt;String&gt; filterServerList,
-    final Channel channel) {
-    RegisterBrokerResult result = new RegisterBrokerResult();
-    try {
-        try {
-            // 加写锁，防止并发修改路由表
-            this.lock.writeLock().lockInterruptibly();
-
-            // 获取brokerName集s
-            Set&lt;String&gt; brokerNames = this.clusterAddrTable.get(clusterName);
-            // 如果不存在则创建
-            if (null == brokerNames) {
-                brokerNames = new HashSet&lt;String&gt;();
-                this.clusterAddrTable.put(clusterName, brokerNames);
-            }
-            // 将新加入的brokerName添加至brokerNames中
-            brokerNames.add(brokerName);
-
-            // 为false表示为非第一次注册  
-            boolean registerFirst = false;
-
-            // 获取brokerData 信息
-            BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-            // 如果不存在则创建并将registerFirst 设置为true（表示第一次注册）
-            if (null == brokerData) {
-                registerFirst = true;
-                brokerData = new BrokerData(clusterName, brokerName, new HashMap&lt;Long, String&gt;());
-                this.brokerAddrTable.put(brokerName, brokerData);
-            }
-            Map&lt;Long, String&gt; brokerAddrsMap = brokerData.getBrokerAddrs();
-            //Switch slave to master: first remove &lt;1, IP:PORT&gt; in namesrv, then add &lt;0, IP:PORT&gt;
-            //The same IP:PORT must only have one record in brokerAddrTable
-            // 移除brokerAddr相同的数据
-            Iterator&lt;Entry&lt;Long, String&gt;&gt; it = brokerAddrsMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry&lt;Long, String&gt; item = it.next();
-                if (null != brokerAddr &amp;&amp; brokerAddr.equals(item.getValue()) &amp;&amp; brokerId != item.getKey()) {
-                    it.remove();
-                }
-            }
-
-            String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
-            registerFirst = registerFirst || (null == oldAddr);
-
-            // 如果broker为master
-            if (null != topicConfigWrapper
-                &amp;&amp; MixAll.MASTER_ID == brokerId) {
-                // 如果broker配置信息发生变化或者第一次注册  
-                if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
-                    || registerFirst) {
-                    ConcurrentMap&lt;String, TopicConfig&gt; tcTable =
-                        topicConfigWrapper.getTopicConfigTable();
-                    if (tcTable != null) {
-                        for (Map.Entry&lt;String, TopicConfig&gt; entry : tcTable.entrySet()) {
-                            // 创建或更新queueData，填充topicQueueTable--》一般是为默认主题自动注册路由信息
-                            this.createAndUpdateQueueData(brokerName, entry.getValue());
-                        }
-                    }
-                }
-            }
-
-            // 更新prevBrokerLiveInfo 信息，BrokerLiveInfo 是执行路由删除的重要依据
-            BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
-                new BrokerLiveInfo(
-                    System.currentTimeMillis(),
-                    topicConfigWrapper.getDataVersion(),
-                    channel,
-                    haServerAddr));
-            if (null == prevBrokerLiveInfo) {
-                log.info(&quot;new broker registered, {} HAServer: {}&quot;, brokerAddr, haServerAddr);
-            }
-
-            // 注册Broker的过滤器server地址列表，一个broker上会关联多个filterServer消息过滤服务
-            if (filterServerList != null) {
-                if (filterServerList.isEmpty()) {
-                    this.filterServerTable.remove(brokerAddr);
-                } else {
-                    this.filterServerTable.put(brokerAddr, filterServerList);
-                }
-            }
-
-            // 如果broker为从节点，则需要寻找对应的materAddr，并更新该值
-            if (MixAll.MASTER_ID != brokerId) {
-                String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-                if (masterAddr != null) {
-                    BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
-                    if (brokerLiveInfo != null) {
-                        result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
-                        result.setMasterAddr(masterAddr);
-                    }
-                }
-            }
-        } finally {
-            this.lock.writeLock().unlock();
-        }
-    } catch (Exception e) {
-        log.error(&quot;registerBroker Exception&quot;, e);
-    }
-
-    return result;
-}
-
-</code></pre>
-<h3 id="路由删除">路由删除</h3>
-<p>NameServer每隔10秒会去扫描brokerLiveTable，如果brokerLive的lastUpdateTimestamp距离当前时间戳超过两分钟，则认为该broker已失效，将移除该broker并断开socket连接。除了定时删除不活跃broker之外，当broker正常退出时（shutdown），也会发送unregisterBrokerAll请求。</p>
-<p>其中unregisterBrokerAll请求触发的注销操作与上述注册请求类似，只不过是将对应的信息从容器中删除；相关操作与定时移除相似，此处以定时删除为例进行说明。</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public void scanNotActiveBroker() {
-    Iterator&lt;Entry&lt;String, BrokerLiveInfo&gt;&gt; it = this.brokerLiveTable.entrySet().iterator();
-    while (it.hasNext()) {
-        Entry&lt;String, BrokerLiveInfo&gt; next = it.next();
-        long last = next.getValue().getLastUpdateTimestamp();
-        // 判断是否超过两分钟
-        if ((last + BROKER_CHANNEL_EXPIRED_TIME) &lt; System.currentTimeMillis()) {
-             // 关闭通道
-            RemotingUtil.closeChannel(next.getValue().getChannel());
-            it.remove();
-            log.warn(&quot;The broker channel expired, {} {}ms&quot;, next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
-            // 删除与该broker相关的路由信息
-            this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
+            e.printStackTrace();
         }
     }
 }
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager
-public void onChannelDestroy(String remoteAddr, Channel channel) {
-    String brokerAddrFound = null;
-    if (channel != null) {
-        try {
-            try {
-                // 寻找与已关闭通道相同的broker---》说明该broker需要被移除
-                this.lock.readLock().lockInterruptibly();
-                Iterator&lt;Entry&lt;String, BrokerLiveInfo&gt;&gt; itBrokerLiveTable =
-                    this.brokerLiveTable.entrySet().iterator();
-                while (itBrokerLiveTable.hasNext()) {
-                    Entry&lt;String, BrokerLiveInfo&gt; entry = itBrokerLiveTable.next();
-                    if (entry.getValue().getChannel() == channel) {
-                        brokerAddrFound = entry.getKey();
-                        break;
-                    }
-                }
-            } finally {
-                this.lock.readLock().unlock();
-            }
-        } catch (Exception e) {
-            log.error(&quot;onChannelDestroy Exception&quot;, e);
+<h3 id="hash算法与冲突">Hash算法与冲突</h3>
+<p>ThreadLocal底层使用ThreadLocalMap结构。ThreadLocalMap有自己的独立实现，其底层使用的数组结构。其中k放入的是ThreadLocal&lt;?&gt; k ，继承自WeakReference，是一个弱引用，而v则放入实际的存储对象。</p>
+<p>每个线程在往ThreadLocal里放值的时候，都会往自己的ThreadLocalMap里存，读也是以ThreadLocal作为引用，在自己的map里找对应的key，从而实现了线程隔离。</p>
+<p>在ThreadLocalMap读取存入过程中，寻找对应的数组下标hash算法如下</p>
+<pre><code>int i = firstKey.threadLocalHashCode &amp; (INITIAL_CAPACITY - 1);
+
+</code></pre>
+<p>完整调用流程如下，可以发现，hashcode采用的是增量斐波那契数列，以方便让对应的散列值分配的均匀。</p>
+<p>在这个过程中，纵然hash足够均匀了，依旧可能发生hash冲突，ThreadLocalMap并没有链表与红黑树结构，无法使用拉链法来解决该问题，对此ThreadLocalMap采用的方案是向后一直寻找Entry 为 null 的槽位，随后将当前元素放入此槽位中。</p>
+<pre><code>public class ThreadLocal&lt;T&gt; {
+    private final int threadLocalHashCode = nextHashCode();
+
+    private static AtomicInteger nextHashCode = new AtomicInteger();
+
+    // 斐波那契数 也叫 黄金分割数。hash增量为 这个数字，带来的好处就是 hash 分布非常均匀。
+    private static final int HASH_INCREMENT = 0x61c88647;
+  
+     // 增量获取下一个hashcode
+    private static int nextHashCode() {
+        return nextHashCode.getAndAdd(HASH_INCREMENT);
+    }
+  
+    static class ThreadLocalMap {
+        ThreadLocalMap(ThreadLocal&lt;?&gt; firstKey, Object firstValue) {
+            table = new Entry[INITIAL_CAPACITY];
+            int i = firstKey.threadLocalHashCode &amp; (INITIAL_CAPACITY - 1);
+            table[i] = new Entry(firstKey, firstValue);
+            size = 1;
+            setThreshold(INITIAL_CAPACITY);
+        }
+    }  
+}
+
+</code></pre>
+<h3 id="set函数">set函数</h3>
+<p>ThreadLocal中的set函数主要是添加或更新数据，主要分为以下几种情形：</p>
+<ul>
+<li>通过hash计算后的槽位对应的Entry数据为空时，直接将value插入该槽位即可。</li>
+<li>槽位数据不为空，key值与当前ThreadLocal通过hash计算获取的key值一致时，直接进行更新操作。</li>
+<li>槽位数据不为空，往后遍历过程中，在找到Entry为null的槽位之前，没有遇到key过期的Entry，那么便继续遍历散列数组，线性往后查找，如果找到Entry为null的槽位，则将数据放入该槽位中，或者往后遍历过程中，遇到了key 值相等的数据，直接更新即可。</li>
+<li>槽位数据不为空，往后遍历过程中，在找到Entry为null的槽位之前，遇到key过期的Entry，此时将先执行replaceStaleEntry函数进行替换过期键操作，随后继续往后遍历，遇到了key 值相等的数据，将更新，如果找到Entry为null的槽位，则将数据放入该槽位中。</li>
+</ul>
+<pre><code>public void set(T value) {
+    Thread t = Thread.currentThread();
+    ThreadLocalMap map = getMap(t);
+    // map存在时，直接调用对应的set函数
+    if (map != null)
+        map.set(this, value);
+    // 不存在时，创建一个 ThreadLocalMap 
+    else
+        createMap(t, value); 
+}
+
+</code></pre>
+<p>set函数中for循环的包含了核心处理逻辑，大体流程如下：</p>
+<ul>
+<li>遍历当前key值对应的桶中Entry数据为空，这说明散列数组这里没有数据冲突，跳出for循环，直接set数据到对应的桶中</li>
+<li>如果key值对应的桶中Entry数据不为空：如果k = key，说明当前set操作是一个替换操作，做替换逻辑，直接返回；如果key = null，说明当前桶位置的Entry是过期数据，执行replaceStaleEntry()方法(核心方法)，然后返</li>
+<li>for循环执行完毕，继续往下执行说明向后迭代的过程中遇到了entry为null的情况：在Entry为null的桶中创建一个新的Entry对象；执行++size操作</li>
+<li>调用cleanSomeSlots()做一次启发式清理工作，清理散列数组中Entry的key过期的数据：如果清理工作完成后，未清理到任何数据，且size超过了阈值(数组长度的 2/3)，进行rehash()操作；rehash()中会先进行一轮探测式清理，清理过期key，清理完成后如果size &gt;= threshold - threshold / 4，就会执行真正的扩容逻辑。</li>
+</ul>
+<pre><code>private void set(ThreadLocal&lt;?&gt; key, Object value) {
+
+    // We don't use a fast path as with get() because it is at
+    // least as common to use set() to create new entries as
+    // it is to replace existing ones, in which case, a fast
+    // path would fail more often than not.
+
+    // 通过key来计算在散列表中的对应位置，然后以当前key对应的桶的位置向后查找，找到可以使用的桶，此时有如下几种情况
+    // 1、k = key 说明是替换操作，可以使用
+   // 2、碰到一个过期的桶，执行替换逻辑，占用过期桶
+   // 3、查找过程中，碰到桶中Entry=null的情况，直接使用
+    Entry[] tab = table;
+    int len = tab.length;
+    int i = key.threadLocalHashCode &amp; (len-1);
+
+    for (Entry e = tab[i];
+         e != null;
+         e = tab[i = nextIndex(i, len)]) {
+        ThreadLocal&lt;?&gt; k = e.get();
+
+        if (k == key) {
+            e.value = value;
+            return;
+        }
+
+        if (k == null) {
+            // 替换过期键
+            replaceStaleEntry(key, value, i);
+            return;
         }
     }
+    // 新增一个entry 
+    tab[i] = new Entry(key, value);
+    int sz = ++size;
+    // threshold = len * 2 / 3;
+    if (!cleanSomeSlots(i, sz) &amp;&amp; sz &gt;= threshold)
+        rehash();
+}
 
-    // 如果未找到，便直接使用remoteAddr
-    if (null == brokerAddrFound) {
-        brokerAddrFound = remoteAddr;
-    } else {
-        log.info(&quot;the broker's channel destroyed, {}, clean it's data structure at once&quot;, brokerAddrFound);
+</code></pre>
+<pre><code>private void replaceStaleEntry(ThreadLocal&lt;?&gt; key, Object value,
+                               int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
+    Entry e;
+  
+    // slotToExpunge表示开始探测式清理过期数据的开始下标，默认从当前的staleSlot开始。
+    // 以当前的staleSlot开始，向前迭代查找，找到没有过期的数据，for循环一直碰到Entry为null才会结束。
+    // 如果向前找到了过期数据，更新探测清理过期数据的开始下标为 i，即slotToExpunge=i
+    int slotToExpunge = staleSlot;
+    for (int i = prevIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = prevIndex(i, len))
+        if (e.get() == null)
+            slotToExpunge = i;
+
+    // 从staleSlot向后查找，也是碰到Entry为null的桶结束
+    for (int i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal&lt;?&gt; k = e.get();
+
+        // 替换新数据并且交换当前staleSlot位置
+        if (k == key) {
+            e.value = value;
+
+            tab[i] = tab[staleSlot];
+            tab[staleSlot] = e;
+
+            // Start expunge at preceding stale entry if it exists
+            // slotToExpunge == staleSlot表明向前查找过期数据时并未找到过期的Entry数据，接着向后查找过程中也未发现过期数据，
+            // 修改开始探测式清理过期数据的下标为当前循环的 index，即slotToExpunge = i
+            if (slotToExpunge == staleSlot)
+                slotToExpunge = i;
+            // 过期数据清理--先置空entry，随后清理该槽位
+            cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+            return;
+        }
+
+        // k == null说明当前遍历的Entry是一个过期数据，
+        // slotToExpunge == staleSlot说明，一开始的向前查找数据并未找到过期的Entry。
+        // 如果条件成立，则更新slotToExpunge 为当前位置，这个前提是前驱节点扫描时未发现过期数据。
+        if (k == null &amp;&amp; slotToExpunge == staleSlot)
+            slotToExpunge = i;
     }
 
-    if (brokerAddrFound != null &amp;&amp; brokerAddrFound.length() &gt; 0) {
+    // 如果未找到key，将新entry放入该槽位
+    tab[staleSlot].value = null;
+    tab[staleSlot] = new Entry(key, value);
 
-        try {
-            try {
-                // 加写锁，从brokerLiveTable，filterServerTable中移除对应的数据
-                this.lock.writeLock().lockInterruptibly();
-                this.brokerLiveTable.remove(brokerAddrFound);
-                this.filterServerTable.remove(brokerAddrFound);
-            
-                String brokerNameFound = null;
-                boolean removeBrokerName = false;
-                Iterator&lt;Entry&lt;String, BrokerData&gt;&gt; itBrokerAddrTable =
-                    this.brokerAddrTable.entrySet().iterator();
-                while (itBrokerAddrTable.hasNext() &amp;&amp; (null == brokerNameFound)) {
-                    BrokerData brokerData = itBrokerAddrTable.next().getValue();
+    // 如果还有处在运行中的旧数据，执行清除逻辑
+    if (slotToExpunge != staleSlot)
+        cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+}
 
-                    // 移除brokerData
-                    Iterator&lt;Entry&lt;Long, String&gt;&gt; it = brokerData.getBrokerAddrs().entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry&lt;Long, String&gt; entry = it.next();
-                        Long brokerId = entry.getKey();
-                        String brokerAddr = entry.getValue();
-                        if (brokerAddr.equals(brokerAddrFound)) {
-                            brokerNameFound = brokerData.getBrokerName();
-                            it.remove();
-                            log.info(&quot;remove brokerAddr[{}, {}] from brokerAddrTable, because channel destroyed&quot;,
-                                brokerId, brokerAddr);
-                            break;
-                        }
-                    }
-                    // 如果brokerData的BrokerAddrs数据为空，那么将对应的BrokerAddrTable一同移除
-                    if (brokerData.getBrokerAddrs().isEmpty()) {
-                        removeBrokerName = true;
-                        itBrokerAddrTable.remove();
-                        log.info(&quot;remove brokerName[{}] from brokerAddrTable, because channel destroyed&quot;,
-                            brokerData.getBrokerName());
-                    }
-                }
+</code></pre>
+<p>expungeStaleEntry函数清理过程：遍历散列数组，从开始位置向后探测清理过期数据，将过期数据的Entry设置为null，沿途中碰到未过期的数据则将此数据rehash后重新在table数组中定位，如果定位的位置已经有了数据，则会将未过期的数据放到最靠近此位置的Entry=null的桶中，使rehash后的Entry数据距离正确的桶的位置更近一些。</p>
+<pre><code>private int expungeStaleEntry(int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
 
-                // 从clusterAddrTable中移除broker
-                if (brokerNameFound != null &amp;&amp; removeBrokerName) {
-                    Iterator&lt;Entry&lt;String, Set&lt;String&gt;&gt;&gt; it = this.clusterAddrTable.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry&lt;String, Set&lt;String&gt;&gt; entry = it.next();
-                        String clusterName = entry.getKey();
-                        Set&lt;String&gt; brokerNames = entry.getValue();
-                        boolean removed = brokerNames.remove(brokerNameFound);
-                        if (removed) {
-                            log.info(&quot;remove brokerName[{}], clusterName[{}] from clusterAddrTable, because channel destroyed&quot;,
-                                brokerNameFound, clusterName);
-                            // 如果该broker信心不存在了，那么将对应的clusterAddrTable一同移除
-                            if (brokerNames.isEmpty()) {
-                                log.info(&quot;remove the clusterName[{}] from clusterAddrTable, because channel destroyed and no broker in this cluster&quot;,
-                                    clusterName);
-                                it.remove();
-                            }
+    // expunge entry at staleSlot
+    tab[staleSlot].value = null;
+    tab[staleSlot] = null;
+    size--;
 
-                            break;
-                        }
-                    }
-                }
+    // Rehash until we encounter null
+    // rehash 让重定位后的桶位置更靠近或者等于i= key.hashCode &amp; (tab.len - 1)，如此优化可以提高散列表查询效率
+    Entry e;
+    int i;
+    for (i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal&lt;?&gt; k = e.get();
+        // k == null 直接清理该槽位数据
+        if (k == null) {
+            e.value = null;
+            tab[i] = null;
+            size--;
+        } else {
+            // 如果key没有过期，重新计算当前key的下标位置是不是当前槽位下标位置，如果不是，那么说明产生了hash冲突
+            // 此时以新计算出来正确的槽位位置往后迭代，找到最近一个可以存放entry的位置
+            int h = k.threadLocalHashCode &amp; (len - 1);
+            if (h != i) {
+                tab[i] = null;
 
-                if (removeBrokerName) {
-                    Iterator&lt;Entry&lt;String, List&lt;QueueData&gt;&gt;&gt; itTopicQueueTable =
-                        this.topicQueueTable.entrySet().iterator();
-                    // 遍历所有的主题队列  
-                    while (itTopicQueueTable.hasNext()) {
-                        Entry&lt;String, List&lt;QueueData&gt;&gt; entry = itTopicQueueTable.next();
-                        String topic = entry.getKey();
-                        List&lt;QueueData&gt; queueDataList = entry.getValue();
-
-                        Iterator&lt;QueueData&gt; itQueueData = queueDataList.iterator();
-                        while (itQueueData.hasNext()) {
-                            QueueData queueData = itQueueData.next();
-                            // 如果包含当前broker的队列，就将其移除
-                            if (queueData.getBrokerName().equals(brokerNameFound)) {
-                                itQueueData.remove();
-                                log.info(&quot;remove topic[{} {}], from topicQueueTable, because channel destroyed&quot;,
-                                    topic, queueData);
-                            }
-                        }
-                        // 如果队列数据为空，那么将其对应的TopicQueueTable一同移除
-                        if (queueDataList.isEmpty()) {
-                            itTopicQueueTable.remove();
-                            log.info(&quot;remove topic[{}] all queue, from topicQueueTable, because channel destroyed&quot;,
-                                topic);
-                        }
-                    }
-                }
-            } finally {
-                this.lock.writeLock().unlock();
+                // Unlike Knuth 6.4 Algorithm R, we must scan until
+                // null because multiple entries could have been stale.
+                while (tab[h] != null)
+                    h = nextIndex(h, len);
+                tab[h] = e;
             }
-        } catch (Exception e) {
-            log.error(&quot;onChannelDestroy Exception&quot;, e);
         }
+    }
+    return i;
+}
+
+</code></pre>
+<p>扩容：ThreadLocalMap.set函数在执行完启发式清理工作后，未清理到任何数据，且当前散列数组中Entry的数量已经达到了列表的扩容阈值(len*2/3)，就开始执行rehash()逻辑。</p>
+<pre><code>/**
+ * The next size value at which to resize.
+ */
+private int threshold; // Default to 0
+
+/**
+ * Set the resize threshold to maintain at worst a 2/3 load factor.
+ */
+private void setThreshold(int len) {
+    threshold = len * 2 / 3;
+}  
+
+if (!cleanSomeSlots(i, sz) &amp;&amp; sz &gt;= threshold)
+    rehash();
+
+</code></pre>
+<p>rehash函数首先会清除所有过期的实体数据，随后再判断size &gt;= threshold * 3/4 来决定是否扩容。</p>
+<pre><code>private void rehash() {
+    expungeStaleEntries();
+
+    // Use lower threshold for doubling to avoid hysteresis
+    if (size &gt;= threshold - threshold / 4)
+        resize();
+}
+
+/**
+ * Expunge all stale entries in the table.
+ * 遍历列表清除所有过期数据
+ */
+private void expungeStaleEntries() {
+    Entry[] tab = table;
+    int len = tab.length;
+    for (int j = 0; j &lt; len; j++) {
+        Entry e = tab[j];
+        if (e != null &amp;&amp; e.get() == null)
+            expungeStaleEntry(j);
     }
 }
 
 </code></pre>
-<h3 id="路由发现">路由发现</h3>
-<p>RocketMQ路由发现并非实时的，当Topic路由发生变化后，NameServer不主动推送给客户端，而是由客户端定时拉取主题最新的路由。对应的路由请求类型为：GET_ROUTEINFO_BY_TOPIC</p>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor#processRequest
-case RequestCode.GET_ROUTEINFO_BY_TOPIC:
-    return this.getRouteInfoByTopic(ctx, request);
+<p>扩容后的tab的大小为oldLen * 2，然后遍历老的散列表，重新计算hash位置，然后放到新的tab数组中，如果出现hash冲突则往后寻找最近的entry为null的槽位，遍历完成之后，oldTab中所有的entry数据都已经放入到新的tab中了，重新设置tab下次扩容的阈值。</p>
+<pre><code>/**
+ * Double the capacity of the table.
+ */
+private void resize() {
+    Entry[] oldTab = table;
+    int oldLen = oldTab.length;
+    // 扩容后的新table大小为原来的两倍
+    int newLen = oldLen * 2;
+    Entry[] newTab = new Entry[newLen];
+    int count = 0;
+    // 遍历旧table并计算数据的hash值，随后放入新table中
+    for (int j = 0; j &lt; oldLen; ++j) {
+        Entry e = oldTab[j];
+        if (e != null) {
+            ThreadLocal&lt;?&gt; k = e.get();
+            if (k == null) {
+                e.value = null; // Help the GC
+            } else {
+                int h = k.threadLocalHashCode &amp; (newLen - 1);
+                while (newTab[h] != null)
+                    h = nextIndex(h, newLen);
+                newTab[h] = e;
+                count++;
+            }
+        }
+    }
+    // 设置下次扩容的阈值
+    setThreshold(newLen);
+    size = count;
+    table = newTab;
+}
 
 </code></pre>
-<pre><code>// 文件地址：org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor
-public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
-    RemotingCommand request) throws RemotingCommandException {
-    final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-    final GetRouteInfoRequestHeader requestHeader =
-        (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
-
-    // 通过RouteInfoManager获取主题对应的路由信息
-    TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
-
-    if (topicRouteData != null) {
-        // 如果为顺序消息
-        if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
-            // 获取对应的顺序主题配置，并将其填充至topicRouteData中
-            String orderTopicConf =
-                this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                    requestHeader.getTopic());
-            topicRouteData.setOrderTopicConf(orderTopicConf);
+<h3 id="get函数">get函数</h3>
+<p>相较于ThreadLocal中的set函数，get函数要简单很多，主要是添加或更新数据，主要分为以下几种情形：</p>
+<ul>
+<li>通过查找key值计算出散列表中slot位置，然后该slot位置中的Entry.key和查找的key一致，则直接返回。</li>
+<li>槽位数据不为空且key不一致，继续往后遍历过程中，如果遇到Entry.key和查找的key一致，返回该槽位值；如果遇到key==null，进行一次过期键清理操作。</li>
+</ul>
+<pre><code>public T get() {
+    Thread t = Thread.currentThread();
+    ThreadLocalMap map = getMap(t);
+    if (map != null) {
+        ThreadLocalMap.Entry e = map.getEntry(this);
+        if (e != null) {
+            @SuppressWarnings(&quot;unchecked&quot;)
+            T result = (T)e.value;
+            return result;
         }
-
-        byte[] content = topicRouteData.encode();
-        response.setBody(content);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
     }
+    return setInitialValue();
+}
 
-    // 如果未找到，则返回主题不存在错误码
-    response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-    response.setRemark(&quot;No topic route info in name server for the topic: &quot; + requestHeader.getTopic()
-        + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
-    return response;
+</code></pre>
+<pre><code>private Entry getEntry(ThreadLocal&lt;?&gt; key) {
+    int i = key.threadLocalHashCode &amp; (table.length - 1);
+    Entry e = table[i];
+    // 当前槽位符合查询条件，直接返回
+    if (e != null &amp;&amp; e.get() == key)
+        return e;
+    // 向后遍历查询符合条件的槽位值  
+    else
+        return getEntryAfterMiss(key, i, e);
+}
+
+private Entry getEntryAfterMiss(ThreadLocal&lt;?&gt; key, int i, Entry e) {
+    Entry[] tab = table;
+    int len = tab.length;
+    // 循环查询
+    while (e != null) {
+        ThreadLocal&lt;?&gt; k = e.get();
+        if (k == key)
+            return e;
+        // k==null时，清除该位置的数据  
+        if (k == null)
+            expungeStaleEntry(i);
+        else
+            i = nextIndex(i, len);
+        e = tab[i];
+    }
+    return null;
 }
 
 </code></pre>
@@ -1124,7 +959,7 @@ public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
     </li>
     <li class="post-copyright-link">
       <strong class="language" data-lan="link">本文链接：</strong>
-      <a href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/" title="RocketMQ源码解读之NameServer">https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-nameserver/</a>
+      <a href="https://philosopherzb.github.io/post/threadlocal-xiang-jie/" title="ThreadLocal详解">https://philosopherzb.github.io/post/threadlocal-xiang-jie/</a>
     </li>
     <li class="post-copyright-license">
       <strong class="language" data-lan="copyright">版权声明： </strong>
@@ -1133,21 +968,21 @@ public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
   </ul>
   <div class="tags">
     
-      <a href="https://philosopherzb.github.io/tag/ApPghth21/"># rocketmq</a>
+      <a href="https://philosopherzb.github.io/tag/DzLW6IbZ3/"># java</a>
     
   </div>
   <div class="nav">
     <div class="nav-prev">
       
         <i class="fa fa-chevron-left"></i>
-        <a class="nav-pc-next" title="RocketMQ源码解读之消息发送" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-fa-song/">RocketMQ源码解读之消息发送</a class="nav-pc-next">
-        <a class="nav-mobile-prev" title="RocketMQ源码解读之消息发送" href="https://philosopherzb.github.io/post/rocketmq-yuan-ma-jie-du-zhi-xiao-xi-fa-song/">上一篇</a>
+        <a class="nav-pc-next" title="Centos7基本知识" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/">Centos7基本知识</a class="nav-pc-next">
+        <a class="nav-mobile-prev" title="Centos7基本知识" href="https://philosopherzb.github.io/post/centos7-ji-ben-zhi-shi/">上一篇</a>
       
     </div>
     <div class="nav-next">
       
-        <a class="nav-pc-next" title="RocketMQ架构与设计" href="https://philosopherzb.github.io/post/rocketmq-jia-gou-yu-she-ji/">RocketMQ架构与设计</a>
-        <a class="nav-mobile-next" title="RocketMQ架构与设计" href="https://philosopherzb.github.io/post/rocketmq-jia-gou-yu-she-ji/">下一篇</a>
+        <a class="nav-pc-next" title="Volatile关键字详解" href="https://philosopherzb.github.io/post/volatile-guan-jian-zi-xiang-jie/">Volatile关键字详解</a>
+        <a class="nav-mobile-next" title="Volatile关键字详解" href="https://philosopherzb.github.io/post/volatile-guan-jian-zi-xiang-jie/">下一篇</a>
         <i class="fa fa-chevron-right"></i>
       
     </div>
