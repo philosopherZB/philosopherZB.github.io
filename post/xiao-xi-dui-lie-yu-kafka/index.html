@@ -9,7 +9,7 @@
 <meta name="description" content="WORLD AS CODE">
 <meta name="theme-color" content="#000">
 <title>消息队列与kafka | Philosopher</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1696902917093">
+<link rel="shortcut icon" href="/favicon.ico?v=1701311774480">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -214,7 +214,7 @@
     <div class="sidebar-item-box">
       <a href="/archives/">
         
-        <span class="site-item-stat-count">59</span>
+        <span class="site-item-stat-count">61</span>
         <span class="site-item-stat-name language" data-lan="article">文章</span>
       </a>
     </div>
@@ -18310,6 +18310,542 @@ rm (移除档案或目录)
 
 [root@localhost tmp]# rm -i bashrc* &amp;lt;==通过通配符『*』的帮忙，将/tmp底下开头为bashrc的档名通通删除。通配符『*』代表的是 0 到无穷多个任意字符。&lt;/code&gt;&lt;/pre&gt;
 ">Centos7基本知识</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/aqs-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述AQS。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/sunset-1117008_1280001.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;aqs详解&#34;&gt;AQS详解&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;AQS，全称AbstractQueuedSynchronizer，中文名抽象队列同步器，位于java.util.concurrent.locks包下，这是一个用来构建锁和同步器的框架，使用AQS能够简单而高效的构造出大量应用广泛的同步器，例如ReentrantLock，Semaphore，ReentrantReadWriteLock等。&lt;/p&gt;
+&lt;p&gt;AQS核心思想是，如果被请求的共享资源空闲，那么就将当前请求资源的线程设置为有效的工作线程，将共享资源设置为锁定状态；如果共享资源被占用，就需要一定的阻塞等待唤醒机制来保证锁分配。这个机制主要用的是CLH队列的变体实现的，将暂时获取不到锁的线程加入到队列中。&lt;/p&gt;
+&lt;p&gt;CLH：Craig、Landin and Hagersten队列，是单向链表，AQS中的队列是CLH变体的虚拟双向队列（FIFO），AQS是通过将每条请求共享资源的线程封装成一个节点来实现锁的分配。&lt;/p&gt;
+&lt;h3 id=&#34;基本结构属性&#34;&gt;基本结构属性&lt;/h3&gt;
+&lt;p&gt;AQS中最基本的数据结构是Node，Node即为上面CLH变体队列中的节点。&lt;/p&gt;
+&lt;p&gt;Node两种资源共享方式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Exclusive(独占)：只有一个线程能执行，如ReentrantLock。又可分为公平锁和非公平锁：&lt;/li&gt;
+&lt;li&gt;公平锁：按照线程在队列中的排队顺序，先到者先拿到锁&lt;/li&gt;
+&lt;li&gt;非公平锁：当线程要获取锁时，无视队列顺序直接去抢锁，谁抢到就是谁的&lt;/li&gt;
+&lt;li&gt;Share(共享)：多个线程可同时执行，如Semaphore/CountDownLatch。Semaphore、CountDownLatCh、 CyclicBarrier、ReadWriteLock等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;static final class Node {
+    /** 共享模式节点 */
+    static final Node SHARED = new Node();
+    /** 独占模式节点 */
+    static final Node EXCLUSIVE = null;
+
+    // 节点状态 
+    // CANCELLED，值为1，表示当前的线程被取消 
+    // SIGNAL，值为-1，表示当前节点的后继节点包含的线程需要运行，也就是unpark 
+   // CONDITION，值为-2，表示当前节点在等待condition，也就是在condition队列中 
+   // PROPAGATE，值为-3，表示当前场景下后续的acquireShared能够得以执行 
+   // 值为0，表示当前节点在sync队列中，等待着获取锁
+    static final int CANCELLED =  1;
+    static final int SIGNAL    = -1;
+    static final int CONDITION = -2;
+    static final int PROPAGATE = -3;
+  
+    // 节点状态
+    volatile int waitStatus;
+
+    // 前驱节点
+    volatile Node prev;
+
+    // 后继节点
+    volatile Node next;
+
+    // 当前节点对应的线程
+    volatile Thread thread;
+
+    // 下一个等待节点
+    Node nextWaiter;
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;AQS使用一个Volatile的int类型的成员变量来表示同步状态，通过内置的FIFO队列来完成资源获取的排队工作，通过CAS完成对State值的修改。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * 同步状态
+ */
+private volatile int state;
+/**
+ * @return 当前状态值
+ */
+protected final int getState() {
+    return state;
+}
+
+/**
+ * 设置同步器状态值
+ * @param newState the new state value
+ */
+protected final void setState(int newState) {
+    state = newState;
+}
+
+/**
+ * 原子地(CAS操作)将同步状态值设置为给定值update，如果当前同步状态的值等于expect(期望值)
+ *
+ * @param expect the expected value
+ * @param update the new value
+ * @return {@code true} if successful. False return indicates that the actual
+ *         value was not equal to the expected value.
+ */
+protected final boolean compareAndSetState(int expect, int update) {
+    // See below for intrinsics setup to support this
+    return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;加锁过程&#34;&gt;加锁过程&lt;/h3&gt;
+&lt;p&gt;以ReentrantLock的加锁来简述AQS的基本逻辑，其中AQS加锁的核心函数为acquire，该函数的主要逻辑流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;tryAcquire()尝试直接去获取资源，如果成功则直接返回（这里体现了非公平锁，每个线程获取锁时会尝试直接抢占加塞一次，而CLH队列中可能还有别的线程在等待）；&lt;/li&gt;
+&lt;li&gt;addWaiter()将该线程加入等待队列的尾部，并标记为独占模式；&lt;/li&gt;
+&lt;li&gt;acquireQueued()使线程阻塞在等待队列中获取资源，一直获取到资源后才返回。如果在整个等待过程中被中断过，则返回true，否则返回false。如果线程在等待过程中被中断过，它是不响应的。只是获取资源后才再进行自我中断selfInterrupt()，将中断补上。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;public final void acquire(int arg) {
+    if (!tryAcquire(arg) &amp;amp;&amp;amp;
+        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        selfInterrupt();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;tryAcquire()函数由继承了AbstractQueuedSynchronizer的类进行集体的实现，此处以ReentrantLock中的公平锁FairSync为例。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;公平锁实现的 tryAcquire，首先获取同步状态 state，不为 0 代表有线程持锁，则判断是否是当前线程，如果是则 state + 1, 因此是可重入的。&lt;/li&gt;
+&lt;li&gt;如果 state = 1，则检查是否需要排队 hasQueuedPredecessors，如果需要排队则不继续判断，走加入队列的逻辑。&lt;/li&gt;
+&lt;li&gt;如果不需要排队，通过 CAS 设置同步状态 state = 1, 设置失败则去排队，设置成功则设置持锁线程为当前线程。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;protected final boolean tryAcquire(int acquires) {
+    final Thread current = Thread.currentThread();
+    // 获取当前状态值
+    int c = getState();
+    // 为0表示没有线程持有锁
+    if (c == 0) {
+        // hasQueuedPredecessors 是否需要排队，true表示需要排队
+        if (!hasQueuedPredecessors() &amp;amp;&amp;amp;
+            compareAndSetState(0, acquires)) {
+            setExclusiveOwnerThread(current);
+            return true;
+        }
+    }
+    // 不为0，且是同一线程重复加锁，便对状态值进行增加操作，此处表明ReentrantLock是一个可重入锁
+    else if (current == getExclusiveOwnerThread()) {
+        int nextc = c + acquires;
+        if (nextc &amp;lt; 0)
+            throw new Error(&amp;quot;Maximum lock count exceeded&amp;quot;);
+        setState(nextc);
+        return true;
+    }
+    return false;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;hasQueuedPredecessors是公平锁加锁时判断等待队列中是否存在有效节点的方法。如果返回False，说明当前线程可以争取共享资源；如果返回True，说明队列中存在有效节点，当前线程必须加入到等待队列中。&lt;/p&gt;
+&lt;p&gt;其中，核心逻辑代码：h != t &amp;amp;&amp;amp; ((s = h.next) == null || s.thread != Thread.currentThread());&lt;/p&gt;
+&lt;p&gt;双向链表中，第一个节点为虚节点，其实并不存储任何信息，只是占位。真正的第一个有数据的节点，是在第二个节点开始的。当h != t时： 如果(s = h.next) == null，等待队列正在有线程进行初始化，但只是进行到了Tail指向Head，没有将Head指向Tail，此时队列中有元素，需要返回True（这块具体见下边代码分析）。 如果(s = h.next) != null，说明此时队列中至少有一个有效节点。如果此时s.thread == Thread.currentThread()，说明等待队列的第一个有效节点中的线程与当前线程相同，那么当前线程是可以获取资源的；如果s.thread != Thread.currentThread()，说明等待队列的第一个有效节点线程与当前线程不同，当前线程必须加入进等待队列。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// hasQueuedPredecessors是公平锁加锁时判断等待队列中是否存在有效节点的方法。
+// 如果返回False，说明当前线程可以争取共享资源；
+// 如果返回True，说明队列中存在有效节点，当前线程必须加入到等待队列中。
+public final boolean hasQueuedPredecessors() {
+    // The correctness of this depends on head being initialized
+    // before tail and on head.next being accurate if the current
+    // thread is first in queue.
+    Node t = tail; // Read fields in reverse initialization order
+    Node h = head;
+    Node s;
+    return h != t &amp;amp;&amp;amp;
+        ((s = h.next) == null || s.thread != Thread.currentThread());
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;当执行Acquire(1)时，会通过tryAcquire获取锁。在这种情况下，如果获取锁失败，就会调用addWaiter加入到等待队列中去。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过当前的线程和锁模式新建一个节点。&lt;/li&gt;
+&lt;li&gt;Pred指针指向尾节点Tail。&lt;/li&gt;
+&lt;li&gt;将New中Node的Prev指针指向Pred。&lt;/li&gt;
+&lt;li&gt;通过compareAndSetTail方法，完成尾节点的设置&lt;/li&gt;
+&lt;li&gt;如果Pred指针是Null（说明等待队列中没有元素），或者当前Pred指针和Tail指向的位置不同（说明被别的线程已经修改），此时将执行enq函数。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;// 节点加入等待队列
+private Node addWaiter(Node mode) {
+    // 以当前线程以及选定的模式构建一个新节点
+    Node node = new Node(Thread.currentThread(), mode);
+    // Try the fast path of enq; backup to full enq on failure
+    // 将尾结点赋给pred
+    Node pred = tail;
+    // 如果此时pred不为空，说明等待队列不为空
+    if (pred != null) {
+        // pred（之前的尾结点）设置为当前节点的前驱节点
+        node.prev = pred;
+        // 比较pred是否为尾结点，是则将尾结点设置为node 
+        if (compareAndSetTail(pred, node)) {
+            pred.next = node;
+            // 返回构建的新节点
+            return node;
+        }
+    }
+    // 尾结点为空(即还没有被初始化过)，或者是compareAndSetTail操作失败，则入队列
+    enq(node);
+    return node;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;addWaiter方法使用快速添加的方式往sync queue尾部添加结点，如果sync queue队列还没有初始化，则会使用enq插入队列中。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;private Node enq(final Node node) {
+    // 自旋，无限循环，确保节点能够加入队列
+    for (;;) {
+        Node t = tail;
+        if (t == null) { // 尾结点为空，必须进行初始化操作
+            // 头节点为空，并设置头节点为新生成的结点
+            if (compareAndSetHead(new Node()))
+                // 头节点与尾结点都指向同一个新生结点
+                tail = head;
+        } else {
+            // 尾结点不为空，表明队列已初始化
+            // 设置队列尾结点为当前节点的前驱节点
+            node.prev = t;
+            // 比较结点t是否为尾结点，若是则将尾结点设置为node
+            if (compareAndSetTail(t, node)) {
+                // 设置尾结点t的后继节点为node
+                t.next = node;
+                return t;
+            }
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;acquireQueued将addWaiter函数返回的节点真正的加入到队列中。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;通过 acquireQueued 将当前节点加入队尾，并设置阻塞。自旋，判断如果当前节点的前驱节点。是头结点（head 节点不排队，只记录状态，head 的后驱节点才是真正第一个排队的），则再次尝试 tryAcquire() 获取锁。&lt;/li&gt;
+&lt;li&gt;可以看到自旋的跳出条件是当前节点是队列中第一个，并且获取锁。&lt;/li&gt;
+&lt;li&gt;如果一直自旋，则会消耗 CPU 资源，因此使用 shouldParkAfterFailedAcquire 判断是否需要将当前线程阻塞，如果是则通过 parkAndCheckInterrupt 阻塞线程的运行。&lt;/li&gt;
+&lt;li&gt;LockSupport.park() 是通过 native 方法 UNSAFE.park() 实现的线程阻塞。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;final boolean acquireQueued(final Node node, int arg) {
+    // 标记是否成功拿到资源
+    boolean failed = true;
+    try {
+        // 标记等待过程中是否中断过
+        boolean interrupted = false;
+        // 开始自旋，要么获取锁，要么中断
+        for (;;) {
+            // 获取当前节点的前驱节点
+            final Node p = node.predecessor();
+            // 如果p是头节点，说明当前节点在真实数据队列的首部，此时尝试获取锁
+            if (p == head &amp;amp;&amp;amp; tryAcquire(arg)) {
+                // 获取锁成功，将当前节点设置为头节点
+                setHead(node);
+                p.next = null; // help GC
+                failed = false;
+                return interrupted;
+            }
+            // 此处说明p不是头节点，或者p为头节点，但是没有获取到锁（例如非公平锁下可能会被其他线程抢占）
+            // 这时判断节点是否应该被挂起（如果前一个不是待唤醒，则自旋，如果前一个待唤醒，则当前线程也阻塞等待），防止无限循环浪费资源
+            if (shouldParkAfterFailedAcquire(p, node) &amp;amp;&amp;amp;
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            // 标记节点状态为cancel
+            cancelAcquire(node);
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;// 依赖前驱节点判断当前线程是否应该阻塞
+private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+    // 获取前驱节点的等待状态
+    int ws = pred.waitStatus;
+    // 前驱节点处于唤醒状态
+    if (ws == Node.SIGNAL)
+        /*
+         * This node has already set status asking a release
+         * to signal it, so it can safely park.
+         */
+        // 可以进行park操作 
+        return true;
+    // 大于0表示前驱节点处于取消状态  
+    if (ws &amp;gt; 0) {
+        /*
+         * Predecessor was cancelled. Skip over predecessors and
+         * indicate retry.
+         */
+        // 循环向前查找取消节点，把取消节点从队列中删除
+        // 即将自己挂在第一个不为取消状态的节点后，
+        // 随后那些被放弃的节点，由于自己“加塞”到它们前面，这些取消节点相当于形成一个无引用链，会被GC自动回收 
+        do {
+            node.prev = pred = pred.prev;
+        } while (pred.waitStatus &amp;gt; 0);
+        pred.next = node;
+    } else {
+        /*
+         * waitStatus must be 0 or PROPAGATE.  Indicate that we
+         * need a signal, but don&#39;t park yet.  Caller will need to
+         * retry to make sure it cannot acquire before parking.
+         */
+        // 设置前驱节点等待状态为SIGNAL
+        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+    }
+    // 不进行park操作
+    return false;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private final boolean parkAndCheckInterrupt() {
+    // 挂起当前线程
+    LockSupport.park(this);
+    //如果被唤醒，查看自己是不是被中断的。
+    return Thread.interrupted();
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private void cancelAcquire(Node node) {
+    // 过滤无效节点
+    if (node == null)
+        return;
+    // 设置该节点的线程为null，不关联任何线程，可以看做虚节点
+    node.thread = null;
+
+    // 跳过已取消的前驱节点
+    Node pred = node.prev;
+    while (pred.waitStatus &amp;gt; 0)
+        node.prev = pred = pred.prev;
+
+    // 此时的节点为非取消状态，此时获取该节点的后继节点
+    Node predNext = pred.next;
+
+    // 将当前节点状态设置为CANCELLED
+    node.waitStatus = Node.CANCELLED;
+
+    // 如果当前节点是尾结点，将从后往前的第一个非取消状态的节点设置为尾结点
+    if (node == tail &amp;amp;&amp;amp; compareAndSetTail(node, pred)) {
+        // 将tail的后继节点设置为null
+        compareAndSetNext(pred, predNext, null);
+    } else {
+    // node结点不为尾结点，或者比较设置不成功
+    // 1:判断当前节点前驱节点的是否为SIGNAL，
+    // 2:如果不是，则把前驱节点设置为SINGAL看是否成功
+    // 如果1和2中有一个为true，再判断当前节点的线程是否为null
+    // 如果上述条件都满足，把当前节点的前驱节点的后继指针指向当前节点的后继节点
+        int ws;
+        // pred结点不为头节点，并且pred结点的状态为SIGNAL
+        // 或者pred结点状态小于等于0，并且比较并设置等待状态为SIGNAL成功，并且pred结点所封装的线程不为空
+        if (pred != head &amp;amp;&amp;amp;
+            ((ws = pred.waitStatus) == Node.SIGNAL ||
+             (ws &amp;lt;= 0 &amp;amp;&amp;amp; compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &amp;amp;&amp;amp;
+            pred.thread != null) {
+            // 得到后继节点  
+            Node next = node.next;
+            // 后继不为空并且后继的状态小于等于0
+            if (next != null &amp;amp;&amp;amp; next.waitStatus &amp;lt;= 0)
+                // 比较并设置pred.next = next;
+                compareAndSetNext(pred, predNext, next);
+        } else {
+            // 如果当前节点是head的后继节点，或者上述条件不满足，那就唤醒当前节点的后继节点
+            unparkSuccessor(node);
+        }
+
+        node.next = node; // help GC
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;解锁过程&#34;&gt;解锁过程&lt;/h3&gt;
+&lt;p&gt;相对而言，解锁的逻辑比较简单，此节依旧以ReentrantLock为例。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;unlock() 方法调用了 AQS 的 release()方法，执行 tryRelease() 释放锁。&lt;/li&gt;
+&lt;li&gt;tryRelease() 由子类实现，reentrantLock 释放逻辑是将 state - 1, 直到 state = 0 才认为是释放完毕，多次重入需要多次释放。&lt;/li&gt;
+&lt;li&gt;通过 AQS 的 unparkSuccessor() 唤醒下一个等待的线程。&lt;/li&gt;
+&lt;li&gt;使用 LockSupport.unpark(s.thread) 唤醒线程。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意：ReentrantLock在解锁的时候，并不区分公平锁和非公平锁。两者区别如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;公平锁的流程是，当前有线程持锁，则新来的线程乖乖去排队。&lt;/li&gt;
+&lt;li&gt;非公平锁的流程是，新来的线程先去抢一把试试，没抢到再去排队。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;public void unlock() {
+    sync.release(1);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;public final boolean release(int arg) {
+    // 尝试释放锁  tryRelease 函数由对应的子类继续具体实现
+    if (tryRelease(arg)) {
+        // 获取头结点
+        Node h = head;
+        // 头结点不为空并且头结点的waitStatus不是初始化节点情况，解除线程挂起状态
+        // h == null Head还没初始化。初始情况下，head == null，第一个节点入队，Head会被初始化一个虚拟节点。所以说，这里如果还没来得及入队，就会出现head == null 的情况。
+        // h != null &amp;amp;&amp;amp; waitStatus == 0 表明后继节点对应的线程仍在运行中，不需要唤醒。
+        // h != null &amp;amp;&amp;amp; waitStatus &amp;lt; 0 表明后继节点可能被阻塞了，需要唤醒。
+        if (h != null &amp;amp;&amp;amp; h.waitStatus != 0)
+            unparkSuccessor(h);
+        return true;
+    }
+    return false;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;protected final boolean tryRelease(int releases) {
+    // 重入锁需要多次释放
+    int c = getState() - releases;
+    // 判断当前线程是否为持有锁的线程
+    if (Thread.currentThread() != getExclusiveOwnerThread())
+        throw new IllegalMonitorStateException();
+    boolean free = false;
+    // 如果持有线程全部释放，将当前独占锁所有线程设置为null，并更新state
+    if (c == 0) {
+        free = true;
+        setExclusiveOwnerThread(null);
+    }
+    setState(c);
+    return free;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private void unparkSuccessor(Node node) {
+    // 获取头节点的waitStatus
+    int ws = node.waitStatus;
+    if (ws &amp;lt; 0)
+        compareAndSetWaitStatus(node, ws, 0);
+    // 获取当前节点的下一节点
+    Node s = node.next;
+    // 如果下个节点是null或者下个节点被cancelled，就找到队列最开始的非cancelled的节点
+    if (s == null || s.waitStatus &amp;gt; 0) {
+        s = null;
+        // 就从尾部节点开始找，到队首，找到队列第一个waitStatus&amp;lt;0的节点。
+        for (Node t = tail; t != null &amp;amp;&amp;amp; t != node; t = t.prev)
+            if (t.waitStatus &amp;lt;= 0)
+                s = t;
+    }
+    // 如果当前节点的下个节点不为空，而且状态&amp;lt;=0，就把当前节点unpark
+    if (s != null)
+        LockSupport.unpark(s.thread);
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+">AQS详解</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://philosopherzb.github.io/post/cas-xiang-jie/"" data-c="
+          &lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;本章主要简述CAS。&lt;/p&gt;
+&lt;figure data-type=&#34;image&#34; tabindex=&#34;1&#34;&gt;&lt;img src=&#34;https://raw.githubusercontent.com/philosopherZB/blog-images/master/blogImg/mountain-4331689_1280.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34;&gt;&lt;/figure&gt;
+&lt;h2 id=&#34;cas详解&#34;&gt;CAS详解&lt;/h2&gt;
+&lt;h3 id=&#34;简介&#34;&gt;简介&lt;/h3&gt;
+&lt;p&gt;CAS的全称为Compare-And-Swap，直译就是对比交换。是一条CPU的原子指令，其作用是让CPU先进行比较两个值是否相等，然后原子地更新某个位置的值。&lt;/p&gt;
+&lt;p&gt;在CAS中，主要有三个核心值：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;V：要更新的变量(var)&lt;/li&gt;
+&lt;li&gt;E：预期值(expected)&lt;/li&gt;
+&lt;li&gt;N：新值(new)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;比较并交换的过程如下：&lt;/p&gt;
+&lt;p&gt;判断V是否等于E，如果等于，将V的值设置为N；如果不等，说明已经有其它线程更新了V，则当前线程放弃更新，什么都不做。该过程非常类似于数据库sql语句：update set number=2 from table where number=1&lt;/p&gt;
+&lt;p&gt;CAS操作是原子性的，所以多线程并发使用CAS更新数据时，可以不使用锁。JDK中大量使用了CAS来更新数据而防止加锁(synchronized 重量级锁)来保持原子更新。&lt;/p&gt;
+&lt;h3 id=&#34;atomicinteger&#34;&gt;AtomicInteger&lt;/h3&gt;
+&lt;p&gt;JDK提供了一些用于原子操作的类，主要位于java.util.concurrent.atomic包下面。本节以AtomicInteger为例简单讲解cas实现细节。&lt;/p&gt;
+&lt;p&gt;注意：一般情况下，如果并发度较低推荐使用AtomicInteger，并发度比较高推荐使用LongAdder。&lt;/p&gt;
+&lt;p&gt;常用API&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// 获取当前的值
+public final int get() 
+// 设置新值
+public final void set(int newValue)
+// 最终会设置成newValue,使用lazySet设置值后，可能导致其他线程在之后的一小段时间内还是可以读到旧的值。
+public final void lazySet(int newValue)
+// 获取当前的值，并设置新的值
+public final int getAndSet(int newValue) 
+// 比较预期值并进行更新
+public final boolean compareAndSet(int expect, int update)
+// 获取当前的值，并自增 
+public final int getAndIncrement()
+// 获取当前的值，并自减 
+public final int getAndDecrement()
+// 获取当前的值，并加上预期的值
+public final int getAndAdd(int delta) 
+// 先自增，再获取自增后的新值
+public final int incrementAndGet()
+// 先自减，再获取自减后的新值
+public final int decrementAndGet()
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;以getAndIncrement函数为例，可以发现其本质上是使用的Unsafe类中方法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public final int getAndIncrement() {
+    return unsafe.getAndAddInt(this, valueOffset, 1);
+}
+
+public final int getAndAddInt(Object var1, long var2, int var4) {
+    int var5;
+    // 此处自旋对值进行增加操作
+    do {
+        var5 = this.getIntVolatile(var1, var2);
+    } while(!this.compareAndSwapInt(var1, var2, var5, var5 + var4));
+
+    return var5;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;unsafe&#34;&gt;Unsafe&lt;/h3&gt;
+&lt;p&gt;Unsafe是位于sun.misc包下的一个类，主要提供一些用于执行低级别、不安全操作的方法，如直接访问系统内存资源、自主管理内存资源等，这些方法在提升Java运行效率、增强Java语言底层资源操作能力方面起到了很大的作用。&lt;/p&gt;
+&lt;p&gt;但由于Unsafe类使Java语言拥有了类似C语言指针一样操作内存空间的能力，这无疑也增加了程序发生相关指针问题的风险。&lt;/p&gt;
+&lt;p&gt;在程序中过度、不正确使用Unsafe类会使得程序出错的概率变大，使得Java这种安全的语言变得不再“安全”，因此对Unsafe的使用一定要慎重。&lt;/p&gt;
+&lt;p&gt;Unsafe提供的API大致可分为内存操作、CAS、Class相关、对象操作、线程调度、系统信息获取、内存屏障、数组操作等几类。&lt;/p&gt;
+&lt;p&gt;虽然Unsafe类中的方法都是 public ，但是并没有办法使用它们，JDK API 文档也没有提供任何关于这个类的方法的解释。也即是说，对于 Unsafe 类的使用都是受限制的，只有授信的代码才能获得该类的实例，当然 JDK 库里面的类是可以随意使用的。&lt;/p&gt;
+&lt;p&gt;Unsafe类为一单例实现，提供静态方法getUnsafe获取Unsafe实例，当且仅当调用getUnsafe方法的类为引导类加载器所加载时才合法，否则抛出SecurityException异常。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public final class Unsafe {
+    private static final Unsafe theUnsafe;
+    // Unsafe构造器私有化
+    private Unsafe() {
+    }
+  
+    @CallerSensitive
+    public static Unsafe getUnsafe() {
+        Class var0 = Reflection.getCallerClass();
+        if (!VM.isSystemDomainLoader(var0.getClassLoader())) {
+            throw new SecurityException(&amp;quot;Unsafe&amp;quot;);
+        } else {
+            return theUnsafe;
+        }
+    }
+}  
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;可以通过Java命令行命令-Xbootclasspath/*把调用Unsafe相关方法的类A所在jar包路径追加到默认的bootstrap路径中，使得A被引导类加载器加载，从而通过Unsafe.getUnsafe方法安全的获取Unsafe实例，或者通过反射的方式主动获取Unsafe类。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;java -Xbootclasspath/a: ${path}   // 其中path为调用Unsafe相关方法的类所在jar包路径 
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code&gt;private static Unsafe reflectGetUnsafe() {
+    try {
+      Field field = Unsafe.class.getDeclaredField(&amp;quot;theUnsafe&amp;quot;);
+      field.setAccessible(true);
+      return (Unsafe) field.get(null);
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+      return null;
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3 id=&#34;cas问题&#34;&gt;CAS问题&lt;/h3&gt;
+&lt;h4 id=&#34;aba问题&#34;&gt;ABA问题&lt;/h4&gt;
+&lt;p&gt;所谓ABA问题，就是一个值原来是A，变成了B，又变回了A。这个时候使用CAS是检查不出变化的，但实际上却被更新了两次。&lt;/p&gt;
+&lt;p&gt;ABA问题的解决思路是在变量前面追加上版本号或者时间戳，这样每次变量更新的时候把版本号加1，那么A-&amp;gt;B-&amp;gt;A就会变成1A-&amp;gt;2B-&amp;gt;3A。&lt;/p&gt;
+&lt;p&gt;从JDK 1.5开始，JDK的atomic包里提供了一个类AtomicStampedReference类来解决ABA问题。&lt;/p&gt;
+&lt;p&gt;这个类的compareAndSet方法的作用是首先检查当前引用是否等于预期引用，并且检查当前标志是否等于预期标志，如果二者都相等，才使用CAS设置为新的值和标志。&lt;/p&gt;
+&lt;h4 id=&#34;循环时间长1开销大&#34;&gt;循环时间长1开销大&lt;/h4&gt;
+&lt;p&gt;自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销。&lt;/p&gt;
+&lt;p&gt;如果JVM能支持处理器提供的pause指令，那么效率会有一定的提升。&lt;/p&gt;
+&lt;p&gt;pause指令有两个作用：第一，它可以延迟流水线执行命令(de-pipeline)，使CPU不会消耗过多的执行资源，延迟的时间取决于具体实现的版本，在一些处理器上延迟时间是零；第二，它可以避免在退出循环的时候因内存顺序冲突(Memory Order Violation)而引起CPU流水线被清空(CPU Pipeline Flush)，从而提高CPU的执行效率。&lt;/p&gt;
+&lt;h4 id=&#34;只能保证一个共享变量的原子操作&#34;&gt;只能保证一个共享变量的原子操作&lt;/h4&gt;
+&lt;p&gt;当对一个共享变量执行操作时，可以使用循环CAS的方式来保证原子操作，但是对多个共享变量操作时，循环CAS就无法保证操作的原子性，这个时候就可以用锁。&lt;/p&gt;
+&lt;p&gt;从Java 1.5开始，JDK提供了AtomicReference类来保证引用对象之间的原子性，就可以把多个变量放在一个对象里来进行CAS操作。&lt;/p&gt;
+">CAS详解</a>
       </div>
       
       <div class="item">
